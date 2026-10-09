@@ -1,6 +1,11 @@
 from app.database import Base
-from sqlalchemy import JSON, Column, ForeignKey, Integer, String, Table
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String, Table, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+
+class TimestampMixin:
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 product_sector_association = Table(
     "product_sector",
@@ -10,7 +15,7 @@ product_sector_association = Table(
 )
 
 
-class Category(Base):
+class Category(TimestampMixin, Base):
     __tablename__ = "categories"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
@@ -20,7 +25,7 @@ class Category(Base):
     subcategories = relationship("Subcategory", back_populates="category")
 
 
-class Subcategory(Base):
+class Subcategory(TimestampMixin, Base):
     __tablename__ = "subcategories"
     id = Column(Integer, primary_key=True, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"))
@@ -31,7 +36,7 @@ class Subcategory(Base):
     products = relationship("Product", back_populates="subcategory")
 
 
-class Brand(Base):
+class Brand(TimestampMixin, Base):
     __tablename__ = "brands"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
@@ -40,7 +45,7 @@ class Brand(Base):
     products = relationship("Product", back_populates="brand")
 
 
-class Product(Base):
+class Product(TimestampMixin, Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
     subcategory_id = Column(Integer, ForeignKey("subcategories.id"))
@@ -58,7 +63,7 @@ class Product(Base):
     )
 
 
-class Document(Base):
+class Document(TimestampMixin, Base):
     __tablename__ = "documents"
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"))
@@ -69,7 +74,7 @@ class Document(Base):
     product = relationship("Product", back_populates="documents")
 
 
-class Sector(Base):
+class Sector(TimestampMixin, Base):
     __tablename__ = "sectors"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)

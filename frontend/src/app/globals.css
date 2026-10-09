@@ -3,24 +3,25 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --brand-navy: #002244;
+  --brand-gold: #F2A900; 
+  --brand-gold-bright: #FFB347; 
+  --brand-light-blue: #E1F0F8;
+  --brand-navy-light: #003366; 
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-navy: var(--brand-navy);
+  --color-gold: var(--brand-gold);
+  --color-gold-bright: var(--brand-gold-bright);
+  --color-light-blue: var(--brand-light-blue);
+  --color-navy-light: var(--brand-navy-light);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
