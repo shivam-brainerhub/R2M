@@ -32,7 +32,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Strong Typing**: Use TypeScript for the frontend (avoid `any`) and Python Type Hints for the backend.
 - **Clean Code**: Follow SOLID principles. Keep functions small, focused on a single responsibility, and well-named.
 - **Formatting & Linting**:
-  - Frontend: Follow Prettier and ESLint rules.
+  - Frontend: Follow Prettier and ESLint rules. Ensure zero warnings.
+  - Tailwind CSS: Avoid arbitrary classes (e.g. `min-h-[300px]`) when canonical classes exist (e.g. `min-h-75`). Do not introduce code that raises Tailwind or ESLint warnings.
   - Backend: Follow PEP 8 guidelines. Use standard Python formatters/linters (e.g., black, ruff).
 - **Documentation**: Provide clear comments for complex logic and maintain up-to-date docstrings for backend functions and classes.
 - **Error Handling**: Use structured error handling. The backend should return consistent HTTP status codes and JSON error responses, which the frontend should gracefully handle and display to the user.

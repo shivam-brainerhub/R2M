@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact",
+};
+
 export default function Contact() {
   return (
     <div className="bg-light-blue min-h-screen pb-20">
@@ -35,7 +41,7 @@ export default function Contact() {
                 <textarea placeholder="How can we help you?" rows={5} className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none"></textarea>
              </div>
              <button type="submit" className="bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-colors mt-2 flex justify-center items-center">
-               Send Message <span className="material-symbols-outlined ml-2 text-sm">send</span>
+               Send Message <span className="material-symbols-outlined ml-2 text-sm!">send</span>
              </button>
            </form>
         </div>
@@ -45,21 +51,21 @@ export default function Contact() {
               <h3 className="text-xl font-bold text-navy mb-6">Contact Information</h3>
               <div className="space-y-6">
                  <div className="flex items-start gap-4">
-                    <span className="material-symbols-outlined text-gold text-2xl">location_on</span>
+                    <span className="material-symbols-outlined text-gold text-2xl!">location_on</span>
                     <div>
                        <h4 className="font-semibold text-navy">Head Office</h4>
                        <p className="text-gray-600 mt-1">123 Healthcare Blvd, Medical District<br/>Johannesburg, 2000, South Africa</p>
                     </div>
                  </div>
                  <div className="flex items-start gap-4">
-                    <span className="material-symbols-outlined text-gold text-2xl">phone</span>
+                    <span className="material-symbols-outlined text-gold text-2xl!">phone</span>
                     <div>
                        <h4 className="font-semibold text-navy">Phone</h4>
                        <p className="text-gray-600 mt-1">+27 11 450 3000</p>
                     </div>
                  </div>
                  <div className="flex items-start gap-4">
-                    <span className="material-symbols-outlined text-gold text-2xl">mail</span>
+                    <span className="material-symbols-outlined text-gold text-2xl!">mail</span>
                     <div>
                        <h4 className="font-semibold text-navy">Email</h4>
                        <p className="text-gray-600 mt-1">info@sahcare.co.za</p>

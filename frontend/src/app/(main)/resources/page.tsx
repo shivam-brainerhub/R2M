@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Resources",
+};
+
 export default function Resources() {
   return (
     <main className="min-h-screen p-24 bg-gray-50 text-gray-900">

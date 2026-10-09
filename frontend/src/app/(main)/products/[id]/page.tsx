@@ -1,15 +1,22 @@
-import Link from 'next/link';
+import type { Metadata } from "next";
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
+export const metadata: Metadata = {
+  title: "Product Details",
+};
+
+import Link from 'next/link';
+import Image from 'next/image';
+
+export default function ProductDetailPage() {
   return (
     <div className="bg-white min-h-screen pb-20">
       {/* Breadcrumbs */}
       <div className="bg-light-blue py-3 px-6 border-b border-gray-100">
          <div className="max-w-7xl mx-auto text-sm text-gray-500 flex items-center space-x-2">
             <Link href="/" className="hover:text-navy">Home</Link>
-            <span className="material-symbols-outlined text-xs">chevron_right</span>
+            <span className="material-symbols-outlined text-xs!">chevron_right</span>
             <Link href="/products" className="hover:text-navy">Products</Link>
-            <span className="material-symbols-outlined text-xs">chevron_right</span>
+            <span className="material-symbols-outlined text-xs!">chevron_right</span>
             <span className="text-navy font-semibold">BeneVision N12</span>
          </div>
       </div>
@@ -18,9 +25,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         <div className="flex flex-col md:flex-row gap-12">
           {/* Product Image Gallery */}
           <div className="md:w-1/2">
-            <div className="bg-gray-50 border border-gray-100 rounded-2xl aspect-square flex items-center justify-center relative p-8">
-               <span className="material-symbols-outlined text-9xl text-gray-300">monitor_heart</span>
-               <div className="absolute top-6 left-6 text-red-600 font-bold text-2xl">mindray</div>
+            <div className="bg-white border border-gray-100 rounded-2xl aspect-square flex items-center justify-center relative p-8 overflow-hidden">
+               <Image src="/images/benevision_n12.jpg" alt="BeneVision N12" fill className="object-contain p-4" />
+               <div className="absolute top-6 left-6 text-red-600 font-bold text-2xl z-10">mindray</div>
             </div>
             <div className="flex gap-4 mt-4">
               <div className="w-24 h-24 bg-gray-50 border-2 border-navy rounded-lg flex items-center justify-center cursor-pointer">
@@ -35,7 +42,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           {/* Product Info */}
           <div className="md:w-1/2">
             <h1 className="text-4xl font-bold text-navy mb-2">BeneVision N12</h1>
-            <p className="text-xl text-gray-600 mb-6">12.1" multi-parameter patient monitor.</p>
+            <p className="text-xl text-gray-600 mb-6">12.1&quot; multi-parameter patient monitor.</p>
             
             <p className="text-gray-700 leading-relaxed mb-8">
               The BeneVision N12 patient monitor provides a clear, comprehensive view of patient status. With its capacitive touchscreen and advanced clinical tools, it supports clinical decision-making in demanding healthcare environments, ensuring better patient outcomes.
@@ -46,7 +53,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                <div className="grid grid-cols-2 gap-y-4 text-sm">
                   <div>
                     <div className="text-gray-500">Display Size</div>
-                    <div className="font-semibold text-navy">12.1" Touchscreen</div>
+                    <div className="font-semibold text-navy">12.1&quot; Touchscreen</div>
                   </div>
                   <div>
                     <div className="text-gray-500">Battery Life</div>
@@ -74,7 +81,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             <div className="space-y-3">
                <a href="#" className="flex items-center text-blue-600 hover:underline p-3 bg-gray-50 rounded-lg">
-                  <span className="material-symbols-outlined mr-3 text-2xl text-gray-400">picture_as_pdf</span>
+                  <span className="material-symbols-outlined mr-3 text-2xl! text-gray-400">picture_as_pdf</span>
                   <div className="flex-1">
                      <div className="font-semibold">Product Brochure</div>
                      <div className="text-xs text-gray-500">PDF, 2.4 MB</div>
@@ -82,7 +89,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   <span className="material-symbols-outlined">download</span>
                </a>
                <a href="#" className="flex items-center text-blue-600 hover:underline p-3 bg-gray-50 rounded-lg">
-                  <span className="material-symbols-outlined mr-3 text-2xl text-gray-400">picture_as_pdf</span>
+                  <span className="material-symbols-outlined mr-3 text-2xl! text-gray-400">picture_as_pdf</span>
                   <div className="flex-1">
                      <div className="font-semibold">Technical Specifications</div>
                      <div className="text-xs text-gray-500">PDF, 1.1 MB</div>
@@ -102,7 +109,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                {[1,2,3,4].map(i => (
                   <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
                      <div className="w-24 h-24 bg-gray-50 rounded-lg flex items-center justify-center mb-4 text-gray-300">
-                        <span className="material-symbols-outlined text-4xl">medical_services</span>
+                        <span className="material-symbols-outlined text-4xl!">medical_services</span>
                      </div>
                      <div className="text-red-600 text-sm font-bold mb-1">mindray</div>
                      <h4 className="font-bold text-navy mb-1">N-Series Module</h4>

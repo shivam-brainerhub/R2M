@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Solutions",
+};
+
 export default function Solutions() {
   return (
     <main className="min-h-screen p-24 bg-gray-50 text-gray-900">

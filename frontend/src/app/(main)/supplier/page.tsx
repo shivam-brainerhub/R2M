@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Supplier",
+};
+
 export default function Supplier() {
   return (
     <div className="bg-light-blue min-h-screen pb-20">
