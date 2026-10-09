@@ -79,7 +79,7 @@ export default function Supplier() {
                 <textarea placeholder="Briefly introduce your company and the range of products you manufacture." rows={5} className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none"></textarea>
              </div>
 
-             <button type="submit" className="bg-gold text-navy font-bold py-4 rounded-full hover:bg-gold-bright transition-colors mt-4 flex justify-center items-center text-lg">
+             <button type="submit" className="bg-gold text-navy font-bold py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 mt-4 flex justify-center items-center text-lg">
                Submit Enquiry <span className="material-symbols-outlined ml-2">send</span>
              </button>
            </form>

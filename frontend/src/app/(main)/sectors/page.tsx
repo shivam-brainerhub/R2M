@@ -114,7 +114,7 @@ export default function SectorsPage() {
                   </p>
                </div>
             </div>
-            <Link href="/contact" className="bg-navy text-white font-bold px-10 py-4 rounded-full hover:bg-blue-900 transition-colors flex items-center shrink-0 shadow-md">
+            <Link href="/contact" className="bg-navy text-white font-bold px-10 py-4 rounded-full hover:bg-blue-900 transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center shrink-0 shadow-md">
                Contact our team <span className="material-symbols-outlined ml-2">arrow_forward</span>
             </Link>
          </div>

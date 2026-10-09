@@ -12,51 +12,58 @@ export default function ManufacturersPage() {
     { 
       id: 'mindray', 
       name: 'Mindray', 
-      logo: '/logos/mindray.svg', 
+      logo: '/logos/mindray.png', 
       desc: 'A leading global developer, manufacturer, and supplier of medical devices whose mission is to deliver high-quality, richly featured medical products making healthcare more accessible.',
       categories: ['Patient Monitors', 'Ultrasound', 'Anesthesia']
     },
     { 
       id: 'philips', 
       name: 'Philips', 
-      logo: '/logos/philips.svg', 
+      logo: '/logos/philips.png', 
       desc: 'Improving people\'s health and well-being through meaningful innovation in cardiovascular care, oncology, and minimally invasive treatment.',
       categories: ['Imaging Systems', 'Patient Care', 'Diagnostic ECG']
     },
     { 
       id: 'draeger', 
       name: 'Dräger', 
-      logo: '/logos/draeger.svg', 
+      logo: '/logos/draeger.png', 
       desc: 'An international leader in the fields of medical and safety technology. Dräger products protect, support and save lives.',
       categories: ['Ventilation', 'Incubators', 'Monitoring']
     },
     { 
       id: 'contec', 
       name: 'CONTEC', 
-      logo: '/logos/contec.svg', 
+      logo: '/logos/contec.png', 
       desc: 'Dedicated to research, manufacture and distribution of medical instruments. A highly trusted brand in telemedicine and diagnostic equipment.',
       categories: ['Pulse Oximeters', 'ECG', 'Fetal Monitors']
     },
     { 
       id: 'welch_allyn', 
       name: 'Welch Allyn', 
-      logo: '/logos/welch_allyn.svg', 
+      logo: '/logos/welch_allyn.png', 
       desc: 'Now part of Baxter, advancing front-line care with innovative diagnostic instruments and connected solutions.',
       categories: ['Physical Assessment', 'Vital Signs', 'Cardiopulmonary']
     },
     { 
       id: 'bd', 
       name: 'BD', 
-      logo: '/logos/bd.svg', 
+      logo: '/logos/bd.png', 
       desc: 'One of the largest global medical technology companies in the world, advancing the world of health by improving medical discovery and care delivery.',
       categories: ['Surgical Systems', 'Infusion', 'Lab Equipment']
     },
     { 
       id: '3m', 
       name: '3M', 
-      logo: '/logos/3m.svg', 
+      logo: '/logos/3m.png', 
       desc: 'Applying science in collaborative ways to improve lives daily. A trusted provider of medical supplies, health care solutions, and infection prevention.',
       categories: ['Wound Care', 'Stethoscopes', 'Sterilization']
+    },
+    { 
+      id: 'baxter', 
+      name: 'Baxter', 
+      logo: '/logos/baxter.png', 
+      desc: 'Advancing healthcare worldwide with a broad portfolio of essential healthcare products.',
+      categories: ['Clinical Nutrition', 'Renal Care', 'Surgical Care']
     }
   ];
 
@@ -76,9 +83,9 @@ export default function ManufacturersPage() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {manufacturers.map((m) => (
-            <div key={m.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all p-8 flex flex-col group">
+            <div key={m.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 active:scale-[0.98] p-8 flex flex-col group">
               <div className="h-24 flex items-center justify-center mb-6">
-                <div className="relative w-full h-full max-w-50 grayscale group-hover:grayscale-0 transition-all duration-300">
+                <div className="relative w-full h-full max-w-50 transition-all duration-300">
                   <Image 
                     src={m.logo} 
                     alt={`${m.name} Logo`} 
@@ -106,7 +113,7 @@ export default function ManufacturersPage() {
 
               <Link 
                 href={`/products`} 
-                className="inline-flex items-center justify-center w-full bg-white border-2 border-navy text-navy font-bold py-3 rounded-full hover:bg-navy hover:text-white transition-colors"
+                className="inline-flex items-center justify-center w-full bg-white border-2 border-navy text-navy font-bold py-3 rounded-full hover:bg-navy hover:text-white transition-all duration-300 hover:scale-[1.02] active:scale-95"
               >
                 View {m.name} Products
               </Link>
@@ -125,8 +132,8 @@ export default function ManufacturersPage() {
                   <p className="text-navy/80 text-lg">Partner with us to distribute your healthcare solutions across our network.</p>
                </div>
             </div>
-            <Link href="/supplier" className="bg-navy text-white font-bold px-8 py-4 rounded-full hover:bg-navy/90 transition-colors flex items-center shrink-0">
-               Become a Supplier <span className="material-symbols-outlined ml-2">arrow_forward</span>
+            <Link href="/supplier" className="bg-navy text-white font-bold px-8 py-4 rounded-full hover:bg-navy/90 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg group">
+               Become a Supplier <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
             </Link>
          </div>
       </section>

@@ -6,6 +6,7 @@ export const metadata: Metadata = {
 
 import Link from 'next/link';
 import Image from 'next/image';
+import BrandSlider from '@/components/BrandSlider';
 
 export default function Home() {
   return (
@@ -31,35 +32,35 @@ export default function Home() {
         {/* =========================================================
             LEFT SIDE CONTENT
             ========================================================= */}
-        <div className="relative z-20 w-full lg:w-2/3 flex items-center py-24 px-6 lg:px-12 xl:px-24">
+        <div className="relative z-20 w-full lg:w-2/3 flex items-center py-12 md:py-24 px-6 lg:px-12 xl:px-24">
           <div className="w-full max-w-2xl text-white">
 
-            <h1 className="text-5xl md:text-[5.5rem] font-bold mb-6 leading-none drop-shadow-lg tracking-tight">
+            <h1 className="text-5xl md:text-[5.5rem] font-bold mb-4 md:mb-6 leading-tight md:leading-none drop-shadow-lg tracking-tight">
               Healthcare <br />
               without <span className="text-light-blue">limits.</span>
             </h1>
 
-            <p className="text-lg md:text-xl mb-10 text-gray-200 drop-shadow-md max-w-lg font-light leading-relaxed">
+            <p className="text-base md:text-xl mb-8 md:mb-10 text-gray-200 drop-shadow-md max-w-lg font-light leading-relaxed">
               Explore SA Healthcare&apos;s growing digital healthcare catalogue.
               Search products, brochures and technical specifications from
               trusted global manufacturers.
             </p>
 
             {/* Search */}
-            <div className="bg-white rounded-full p-1.5 flex items-center shadow-2xl w-full max-w-3xl mb-8">
-              <span className="material-symbols-outlined text-navy ml-4 mr-2 text-2xl!">
+            <div className="bg-white rounded-full p-1 md:p-1.5 flex items-center shadow-2xl w-full max-w-3xl mb-8">
+              <span className="material-symbols-outlined text-navy ml-2 md:ml-4 mr-1 md:mr-2 text-xl md:text-2xl!">
                 search
               </span>
 
               <input
                 type="text"
                 placeholder="Search by product, model number, manufacturer, brochure or technical specification..."
-                className="flex-1 bg-transparent border-none outline-none text-navy px-2 text-sm placeholder-gray-400"
+                className="flex-1 min-w-0 bg-transparent border-none outline-none text-navy px-2 text-sm placeholder-gray-400 text-ellipsis"
               />
 
-              <button className="bg-gold text-navy font-bold rounded-full px-8 py-3.5 flex items-center hover:bg-gold-bright transition-colors text-sm shrink-0">
+              <button className="bg-gold text-navy font-bold rounded-full px-4 md:px-8 py-2 md:py-3.5 flex items-center hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 text-sm shrink-0 shadow-md hover:shadow-lg group">
                 Search
-                <span className="material-symbols-outlined ml-1 text-sm! font-bold">
+                <span className="material-symbols-outlined ml-1 text-sm! font-bold transition-transform duration-300 group-hover:translate-x-1">
                   arrow_forward
                 </span>
               </button>
@@ -172,28 +173,24 @@ export default function Home() {
             MOBILE RIGHT SECTION
             ========================================================= */}
 
-        <div className="lg:hidden relative z-20 bg-white px-8 py-16 text-navy">
+        <div className="lg:hidden relative z-20 bg-white px-6 py-12 text-navy text-center border-b border-gray-100">
+          <div className="flex flex-col items-center max-w-sm mx-auto space-y-8">
+            <div>
+              <h2 className="text-lg font-bold tracking-widest text-navy leading-loose mb-3">
+                TRUST &bull; ACCESS <br />
+                INNOVATION &bull; IMPACT
+              </h2>
+              <div className="h-1 w-16 bg-gold mx-auto rounded-full" />
+            </div>
 
-          <div className="flex flex-col">
-            <h2 className="text-md font-bold text-navy">
-              TRUST<br />
-              ACCESS<br />
-              INNOVATION<br />
-              IMPACT
-            </h2>
-
-            <div className="h-1.5 w-12 bg-gold my-2" />
-            <div className="h-1.5 w-12 my-6" />
-
-            <h2 className="text-md font-bold text-navy">
-              A HEALTHIER<br />
-              TOMORROW<br />
-              TOGETHER.
-            </h2>
-
-            <div className="h-1.5 w-12 bg-gold mt-2" />
+            <div>
+              <h2 className="text-2xl font-black text-blue-600 tracking-tight">
+                A HEALTHIER<br />
+                TOMORROW<br />
+                TOGETHER.
+              </h2>
+            </div>
           </div>
-
         </div>
 
       </section>
@@ -218,7 +215,7 @@ export default function Home() {
               { id: '08', title: 'Lab', desc: 'Laboratory equipment, fridges, freezers, containers, petri dishes, tubes and lab disposables.', icon: 'science' },
               { id: '09', title: 'Veterinary', desc: 'Veterinary equipment, instruments and consumables.', icon: 'pets' },
             ].map(cat => (
-              <Link href="/products" key={cat.id} className="bg-white p-1 md:p-3 rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-shadow group flex items-center">
+              <Link href="/products" key={cat.id} className="bg-white p-1 md:p-3 rounded-xl border border-blue-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] group flex items-center">
                 <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center text-blue-600 bg-blue-50 rounded-full group-hover:scale-105 transition-transform shrink-0 mr-6">
                   <span className="material-symbols-outlined text-5xl!">{cat.icon}</span>
                 </div>
@@ -253,7 +250,7 @@ export default function Home() {
               { title: 'Specialist\nCare', icon: 'favorite' },
               { title: 'Veterinary\nPractices', icon: 'pets' },
             ].map((sector, idx) => (
-              <Link href="/sectors" key={idx} className="snap-start flex-none w-50 bg-white border border-gray-100 p-8 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] hover:shadow-md transition-all hover:-translate-y-1 flex flex-col items-center text-center group">
+              <Link href="/sectors" key={idx} className="snap-start flex-none w-50 bg-white border border-gray-100 p-8 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] hover:shadow-xl transition-all duration-300 hover:-translate-y-2 active:scale-[0.98] flex flex-col items-center text-center group">
                 <span className="material-symbols-outlined text-5xl! text-blue-300 mb-6 group-hover:scale-110 transition-transform">{sector.icon}</span>
                 <h4 className="text-navy font-bold text-sm whitespace-pre-line group-hover:text-blue-600 transition-colors leading-tight">{sector.title}</h4>
               </Link>
@@ -271,21 +268,7 @@ export default function Home() {
           </div>
           <h3 className="text-4xl font-bold text-navy mb-12">World-leading medical brands</h3>
           
-          <div className="flex items-center space-x-6">
-             <button className="bg-white border border-gray-200 text-gray-400 rounded-full w-12 h-12 flex items-center justify-center hover:text-navy hover:border-navy transition-colors shrink-0 shadow-sm">
-                <span className="material-symbols-outlined">chevron_left</span>
-             </button>
-             <div className="flex-1 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-               {['mindray', 'CONTEC', 'Dräger', 'Welch Allyn', 'BD', '3M'].map((brand) => (
-                 <div key={brand} className="bg-white border border-gray-100 h-26 rounded-2xl flex items-center justify-center p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] group transition-transform hover:-translate-y-1">
-                   <span className="font-bold text-xl text-navy">{brand}</span>
-                 </div>
-               ))}
-             </div>
-             <button className="bg-white border border-gray-200 text-gray-400 rounded-full w-12 h-12 flex items-center justify-center hover:text-navy hover:border-navy transition-colors shrink-0 shadow-sm">
-                <span className="material-symbols-outlined">chevron_right</span>
-             </button>
-          </div>
+          <BrandSlider />
         </div>
       </section>
 
@@ -324,45 +307,45 @@ export default function Home() {
       </section>
 
       {/* Become a Supplier */}
-      <section className="py-16 px-6 max-w-7xl mx-auto w-full mt-4">
-         <div className="bg-orange-50 rounded-3xl p-10 md:p-14 flex flex-col lg:flex-row items-center justify-between border border-orange-200">
-            <div className="flex items-center mb-8 lg:mb-0 max-w-2xl">
-               <span className="material-symbols-outlined text-7xl! text-navy mr-8">handshake</span>
+      <section className="py-16 px-4 md:px-6 max-w-7xl mx-auto w-full mt-4">
+         <div className="bg-orange-50 rounded-3xl p-8 md:p-14 flex flex-col lg:flex-row items-center justify-between border border-orange-200 text-center lg:text-left">
+            <div className="flex flex-col lg:flex-row items-center mb-8 lg:mb-0 max-w-2xl">
+               <span className="material-symbols-outlined text-6xl md:text-7xl! text-navy mb-4 lg:mb-0 lg:mr-8">handshake</span>
                <div>
-                  <h3 className="text-3xl font-bold text-navy mb-3">Become a Supplier</h3>
-                  <p className="text-gray-600 text-lg leading-relaxed">Are you a healthcare manufacturer looking to expand your reach across Southern Africa? We&apos;d love to hear from you.</p>
+                  <h3 className="text-2xl md:text-3xl font-bold text-navy mb-3">Become a Supplier</h3>
+                  <p className="text-gray-600 text-base md:text-lg leading-relaxed">Are you a healthcare manufacturer looking to expand your reach across Southern Africa? We&apos;d love to hear from you.</p>
                </div>
             </div>
-            <Link href="/supplier" className="bg-gold text-navy font-bold px-10 py-4 rounded-full hover:bg-gold-bright transition-colors flex items-center shrink-0 shadow-lg shadow-gold/20">
-               Become a Supplier <span className="material-symbols-outlined ml-2">arrow_forward</span>
+            <Link href="/supplier" className="bg-gold text-navy font-bold px-8 md:px-10 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg shadow-gold/20 hover:shadow-gold/40 group">
+               Become a Supplier <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
             </Link>
          </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 px-6 max-w-7xl mx-auto w-full mb-12">
-         <div className="bg-navy rounded-3xl p-10 md:p-14 text-white flex flex-col lg:flex-row items-center justify-between shadow-2xl">
-            <div className="flex items-center mb-8 lg:mb-0">
-               <span className="material-symbols-outlined text-7xl! text-white mr-8 opacity-90">receipt_long</span>
+      <section className="py-12 px-4 md:px-6 max-w-7xl mx-auto w-full mb-12">
+         <div className="bg-navy rounded-3xl p-8 md:p-14 text-white flex flex-col lg:flex-row items-center justify-between shadow-2xl text-center lg:text-left">
+            <div className="flex flex-col lg:flex-row items-center mb-8 lg:mb-0">
+               <span className="material-symbols-outlined text-6xl md:text-7xl! text-white mb-4 lg:mb-0 lg:mr-8 opacity-90">receipt_long</span>
                <div>
-                  <h3 className="text-3xl font-bold mb-3">Need a quotation or product advice?</h3>
-                  <p className="text-gray-300 text-lg">Speak to our team for expert guidance and tailored solutions for your facility.</p>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-3">Need a quotation or product advice?</h3>
+                  <p className="text-gray-300 text-base md:text-lg">Speak to our team for expert guidance and tailored solutions for your facility.</p>
                </div>
             </div>
             
-            <div className="flex flex-wrap justify-center lg:justify-end items-center gap-6 md:gap-8 mt-8 lg:mt-0">
-               <Link href="/contact" className="bg-gold text-navy font-bold px-8 md:px-10 py-4 rounded-full hover:bg-gold-bright transition-colors flex items-center shrink-0 shadow-lg shadow-gold/20">
-                  Request a Quote <span className="material-symbols-outlined ml-2">arrow_forward</span>
+            <div className="flex flex-wrap justify-center lg:justify-end items-center gap-6 md:gap-8 mt-4 lg:mt-0">
+               <Link href="/contact" className="bg-gold text-navy font-bold px-8 md:px-10 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg shadow-gold/20 hover:shadow-gold/40 group">
+                  Request a Quote <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
                </Link>
                
-               <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8 border-white/20">
+               <div className="flex flex-col sm:flex-row justify-center items-center gap-4 md:gap-8 border-white/20">
                   <a href="tel:+1234567890" className="flex items-center text-white hover:text-gold transition-colors shrink-0 group">
-                     <span className="material-symbols-outlined mr-3 text-3xl! group-hover:scale-110 transition-transform">call</span>
-                     <span className="font-semibold whitespace-nowrap text-lg">Get in Touch</span>
+                     <span className="material-symbols-outlined mr-2 md:mr-3 text-2xl md:text-3xl! group-hover:scale-110 transition-transform">call</span>
+                     <span className="font-semibold whitespace-nowrap text-base md:text-lg">Get in Touch</span>
                   </a>
                   <a href="mailto:info@sahealthcare.com" className="flex items-center text-white hover:text-gold transition-colors shrink-0 group">
-                     <span className="material-symbols-outlined mr-3 text-3xl! group-hover:scale-110 transition-transform">mail</span>
-                     <span className="font-semibold whitespace-nowrap text-lg">Email Us</span>
+                     <span className="material-symbols-outlined mr-2 md:mr-3 text-2xl md:text-3xl! group-hover:scale-110 transition-transform">mail</span>
+                     <span className="font-semibold whitespace-nowrap text-base md:text-lg">Email Us</span>
                   </a>
                </div>
             </div>

@@ -71,10 +71,10 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-               <button className="flex-1 bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-colors text-center flex justify-center items-center">
+               <button className="flex-1 bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center">
                  Request a Quote <span className="material-symbols-outlined ml-2">arrow_forward</span>
                </button>
-               <button className="flex-1 bg-white border-2 border-navy text-navy font-bold py-3 rounded-full hover:bg-gray-50 transition-colors text-center flex justify-center items-center">
+               <button className="flex-1 bg-white border-2 border-navy text-navy font-bold py-3 rounded-full hover:bg-gray-50 transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center">
                  <span className="material-symbols-outlined mr-2">add</span> Add to Compare
                </button>
             </div>

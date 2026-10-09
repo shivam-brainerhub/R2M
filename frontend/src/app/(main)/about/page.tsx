@@ -127,7 +127,7 @@ export default function About() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 mt-8 lg:mt-0 shrink-0">
-               <Link href="/contact" className="bg-gold text-navy font-bold px-8 py-4 rounded-full hover:bg-gold-bright transition-colors flex items-center justify-center shadow-lg shadow-gold/20">
+               <Link href="/contact" className="bg-gold text-navy font-bold px-8 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center justify-center shadow-lg shadow-gold/20">
                   Contact Us <span className="material-symbols-outlined ml-2">arrow_forward</span>
                </Link>
                <Link href="/supplier" className="bg-transparent border-2 border-white/30 text-white font-bold px-8 py-4 rounded-full hover:bg-white/10 transition-colors flex items-center justify-center">

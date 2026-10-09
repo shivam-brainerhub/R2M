@@ -40,7 +40,7 @@ export default function Contact() {
                 <label className="text-sm font-semibold text-navy">Message</label>
                 <textarea placeholder="How can we help you?" rows={5} className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none"></textarea>
              </div>
-             <button type="submit" className="bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-colors mt-2 flex justify-center items-center">
+             <button type="submit" className="bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 mt-2 flex justify-center items-center">
                Send Message <span className="material-symbols-outlined ml-2 text-sm!">send</span>
              </button>
            </form>

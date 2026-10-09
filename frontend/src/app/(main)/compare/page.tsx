@@ -23,17 +23,17 @@ export default function ComparePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-         <div className="flex justify-between items-center bg-light-blue p-4 rounded-xl mb-8">
-            <div className="flex items-center text-navy font-bold text-lg">
-               <span className="material-symbols-outlined mr-3 text-3xl!">scale</span>
+         <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-light-blue p-4 md:p-6 rounded-xl mb-8 gap-4 md:gap-0 shadow-sm">
+            <div className="flex items-center text-navy font-bold text-base md:text-lg">
+               <span className="material-symbols-outlined mr-2 md:mr-3 text-2xl md:text-3xl!">scale</span>
                Compare up to 3 products
             </div>
-            <div className="flex space-x-4">
-               <button className="text-blue-600 font-semibold hover:underline flex items-center">
-                  <span className="material-symbols-outlined mr-1 text-sm!">delete</span> Clear All
+            <div className="flex flex-row space-x-3 md:space-x-4 w-full md:w-auto items-center justify-between md:justify-end">
+               <button className="text-blue-600 font-semibold hover:underline flex items-center text-sm px-2">
+                  <span className="material-symbols-outlined mr-1 text-base md:text-sm!">delete</span> <span className="hidden sm:inline">Clear</span><span className="sm:hidden">Reset</span>
                </button>
-               <button className="bg-gold text-navy font-bold px-4 py-2 rounded-full hover:bg-gold-bright transition-colors flex items-center text-sm">
-                  Add Another Product <span className="material-symbols-outlined ml-1 text-sm!">add</span>
+               <button className="bg-gold text-navy font-bold px-4 md:px-5 py-2 md:py-2.5 rounded-full hover:bg-gold-bright transition-all duration-300 active:scale-95 flex items-center justify-center text-xs md:text-sm shadow-sm whitespace-nowrap">
+                  Add <span className="hidden sm:inline">&nbsp;Another</span> Product <span className="material-symbols-outlined ml-1 text-base md:text-sm!">add</span>
                </button>
             </div>
          </div>
