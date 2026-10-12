@@ -1,7 +1,18 @@
+import enum
 from app.database import Base
-from sqlalchemy import JSON, Column, ForeignKey, Integer, String, Table, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+)
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 class TimestampMixin:
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -82,3 +93,25 @@ class Sector(TimestampMixin, Base):
     products = relationship(
         "Product", secondary=product_sector_association, back_populates="sectors"
     )
+
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    USER = "user"
+
+
+class User(TimestampMixin, Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    full_name = Column(String, nullable=True)
+    role = Column(
+        Enum(UserRole, name="user_role_enum", native_enum=False),
+        default=UserRole.USER,
+        nullable=False,
+    )
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)

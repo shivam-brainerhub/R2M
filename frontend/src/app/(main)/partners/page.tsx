@@ -90,6 +90,7 @@ export default function ManufacturersPage() {
                     src={m.logo} 
                     alt={`${m.name} Logo`} 
                     fill
+                    sizes="200px"
                     className="object-contain"
                   />
                 </div>

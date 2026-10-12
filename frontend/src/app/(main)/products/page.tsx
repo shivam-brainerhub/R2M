@@ -160,7 +160,13 @@ export default function ProductsPage() {
                     
                     <Link href={`/products/${p.id}`} className="w-24 h-24 md:w-48 md:h-48 shrink-0 flex items-center justify-center">
                        <div className="w-full h-full bg-white rounded-lg flex items-center justify-center border border-gray-100 overflow-hidden relative">
-                         <Image src={p.image} alt={p.name} fill className="object-contain p-2 md:p-4" />
+                         <Image 
+                           src={p.image} 
+                           alt={p.name} 
+                           fill 
+                           sizes="(max-width: 768px) 96px, 192px" 
+                           className="object-contain p-2 md:p-4" 
+                         />
                        </div>
                     </Link>
 
@@ -225,7 +231,13 @@ export default function ProductsPage() {
 
                 <Link href={`/products/${p.id}`} className="flex-1 flex flex-col items-start md:items-center py-2 md:py-4">
                    <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center mb-3 md:mb-5 border border-gray-100 overflow-hidden relative group-hover:border-blue-100 transition-colors">
-                     <Image src={p.image} alt={p.name} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
+                     <Image 
+                       src={p.image} 
+                       alt={p.name} 
+                       fill 
+                       sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw" 
+                       className="object-contain p-4 group-hover:scale-105 transition-transform duration-500" 
+                     />
                    </div>
                    <div className="text-red-600 font-bold text-xs md:text-sm uppercase tracking-wider mb-1 w-full text-left md:text-center">{p.brand}</div>
                    <h3 className="font-bold text-navy text-sm md:text-lg text-left md:text-center w-full leading-snug line-clamp-2 md:line-clamp-none group-hover:text-blue-700 transition-colors">{p.name}</h3>

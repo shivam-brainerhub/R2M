@@ -1,12 +1,33 @@
-import app.models
-from app.database import Base, engine
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+import app.models
+from app.api.admin_users import router as admin_users_router
+from app.api.auth import router as auth_router
+from app.database import Base, SessionLocal, engine
+from app.init_db import init_db
 
-app = FastAPI(title="R2M API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure tables are created
+    Base.metadata.create_all(bind=engine)
+    # Seed initial admin user if not present
+    db = SessionLocal()
+    try:
+        init_db(db)
+    finally:
+        db.close()
+    yield
+
+
+app = FastAPI(
+    title="R2M & SA Healthcare Digital Platform API",
+    version="1.0.0",
+    description="Backend API for SA Healthcare e-catalogue, quotation engine, and administration.",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include API Routers
+app.include_router(auth_router, prefix="/api")
+app.include_router(admin_users_router, prefix="/api")
+
 
 @app.get("/")
 def read_root():
@@ -24,4 +49,8 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "service": "r2m-backend",
+        "auth_enabled": True,
+    }

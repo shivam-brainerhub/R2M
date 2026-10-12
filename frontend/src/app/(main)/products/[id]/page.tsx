@@ -26,7 +26,13 @@ export default function ProductDetailPage() {
           {/* Product Image Gallery */}
           <div className="md:w-1/2">
             <div className="bg-white border border-gray-100 rounded-2xl aspect-square flex items-center justify-center relative p-8 overflow-hidden">
-               <Image src="/images/benevision_n12.jpg" alt="BeneVision N12" fill className="object-contain p-4" />
+               <Image 
+                 src="/images/benevision_n12.jpg" 
+                 alt="BeneVision N12" 
+                 fill 
+                 sizes="(max-width: 768px) 100vw, 50vw" 
+                 className="object-contain p-4" 
+               />
                <div className="absolute top-6 left-6 text-red-600 font-bold text-2xl z-10">mindray</div>
             </div>
             <div className="flex gap-4 mt-4">
