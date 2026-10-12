@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ContactForm from "@/components/contact/ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -17,33 +18,7 @@ export default function Contact() {
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row gap-12">
         <div className="md:w-1/2">
            <h2 className="text-2xl font-bold text-navy mb-6">Get in Touch</h2>
-           <form className="flex flex-col gap-5">
-             <div className="grid grid-cols-2 gap-5">
-                <div className="flex flex-col gap-2">
-                   <label className="text-sm font-semibold text-navy">First Name</label>
-                   <input type="text" placeholder="John" className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none" />
-                </div>
-                <div className="flex flex-col gap-2">
-                   <label className="text-sm font-semibold text-navy">Last Name</label>
-                   <input type="text" placeholder="Doe" className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none" />
-                </div>
-             </div>
-             <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-navy">Email Address</label>
-                <input type="email" placeholder="john@example.com" className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none" />
-             </div>
-             <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-navy">Organization</label>
-                <input type="text" placeholder="Your Hospital or Clinic" className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none" />
-             </div>
-             <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-navy">Message</label>
-                <textarea placeholder="How can we help you?" rows={5} className="p-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:border-gold focus:outline-none"></textarea>
-             </div>
-             <button type="submit" className="bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 mt-2 flex justify-center items-center">
-               Send Message <span className="material-symbols-outlined ml-2 text-sm!">send</span>
-             </button>
-           </form>
+           <ContactForm />
         </div>
 
         <div className="md:w-1/2">

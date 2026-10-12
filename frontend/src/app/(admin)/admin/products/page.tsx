@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
+import { categoriesApi, brandsApi, CategoryItem, BrandItem } from '@/lib/api';
 
 interface ProductItem {
   id: string;
@@ -73,6 +74,13 @@ export default function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [brandFilter, setBrandFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [availableCategories, setAvailableCategories] = useState<CategoryItem[]>([]);
+  const [availableBrands, setAvailableBrands] = useState<BrandItem[]>([]);
+
+  useEffect(() => {
+    categoriesApi.listCategories().then(setAvailableCategories).catch(() => {});
+    brandsApi.listBrands().then(setAvailableBrands).catch(() => {});
+  }, []);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,6 +95,7 @@ export default function AdminProductsPage() {
     status: 'Active',
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{ name?: string; sku?: string }>({});
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -105,6 +114,7 @@ export default function AdminProductsPage() {
 
   const handleOpenCreateModal = () => {
     setEditingProduct(null);
+    setFormErrors({});
     setFormData({
       name: '',
       brand: 'Mindray',
@@ -121,13 +131,25 @@ export default function AdminProductsPage() {
 
   const handleOpenEditModal = (product: ProductItem) => {
     setEditingProduct(product);
+    setFormErrors({});
     setFormData({ ...product });
     setIsModalOpen(true);
   };
 
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name?.trim()) return;
+    const errors: { name?: string; sku?: string } = {};
+    if (!formData.name?.trim()) {
+      errors.name = 'Product name is required';
+    }
+    if (!formData.sku?.trim()) {
+      errors.sku = 'Model SKU is required';
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
 
     if (editingProduct) {
       setProducts((prev) =>
@@ -233,10 +255,17 @@ export default function AdminProductsPage() {
             className="px-3 py-2 text-xs bg-slate-50 border border-gray-200 rounded-xl text-navy font-medium outline-none focus:border-blue-500"
           >
             <option value="All">All Brands</option>
-            <option value="Mindray">Mindray</option>
-            <option value="Philips">Philips</option>
-            <option value="Dräger">Dräger</option>
-            <option value="Contec">Contec</option>
+            {availableBrands.length > 0
+              ? availableBrands.map((b) => (
+                  <option key={b.id} value={b.name}>
+                    {b.name}
+                  </option>
+                ))
+              : ['Mindray', 'Philips', 'Dräger', 'Contec', 'Baxter'].map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
           </select>
 
           <select
@@ -397,35 +426,59 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="overflow-y-auto flex-1 py-4 space-y-4">
+            <form onSubmit={handleSaveProduct} noValidate className="overflow-y-auto flex-1 py-4 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Product Name *
+                    Product Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
+                    }}
                     placeholder="e.g. BeneVision N12"
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
+                    className={`w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl outline-none text-navy font-medium transition-colors ${
+                      formErrors.name
+                        ? 'bg-red-50/30 border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-400/20'
+                        : 'bg-slate-50 border border-gray-200 focus:border-blue-500 focus:bg-white'
+                    }`}
                   />
+                  {formErrors.name && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
+                      <span className="material-symbols-outlined text-sm!">error</span>
+                      <span>{formErrors.name}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Model SKU *
+                    Model SKU <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={formData.sku || ''}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, sku: e.target.value });
+                      if (formErrors.sku) setFormErrors((prev) => ({ ...prev, sku: undefined }));
+                    }}
                     placeholder="e.g. MN-N12-001"
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-mono"
+                    className={`w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl outline-none text-navy font-mono transition-colors ${
+                      formErrors.sku
+                        ? 'bg-red-50/30 border border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-400/20'
+                        : 'bg-slate-50 border border-gray-200 focus:border-blue-500 focus:bg-white'
+                    }`}
                   />
+                  {formErrors.sku && (
+                    <p className="mt-1 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
+                      <span className="material-symbols-outlined text-sm!">error</span>
+                      <span>{formErrors.sku}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -433,15 +486,21 @@ export default function AdminProductsPage() {
                     Brand / Manufacturer *
                   </label>
                   <select
-                    value={formData.brand || 'Mindray'}
+                    value={formData.brand || (availableBrands[0]?.name || 'Mindray')}
                     onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
                   >
-                    <option value="Mindray">Mindray</option>
-                    <option value="Philips">Philips</option>
-                    <option value="Dräger">Dräger</option>
-                    <option value="Contec">Contec</option>
-                    <option value="Baxter">Baxter</option>
+                    {availableBrands.length > 0
+                      ? availableBrands.map((b) => (
+                          <option key={b.id} value={b.name}>
+                            {b.name}
+                          </option>
+                        ))
+                      : ['Mindray', 'Philips', 'Dräger', 'Contec', 'Baxter'].map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
                   </select>
                 </div>
 
@@ -450,15 +509,27 @@ export default function AdminProductsPage() {
                     Category *
                   </label>
                   <select
-                    value={formData.category || 'Diagnostic and Measure'}
+                    value={formData.category || (availableCategories[0]?.name || 'Diagnostic and Measure')}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
                   >
-                    <option value="Diagnostic and Measure">Diagnostic and Measure</option>
-                    <option value="Furniture">Furniture</option>
-                    <option value="Disposables and Care Supplies">Disposables and Care Supplies</option>
-                    <option value="Hygiene and Sterilisation">Hygiene and Sterilisation</option>
-                    <option value="Emergency, Reanimation and Surgery">Emergency, Reanimation and Surgery</option>
+                    {availableCategories.length > 0
+                      ? availableCategories.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))
+                      : [
+                          'Diagnostic and Measure',
+                          'Furniture',
+                          'Disposables and Care Supplies',
+                          'Hygiene and Sterilisation',
+                          'Emergency, Reanimation and Surgery',
+                        ].map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
                   </select>
                 </div>
 

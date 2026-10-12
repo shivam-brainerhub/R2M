@@ -73,3 +73,41 @@ def decode_token(token: str) -> Optional[dict]:
         return payload
     except jwt.PyJWTError:
         return None
+
+
+def create_password_reset_token(
+    email: str, expires_delta: Optional[timedelta] = None
+) -> str:
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=30)
+
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "password_reset",
+    }
+    encoded_jwt = jwt.encode(
+        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
+    return encoded_jwt
+
+
+def create_email_verification_token(
+    email: str, expires_delta: Optional[timedelta] = None
+) -> str:
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "email_verification",
+    }
+    encoded_jwt = jwt.encode(
+        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
+    return encoded_jwt

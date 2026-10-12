@@ -1,9 +1,22 @@
+import os
 import pytest
+
+# Ensure tests use an isolated in-memory SQLite database so that
+# the PostgreSQL database is never affected by test runs.
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 from starlette.testclient import TestClient
+from app.database import Base, SessionLocal, engine
 from app.main import app
-from app.database import SessionLocal
 from app.models import User, UserRole
 from app.core.security import get_password_hash, create_access_token
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_db():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="session")
@@ -32,6 +45,7 @@ def test_admin_user(db_session):
             hashed_password=get_password_hash("AdminPass123!"),
             role=UserRole.ADMIN,
             is_active=True,
+            is_email_verified=True,
         )
         db_session.add(admin)
         db_session.commit()
@@ -50,6 +64,7 @@ def test_regular_user(db_session):
             hashed_password=get_password_hash("UserPass123!"),
             role=UserRole.USER,
             is_active=True,
+            is_email_verified=True,
         )
         db_session.add(user)
         db_session.commit()

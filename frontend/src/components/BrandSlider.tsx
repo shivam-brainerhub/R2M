@@ -1,10 +1,41 @@
 "use client";
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import { brandsApi, getMediaUrl } from '@/lib/api';
+
+const DEFAULT_BRANDS = [
+  { name: 'Mindray', logo: '/media/brands/mindray.png' },
+  { name: 'CONTEC', logo: '/media/brands/contec.png' },
+  { name: 'Dräger', logo: '/media/brands/draeger.png' },
+  { name: 'Welch Allyn', logo: '/media/brands/welch_allyn.png' },
+  { name: 'BD', logo: '/media/brands/bd.png' },
+  { name: '3M', logo: '/media/brands/3m.png' },
+  { name: 'Philips', logo: '/media/brands/philips.png' },
+  { name: 'Baxter', logo: '/media/brands/baxter.png' }
+];
 
 export default function BrandSlider() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [brands, setBrands] = useState<{ name: string; logo: string }[]>(DEFAULT_BRANDS);
+
+  useEffect(() => {
+    brandsApi
+      .listBrands({ featured_in_slider: true })
+      .then((data) => {
+        if (data && data.length > 0) {
+          setBrands(
+            data.map((b) => ({
+              name: b.name,
+              logo: getMediaUrl(b.logo_url) || `/media/brands/${b.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.png`,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // Keep DEFAULT_BRANDS on error
+      });
+  }, []);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -12,17 +43,6 @@ export default function BrandSlider() {
       scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
-
-  const brands = [
-    { name: 'Mindray', logo: '/logos/mindray.png' },
-    { name: 'CONTEC', logo: '/logos/contec.png' },
-    { name: 'Dräger', logo: '/logos/draeger.png' },
-    { name: 'Welch Allyn', logo: '/logos/welch_allyn.png' },
-    { name: 'BD', logo: '/logos/bd.png' },
-    { name: '3M', logo: '/logos/3m.png' },
-    { name: 'Philips', logo: '/logos/philips.png' },
-    { name: 'Baxter', logo: '/logos/baxter.png' }
-  ];
 
   return (
     <div className="flex items-center space-x-0 md:space-x-6 relative">

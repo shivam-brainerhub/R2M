@@ -5,11 +5,13 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useQuoteCart } from '../context/QuoteCartContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { itemCount } = useQuoteCart();
+  const { user, isAuthenticated } = useAuth();
 
   const navLinks = [
     { name: 'Home', href: '/home' },
@@ -25,7 +27,7 @@ export default function Navbar() {
       
       {/* Left: Logo */}
       <Link href="/home" className="flex items-center transition-transform duration-300 hover:scale-105 active:scale-95 shrink-0">
-        <Image src="/logo.png" alt="SA Healthcare Logo" width={110} height={40} className="object-contain w-auto h-auto" priority />
+        <Image src="/logo.png" alt="SA Healthcare Logo" width={110} height={40} className="object-contain h-10 w-auto max-w-36" priority />
       </Link>
 
       {/* Middle: Desktop Menu */}
@@ -41,31 +43,56 @@ export default function Navbar() {
               }`}
             >
               {link.name}
-              <span className={`absolute left-0 bottom-0 w-full h-[2px] bg-gold transition-transform duration-300 origin-left ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
+              <span className={`absolute left-0 bottom-0 w-full h-0.5 bg-gold transition-transform duration-300 origin-left ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
             </Link>
           );
         })}
       </div>
 
       {/* Right: Desktop Actions & Mobile Hamburger */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-3">
         {/* Desktop Actions */}
-        <div className="hidden md:flex items-center space-x-4">
-          <Link href="/login" className="text-white hover:text-gold transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm font-medium relative group py-1">
-            Login
-            <span className="absolute left-0 bottom-0 w-full h-[2px] bg-gold transition-transform duration-300 origin-left scale-x-0 group-hover:scale-x-100"></span>
-          </Link>
-          <Link href="/quote" className="bg-gold text-navy font-semibold px-5 py-2.5 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-sm flex items-center gap-2 shadow-md hover:shadow-lg group">
+        <div className="hidden md:flex items-center gap-3">
+          <Link href="/quote" className="text-white px-4 py-2 rounded-full hover:bg-gold transition-all duration-300 hover:scale-[1.02] active:scale-95 text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg shrink-0">
             <span className="relative flex items-center justify-center">
-              <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
+              <span className="material-symbols-outlined text-[18px]!">shopping_cart</span>
               {itemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center">
                   {itemCount}
                 </span>
               )}
             </span>
-            Quote Cart
           </Link>
+
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-2.5">
+              {user.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-1 bg-gold/15 hover:bg-gold/25 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all shrink-0"
+                >
+                  <span className="material-symbols-outlined text-xs">admin_panel_settings</span>
+                  <span>Admin</span>
+                </Link>
+              )}
+              
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-full text-xs font-medium text-white transition-all border border-white/10 hover:border-gold/40 group shrink-0"
+                title="View Account Profile"
+              >
+                <div className="w-5 h-5 rounded-full bg-gold text-navy font-black text-[10px] flex items-center justify-center shrink-0 uppercase">
+                  {user.full_name ? user.full_name.substring(0, 2) : (user.username ? user.username.substring(0, 2) : 'U')}
+                </div>
+                <span className="max-w-32.5 truncate font-medium">{user.full_name || user.username}</span>
+              </Link>
+            </div>
+          ) : (
+            <Link href="/login" className="text-white hover:text-gold transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-sm font-medium relative group py-1 mr-2">
+              Login
+              <span className="absolute left-0 bottom-0 w-full h-0.5 bg-gold transition-transform duration-300 origin-left scale-x-0 group-hover:scale-x-100"></span>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Hamburger */}
@@ -109,9 +136,40 @@ export default function Navbar() {
         <div className="h-px w-full bg-white/10 my-2" />
         
         <div className="flex flex-col space-y-3 pt-2">
-          <Link href="/login" onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)} className="text-white hover:text-gold hover:bg-white/5 transition-all duration-300 hover:translate-x-2 active:scale-95 text-lg font-medium block px-4 py-3 -mx-4 rounded-xl active:bg-white/10">
-            Login
-          </Link>
+          {isAuthenticated && user ? (
+            <div className="flex flex-col space-y-2">
+              <Link
+                href="/profile"
+                onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)}
+                className="flex items-center justify-between px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gold text-navy font-bold flex items-center justify-center text-xs uppercase">
+                    {user.full_name ? user.full_name.substring(0, 2) : (user.username ? user.username.substring(0, 2) : 'U')}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">{user.full_name || user.username}</div>
+                    <div className="text-xs text-gray-400">Account Profile &amp; Settings</div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-sm text-gray-400">chevron_right</span>
+              </Link>
+              {user.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)}
+                  className="text-gold hover:bg-white/5 transition-all text-sm font-semibold flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gold/30"
+                >
+                  <span className="material-symbols-outlined text-base">admin_panel_settings</span>
+                  <span>Admin Portal</span>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <Link href="/login" onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)} className="text-white hover:text-gold hover:bg-white/5 transition-all duration-300 hover:translate-x-2 active:scale-95 text-lg font-medium block px-4 py-3 -mx-4 rounded-xl active:bg-white/10">
+              Login
+            </Link>
+          )}
           <Link href="/contact" onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)} className="bg-gold text-navy font-semibold px-6 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 active:scale-95 text-base flex justify-center items-center gap-2 w-full shadow-lg group mt-2">
             Request a Quote <span className="material-symbols-outlined transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
           </Link>

@@ -189,3 +189,94 @@ def test_change_password_flow(client: TestClient, test_regular_user):
         headers=headers,
         json={"current_password": "NewUserPass123!", "new_password": "UserPass123!"},
     )
+
+
+def test_forgot_and_reset_password_flow(client: TestClient, test_regular_user):
+    from app.core.security import create_password_reset_token
+
+    # Forgot password with existing user
+    resp = client.post(
+        "/api/auth/forgot-password",
+        json={"email": test_regular_user.email},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "instructions have been sent" in data["message"]
+    # Token is now sent securely via email, not leaked in public API response
+    assert data.get("reset_token") is None
+
+    # Invalid reset token
+    invalid_resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": "invalid_reset_token_xyz", "new_password": "ResetPassword123!"},
+    )
+    assert invalid_resp.status_code == 400
+
+    # Valid reset token generated for user
+    reset_token = create_password_reset_token(test_regular_user.email)
+    reset_resp = client.post(
+        "/api/auth/reset-password",
+        json={"token": reset_token, "new_password": "ResetPassword123!"},
+    )
+    assert reset_resp.status_code == 200
+    assert "successfully reset" in reset_resp.json()["message"]
+
+    # Verify login with new password
+    new_login_resp = client.post(
+        "/api/auth/login",
+        json={"username_or_email": test_regular_user.email, "password": "ResetPassword123!"},
+    )
+    assert new_login_resp.status_code == 200
+
+    # Reset back to original password
+    back_token = create_password_reset_token(test_regular_user.email)
+    client.post(
+        "/api/auth/reset-password",
+        json={"token": back_token, "new_password": "UserPass123!"},
+    )
+
+
+def test_email_verification_flow(client: TestClient):
+    unique_id = uuid.uuid4().hex[:8]
+    email = f"verify_{unique_id}@hospital.org"
+    password = "StrongPassword123!"
+    
+    # 1. Register user
+    reg_resp = client.post(
+        "/api/auth/register",
+        json={
+            "email": email,
+            "username": f"verify_{unique_id}",
+            "password": password,
+            "full_name": "Verify Tester",
+        },
+    )
+    assert reg_resp.status_code == 201
+    assert reg_resp.json()["is_email_verified"] is False
+
+    # 2. Try logging in before confirming email -> Expect 403
+    unverified_login = client.post(
+        "/api/auth/login",
+        json={"username_or_email": email, "password": password},
+    )
+    assert unverified_login.status_code == 403
+    assert "confirm your email" in unverified_login.json()["detail"].lower()
+
+    # 3. Create valid verification token & verify
+    from app.core.security import create_email_verification_token
+    token = create_email_verification_token(email)
+
+    verify_resp = client.post(
+        "/api/auth/verify-email",
+        json={"token": token},
+    )
+    assert verify_resp.status_code == 200
+    assert "successfully verified" in verify_resp.json()["message"].lower()
+
+    # 4. Now login succeeds
+    verified_login = client.post(
+        "/api/auth/login",
+        json={"username_or_email": email, "password": password},
+    )
+    assert verified_login.status_code == 200
+    assert "access_token" in verified_login.json()

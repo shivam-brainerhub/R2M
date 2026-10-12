@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 from app.core.security import (
     create_access_token,
+    create_email_verification_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
     get_password_hash,
@@ -15,11 +17,17 @@ from app.database import get_db
 from app.models import User, UserRole
 from app.schemas.token import Token, TokenRefreshRequest
 from app.schemas.user import (
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
+    ResendVerificationRequest,
+    ResetPasswordRequest,
     UserPasswordChange,
     UserRegister,
     UserResponse,
+    VerifyEmailRequest,
 )
+from app.services.email import send_password_reset_email, send_verification_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -30,6 +38,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def register_public_user(user_in: UserRegister, db: Session = Depends(get_db)):
     """
     Public registration endpoint. Registers a standard public user.
+    Sets is_email_verified=False and sends confirmation email.
     """
     existing_user_email = (
         db.query(User).filter(User.email == user_in.email).first()
@@ -56,18 +65,77 @@ def register_public_user(user_in: UserRegister, db: Session = Depends(get_db)):
         hashed_password=get_password_hash(user_in.password),
         role=UserRole.USER,
         is_active=True,
+        is_email_verified=False,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Generate verification token & dispatch confirmation email
+    verification_token = create_email_verification_token(user.email)
+    send_verification_email(user.email, user.username, verification_token)
+
     return user
+
+
+@router.post("/verify-email")
+def verify_email(
+    request: VerifyEmailRequest, db: Session = Depends(get_db)
+):
+    """
+    Verify user email address using the token sent via confirmation email.
+    """
+    payload = decode_token(request.token)
+    if payload is None or payload.get("type") != "email_verification":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired email confirmation link.",
+        )
+
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token payload",
+        )
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User account not found",
+        )
+
+    if user.is_email_verified:
+        return {"message": "Email is already verified. You can now log in."}
+
+    user.is_email_verified = True
+    db.commit()
+    return {"message": "Email successfully verified! You can now log in."}
+
+
+@router.post("/resend-verification")
+def resend_verification(
+    request: ResendVerificationRequest, db: Session = Depends(get_db)
+):
+    """
+    Resend confirmation email if the account exists and email is not yet verified.
+    """
+    user = db.query(User).filter(User.email == request.email).first()
+    if user and not user.is_email_verified and user.is_active:
+        token = create_email_verification_token(user.email)
+        send_verification_email(user.email, user.username, token)
+
+    return {
+        "message": "If an unverified account with this email exists, a new confirmation link has been sent."
+    }
 
 
 @router.post("/login", response_model=Token)
 def login_json(credentials: LoginRequest, db: Session = Depends(get_db)):
     """
     JSON login endpoint for web apps (Next.js frontend and admin dashboard).
-    Accepts email or username + password.
+    Accepts email or username + password. Requires verified email.
     """
     user = (
         db.query(User)
@@ -89,6 +157,12 @@ def login_json(credentials: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is deactivated",
+        )
+
+    if not user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please confirm your email address before logging in. Check your inbox for the verification link.",
         )
 
     user.last_login_at = datetime.now(timezone.utc)
@@ -132,6 +206,12 @@ def login_oauth2(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is deactivated",
+        )
+
+    if not user.is_email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please confirm your email address before logging in. Check your inbox for the verification link.",
         )
 
     user.last_login_at = datetime.now(timezone.utc)
@@ -225,3 +305,54 @@ def change_password(
     current_user.hashed_password = get_password_hash(password_data.new_password)
     db.commit()
     return {"message": "Password changed successfully"}
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(
+    request: ForgotPasswordRequest, db: Session = Depends(get_db)
+):
+    """
+    Initiate password reset. If the email exists and is active, sends a password reset email.
+    """
+    user = db.query(User).filter(User.email == request.email).first()
+    if user and user.is_active:
+        reset_token = create_password_reset_token(user.email)
+        send_password_reset_email(user.email, user.username, reset_token)
+
+    return {
+        "message": "If an account with that email exists, password reset instructions have been sent.",
+        "reset_token": None,
+    }
+
+
+@router.post("/reset-password")
+def reset_password(
+    request: ResetPasswordRequest, db: Session = Depends(get_db)
+):
+    """
+    Reset user password using a valid password reset token.
+    """
+    payload = decode_token(request.token)
+    if payload is None or payload.get("type") != "password_reset":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token payload",
+        )
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found or is inactive",
+        )
+
+    user.hashed_password = get_password_hash(request.new_password)
+    db.commit()
+    return {"message": "Password has been successfully reset"}

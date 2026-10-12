@@ -1,27 +1,56 @@
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+    }
+  }, [isLoading, isAuthenticated, router, pathname]);
 
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
+    { name: 'Users', href: '/admin/users', icon: 'group' },
     { name: 'Products', href: '/admin/products', icon: 'inventory_2', badge: '4' },
     { name: 'Quote Requests', href: '/admin/quotes', icon: 'receipt_long', badge: '3', badgeColor: 'bg-amber-500' },
     { name: 'Site Content', href: '/admin/content', icon: 'edit_note' },
     { name: 'Categories & Brands', href: '/admin/categories', icon: 'category' },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-navy/20 border-t-navy rounded-full animate-spin" />
+          <p className="text-xs text-gray-500 font-medium">Authenticating admin portal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-gray-800">
+    <div className="h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-gray-800 overflow-hidden">
       
       {/* Mobile Header */}
-      <header className="md:hidden bg-navy text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md">
+      <header className="md:hidden bg-navy text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40 shadow-md shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -51,12 +80,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy text-white flex flex-col transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-navy text-white flex flex-col transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:h-screen md:shrink-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+        <div className="p-5 border-b border-white/10 flex items-center justify-between shrink-0">
           <Link href="/admin" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gold text-navy flex items-center justify-center font-black text-sm">
               SA
@@ -88,7 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
+                    ? 'bg-blue-600/20 text-white shadow-md shadow-blue-900/30'
                     : 'text-gray-300 hover:bg-white/5 hover:text-white'
                 }`}
               >
@@ -143,30 +172,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* User / Footer */}
-        <div className="p-4 border-t border-white/10 bg-navy/50 flex items-center justify-between">
+        <div className="p-4 border-t border-white/10 bg-navy/50 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
-              AD
+            <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shrink-0 uppercase">
+              {user?.full_name ? user.full_name.substring(0, 2) : (user?.username ? user.username.substring(0, 2) : 'AD')}
             </div>
             <div className="truncate">
-              <div className="text-xs font-semibold text-white truncate">Administrator</div>
-              <div className="text-[10px] text-gray-400 truncate">admin@sahealthcare.com</div>
+              <div className="text-xs font-semibold text-white truncate">{user?.full_name || user?.username || 'Administrator'}</div>
+              <div className="text-[10px] text-gray-400 truncate">{user?.email || 'admin@sahealthcare.com'}</div>
             </div>
           </div>
-          <Link
-            href="/home"
-            title="Exit Admin"
-            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+          <button
+            onClick={handleLogout}
+            title="Log Out"
+            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0"
           >
             <span className="material-symbols-outlined text-lg!">logout</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         {/* Desktop Top Header Bar */}
-        <header className="hidden md:flex bg-white border-b border-gray-200 px-8 py-3.5 items-center justify-between sticky top-0 z-30 shadow-xs">
+        <header className="hidden md:flex bg-white border-b border-gray-200 px-8 py-3.5 items-center justify-between sticky top-0 z-30 shadow-xs shrink-0">
           <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
             <span className="material-symbols-outlined text-base! text-gray-400">admin_panel_settings</span>
             <span>Administration</span>
@@ -194,14 +223,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="material-symbols-outlined text-xs!">open_in_new</span>
             </Link>
 
-            <div className="h-4 w-px bg-gray-200"></div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-navy text-gold text-xs font-bold flex items-center justify-center">
-                SA
-              </div>
-              <span className="text-xs font-semibold text-navy">SA Admin</span>
-            </div>
           </div>
         </header>
 

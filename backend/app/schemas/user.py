@@ -31,6 +31,10 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class AdminSetPasswordRequest(BaseModel):
+    new_password: str
+
+
 class UserPasswordChange(BaseModel):
     current_password: str
     new_password: str
@@ -41,10 +45,33 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    reset_token: Optional[str] = None
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class UserResponse(UserBase):
     id: int
     role: UserRole
     is_active: bool
+    is_email_verified: bool
     created_at: Optional[datetime] = None
     last_login_at: Optional[datetime] = None
 

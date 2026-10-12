@@ -31,9 +31,12 @@ class Category(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String)
+    code = Column(String, index=True, nullable=True)
+    description = Column(String, nullable=True)
+    icon = Column(String, nullable=True)
 
-    subcategories = relationship("Subcategory", back_populates="category")
+    subcategories = relationship("Subcategory", back_populates="category", cascade="all, delete-orphan")
+    products = relationship("Product", back_populates="category")
 
 
 class Subcategory(TimestampMixin, Base):
@@ -51,7 +54,12 @@ class Brand(TimestampMixin, Base):
     __tablename__ = "brands"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    logo_url = Column(String)
+    slug = Column(String, unique=True, index=True, nullable=True)
+    logo_url = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    website_url = Column(String, nullable=True)
+    featured_in_slider = Column(Boolean, default=True, nullable=False)
 
     products = relationship("Product", back_populates="brand")
 
@@ -59,13 +67,15 @@ class Brand(TimestampMixin, Base):
 class Product(TimestampMixin, Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
-    subcategory_id = Column(Integer, ForeignKey("subcategories.id"))
-    brand_id = Column(Integer, ForeignKey("brands.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    subcategory_id = Column(Integer, ForeignKey("subcategories.id"), nullable=True)
+    brand_id = Column(Integer, ForeignKey("brands.id"), nullable=True)
     name = Column(String, index=True, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
     specifications = Column(JSON)
     status = Column(String, default="Draft")
 
+    category = relationship("Category", back_populates="products")
     subcategory = relationship("Subcategory", back_populates="products")
     brand = relationship("Brand", back_populates="products")
     documents = relationship("Document", back_populates="product")
@@ -114,4 +124,5 @@ class User(TimestampMixin, Base):
         nullable=False,
     )
     is_active = Column(Boolean, default=True, nullable=False)
+    is_email_verified = Column(Boolean, default=False, nullable=False)
     last_login_at = Column(DateTime(timezone=True), nullable=True)

@@ -25,15 +25,22 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
 
   // Load from local storage on mount
   useEffect(() => {
-    const stored = localStorage.getItem('quoteCart');
-    if (stored) {
-      try {
-        setItems(JSON.parse(stored));
-      } catch (e) {
-        console.error('Failed to parse quote cart from local storage', e);
+    try {
+      const stored = localStorage.getItem('quoteCart');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        queueMicrotask(() => {
+          setItems(parsed);
+          setIsLoaded(true);
+        });
+        return;
       }
+    } catch (e) {
+      console.error('Failed to parse quote cart from local storage', e);
     }
-    setIsLoaded(true);
+    queueMicrotask(() => {
+      setIsLoaded(true);
+    });
   }, []);
 
   // Save to local storage on change

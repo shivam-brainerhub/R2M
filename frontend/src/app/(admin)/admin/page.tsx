@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
 
 export default function AdminDashboardPage() {
   const stats = [
@@ -227,6 +226,16 @@ export default function AdminDashboardPage() {
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-base! text-gray-500">edit_note</span>
                 <span>Edit Site Content &amp; Hero Banner</span>
+              </div>
+              <span className="material-symbols-outlined text-xs! text-gray-400">chevron_right</span>
+            </Link>
+            <Link
+              href="/admin/users"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-navy transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-base! text-gray-500">group</span>
+                <span>User Accounts &amp; Permissions</span>
               </div>
               <span className="material-symbols-outlined text-xs! text-gray-400">chevron_right</span>
             </Link>

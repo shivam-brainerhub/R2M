@@ -47,7 +47,7 @@ export default function NotFoundView() {
 
         {/* Search Bar */}
         <div className="max-w-xl mx-auto mb-10">
-          <form onSubmit={handleSearch} className="bg-white rounded-full p-1.5 flex items-center shadow-md border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+          <form onSubmit={handleSearch} noValidate className="bg-white rounded-full p-1.5 flex items-center shadow-md border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
             <span className="material-symbols-outlined text-navy ml-3 mr-2 text-xl!">
               search
             </span>
