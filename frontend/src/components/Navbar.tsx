@@ -4,10 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useQuoteCart } from '../context/QuoteCartContext';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { itemCount } = useQuoteCart();
 
   const navLinks = [
     { name: 'Home', href: '/home' },
@@ -53,8 +55,16 @@ export default function Navbar() {
             Login
             <span className="absolute left-0 bottom-0 w-full h-[2px] bg-gold transition-transform duration-300 origin-left scale-x-0 group-hover:scale-x-100"></span>
           </Link>
-          <Link href="/contact" className="bg-gold text-navy font-semibold px-5 py-2.5 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-sm flex items-center gap-1 shadow-md hover:shadow-lg group">
-            Request a Quote <span className="material-symbols-outlined text-sm! transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
+          <Link href="/quote" className="bg-gold text-navy font-semibold px-5 py-2.5 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-sm flex items-center gap-2 shadow-md hover:shadow-lg group">
+            <span className="relative flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  {itemCount}
+                </span>
+              )}
+            </span>
+            Quote Cart
           </Link>
         </div>
 

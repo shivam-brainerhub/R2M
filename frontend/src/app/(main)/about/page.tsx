@@ -118,11 +118,11 @@ export default function About() {
       {/* CTA Section */}
       <section className="py-12 px-6 max-w-7xl mx-auto w-full mb-12 mt-12">
          <div className="bg-navy rounded-3xl p-10 md:p-14 text-white flex flex-col lg:flex-row items-center justify-between shadow-2xl">
-            <div className="flex items-center mb-8 lg:mb-0">
-               <span className="material-symbols-outlined text-7xl! text-white mr-8 opacity-90">contact_support</span>
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left mb-8 lg:mb-0">
+               <span className="material-symbols-outlined text-6xl! md:text-7xl! text-white mb-6 md:mb-0 md:mr-8 opacity-90">contact_support</span>
                <div>
-                  <h3 className="text-3xl font-bold mb-3">Partner with us today</h3>
-                  <p className="text-gray-300 text-lg max-w-xl">Whether you are looking to source equipment or become a supplier, our team is ready to assist you.</p>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-3">Partner with us today</h3>
+                  <p className="text-gray-300 text-base md:text-lg max-w-xl">Whether you are looking to source equipment or become a supplier, our team is ready to assist you.</p>
                </div>
             </div>
             
