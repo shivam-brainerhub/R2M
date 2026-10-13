@@ -26,13 +26,14 @@ class Settings(BaseSettings):
     INITIAL_ADMIN_USERNAME: str = os.getenv("INITIAL_ADMIN_USERNAME", "admin")
 
     # Email / SMTP configuration
-    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "").strip("'\"")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
-    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "no-reply@sahealthcare.co.za")
-    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "SA Healthcare")
+    SMTP_USER: str = os.getenv("SMTP_USER", "").strip("'\"")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").strip("'\"")
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "no-reply@sahealthcare.co.za").strip("'\"")
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "SA Healthcare").strip("'\"")
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() in ("true", "1", "yes")
+    SMTP_SSL: bool = os.getenv("SMTP_SSL", "false").lower() in ("true", "1", "yes")
 
     # Frontend URL for links in email
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")

@@ -15,8 +15,6 @@ from app.init_db import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure tables are created
-    Base.metadata.create_all(bind=engine)
     # Seed initial admin user if not present
     db = SessionLocal()
     try:

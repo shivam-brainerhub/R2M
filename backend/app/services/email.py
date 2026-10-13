@@ -7,6 +7,24 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _send_smtp_message(msg: MIMEMultipart) -> None:
+    """
+    Connects to the SMTP server using SSL (SMTPS, port 465) or standard SMTP + STARTTLS (port 587/25).
+    """
+    use_ssl = getattr(settings, "SMTP_SSL", False) or settings.SMTP_PORT == 465
+    if use_ssl:
+        server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+    else:
+        server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+        if getattr(settings, "SMTP_TLS", False):
+            server.starttls()
+
+    with server:
+        if settings.SMTP_USER and settings.SMTP_PASSWORD:
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.send_message(msg)
+
+
 def send_verification_email(to_email: str, username: str, verification_token: str) -> bool:
     """
     Sends an email verification link to newly registered users.
@@ -86,12 +104,7 @@ This link is valid for 24 hours. If you did not register, please ignore this ema
             msg.attach(MIMEText(plain_content, "plain"))
             msg.attach(MIMEText(html_content, "html"))
 
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                if settings.SMTP_TLS:
-                    server.starttls()
-                if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.send_message(msg)
+            _send_smtp_message(msg)
 
             logger.info(f"Verification email successfully dispatched to {to_email}")
             return True
@@ -178,12 +191,7 @@ This link is valid for 30 minutes. If you did not request this, please ignore th
             msg.attach(MIMEText(plain_content, "plain"))
             msg.attach(MIMEText(html_content, "html"))
 
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                if settings.SMTP_TLS:
-                    server.starttls()
-                if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.send_message(msg)
+            _send_smtp_message(msg)
 
             logger.info(f"Password reset email successfully dispatched to {to_email}")
             return True
