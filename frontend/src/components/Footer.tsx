@@ -3,14 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { contentApi, CompanyContent } from '@/lib/api';
-
-const DEFAULT_COMPANY: CompanyContent = {
-  companyName: 'SA Healthcare',
-  phone: '+27 11 555 0100',
-  email: 'info@sahealthcare.com',
-  physicalAddress: '15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa',
-  hours: 'Monday – Friday: 08:00 – 17:00 (SAST)',
-};
+import { DEFAULT_COMPANY } from '@/lib/constants';
 
 export default function Footer() {
   const [company, setCompany] = useState<CompanyContent>(DEFAULT_COMPANY);

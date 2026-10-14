@@ -82,9 +82,9 @@ export default function ProductDetailPage({
       ? product.images
       : product.primary_image_url
       ? [{ image_url: product.primary_image_url, is_primary: true, display_order: 0 }]
-      : [{ image_url: '/images/benevision_n12.jpg', is_primary: true, display_order: 0 }];
+      : [];
 
-  const currentImage = galleryImages[selectedImageIndex] || galleryImages[0];
+  const currentImage = galleryImages[selectedImageIndex] || galleryImages[0] || null;
 
   return (
     <div className="bg-white min-h-screen pb-20">
@@ -116,14 +116,23 @@ export default function ProductDetailPage({
           {/* Product Image Gallery with Multiple Photos */}
           <div className="md:w-1/2 flex flex-col">
             <div className="bg-white border border-gray-100 rounded-3xl aspect-square flex items-center justify-center relative p-8 overflow-hidden shadow-xs">
-              <Image
-                src={getMediaUrl(currentImage.image_url)}
-                alt={currentImage.alt_text || product.name}
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-contain p-6 transition-all duration-300"
-                priority
-              />
+              {currentImage && currentImage.image_url ? (
+                <Image
+                  src={getMediaUrl(currentImage.image_url)}
+                  alt={currentImage.alt_text || product.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-contain p-6 transition-all duration-300"
+                  priority
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-gray-300 space-y-3">
+                  <span className="material-symbols-outlined text-8xl!">inventory_2</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    No image available
+                  </span>
+                </div>
+              )}
               {product.brand_name && (
                 <div className="absolute top-6 left-6 text-red-600 font-bold text-xl tracking-tight uppercase">
                   {product.brand_name}

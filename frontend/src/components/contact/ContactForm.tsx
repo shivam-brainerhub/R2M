@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { inquiriesApi, ApiError } from '@/lib/api';
 
 interface FormState {
   firstName: string;
@@ -29,6 +30,7 @@ export default function ContactForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -72,10 +74,27 @@ export default function ContactForm() {
     if (!validate()) return;
 
     setIsSubmitting(true);
-    // Simulate API call delay
-    await new Promise((r) => setTimeout(r, 600));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    setSubmitError(null);
+    try {
+      await inquiriesApi.submitContact({
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        email: formData.email.trim(),
+        organization: formData.organization.trim() || undefined,
+        message: formData.message.trim(),
+      });
+      setIsSubmitted(true);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setSubmitError(err.message);
+      } else if (err instanceof Error) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError('Failed to send message. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -214,6 +233,13 @@ export default function ContactForm() {
           </p>
         )}
       </div>
+
+      {submitError && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">error</span>
+          <span>{submitError}</span>
+        </div>
+      )}
 
       <button
         type="submit"

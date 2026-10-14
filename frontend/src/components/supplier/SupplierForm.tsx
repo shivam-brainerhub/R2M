@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { inquiriesApi, categoriesApi, CategoryItem, ApiError } from '@/lib/api';
 
 interface SupplierFormState {
   companyName: string;
@@ -35,9 +36,28 @@ export default function SupplierForm() {
     overview: '',
   });
 
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [errors, setErrors] = useState<SupplierFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    categoriesApi
+      .listCategories()
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          setCategories(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load categories for supplier form:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const validate = (): boolean => {
     const newErrors: SupplierFormErrors = {};
@@ -102,9 +122,30 @@ export default function SupplierForm() {
     if (!validate()) return;
 
     setIsSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    setSubmitError(null);
+    try {
+      await inquiriesApi.submitSupplier({
+        company_name: formData.companyName.trim(),
+        website: formData.website.trim() || undefined,
+        contact_person: formData.contactPerson.trim(),
+        job_title: formData.jobTitle.trim() || undefined,
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        category: formData.category,
+        overview: formData.overview.trim(),
+      });
+      setIsSubmitted(true);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setSubmitError(err.message);
+      } else if (err instanceof Error) {
+        setSubmitError(err.message);
+      } else {
+        setSubmitError('Failed to submit application. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -286,16 +327,12 @@ export default function SupplierForm() {
           }`}
         >
           <option value="">Select a category...</option>
-          <option value="diagnostic">Diagnostic and Measure</option>
-          <option value="furniture">Furniture</option>
-          <option value="disposables">Disposables and Care Supplies</option>
-          <option value="hygiene">Hygiene, Disinfection and Sterilisation</option>
-          <option value="emergency">Emergency, Reanimation and Surgery</option>
-          <option value="living_aid">Living Aid</option>
-          <option value="instruments">Instruments</option>
-          <option value="lab">Lab</option>
-          <option value="veterinary">Veterinary</option>
-          <option value="other">Other</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.name}>
+              {cat.name}
+            </option>
+          ))}
+          <option value="Other">Other</option>
         </select>
         {errors.category && (
           <p className="text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
@@ -327,6 +364,13 @@ export default function SupplierForm() {
           </p>
         )}
       </div>
+
+      {submitError && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">error</span>
+          <span>{submitError}</span>
+        </div>
+      )}
 
       <button
         type="submit"

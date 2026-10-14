@@ -105,9 +105,9 @@ export default function ServerErrorView({ error, reset }: ServerErrorViewProps) 
             If you are placing an urgent clinical inquiry or quotation, reach our healthcare representative directly:
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-xs font-medium text-navy">
-            <a href="tel:+1234567890" className="inline-flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+            <a href="tel:+27115550100" className="inline-flex items-center gap-1.5 hover:text-blue-600 transition-colors">
               <span className="material-symbols-outlined text-base!">call</span>
-              +1 (234) 567-890
+              +27 11 555 0100
             </a>
             <span className="hidden sm:inline text-gray-300">&bull;</span>
             <a href="mailto:info@sahealthcare.com" className="inline-flex items-center gap-1.5 hover:text-blue-600 transition-colors">

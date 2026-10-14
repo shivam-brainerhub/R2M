@@ -7,78 +7,20 @@ import { useRouter } from 'next/navigation';
 import BrandSlider from '@/components/BrandSlider';
 import {
   contentApi,
+  categoriesApi,
   HeroContent,
   CompanyContent,
   WhyUsContent,
   CTAContent,
+  CategoryItem,
 } from '@/lib/api';
-
-const DEFAULT_HERO: HeroContent = {
-  headlinePart1: 'Healthcare',
-  headlinePart2: 'without',
-  headlineAccent: 'limits.',
-  subheading:
-    "Explore SA Healthcare's growing digital healthcare catalogue. Search products, brochures and technical specifications from trusted global manufacturers.",
-  showSearchBar: true,
-  searchPlaceholder:
-    'Search by product, model number, manufacturer, brochure or technical specification...',
-  popularSearches: [
-    'Patient Monitor',
-    'Hospital Bed',
-    'ECG',
-    'Pulse Oximeter',
-    'Infusion Pump',
-    'Defibrillator',
-    'Ultrasound',
-  ],
-  badgeTitle: 'TRUST • ACCESS • INNOVATION • IMPACT',
-  badgeTagline: 'A HEALTHIER TOMORROW TOGETHER.',
-};
-
-const DEFAULT_COMPANY: CompanyContent = {
-  companyName: 'SA Healthcare',
-  phone: '+27 11 555 0100',
-  tollFree: '0800 123 456',
-  email: 'info@sahealthcare.com',
-  salesEmail: 'quotes@sahealthcare.com',
-  physicalAddress: '15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa',
-  hours: 'Monday – Friday: 08:00 – 17:00 (SAST)',
-};
-
-const DEFAULT_WHY_US: WhyUsContent = {
-  sectionTag: 'WHY SA HEALTHCARE',
-  title: 'Why choose SA Healthcare',
-  items: [
-    {
-      id: '1',
-      icon: 'language',
-      title: 'Trusted Global Manufacturers',
-      description: 'A comprehensive range of products from leading brands worldwide.',
-    },
-    {
-      id: '2',
-      icon: 'description',
-      title: 'Brochures & Technical Information',
-      description: 'Every product includes brochures and technical specifications.',
-    },
-    {
-      id: '3',
-      icon: 'chat',
-      title: 'Request a Quote',
-      description: 'Receive personalised assistance from our healthcare specialists.',
-    },
-  ],
-};
-
-const DEFAULT_CTA: CTAContent = {
-  heading: 'Need a quotation or product advice?',
-  subheading:
-    'Speak to our team for expert guidance and tailored solutions for your facility.',
-  buttonText: 'Request a Quote',
-  buttonLink: '/contact',
-  phone: '+27 11 555 0100',
-  email: 'info@sahealthcare.com',
-};
+import {
+  DEFAULT_HERO,
+  DEFAULT_COMPANY,
+  DEFAULT_WHY_US,
+  DEFAULT_CTA,
+  CATEGORY_ICON_MAP,
+} from '@/lib/constants';
 
 export default function HomeContent() {
   const router = useRouter();
@@ -86,6 +28,7 @@ export default function HomeContent() {
   const [company, setCompany] = useState<CompanyContent>(DEFAULT_COMPANY);
   const [whyUs, setWhyUs] = useState<WhyUsContent>(DEFAULT_WHY_US);
   const [cta, setCta] = useState<CTAContent>(DEFAULT_CTA);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -156,7 +99,28 @@ export default function HomeContent() {
       .catch(() => {
         // Fallback to DEFAULT states gracefully
       });
+
+    categoriesApi
+      .listCategories()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setCategories(data);
+        }
+      })
+      .catch(() => {
+        // Categories will remain empty or handle gracefully
+      });
   }, []);
+
+  const getCatIcon = (cat: CategoryItem) => {
+    if (cat.icon && cat.icon.trim() && cat.icon !== 'category') return cat.icon;
+    if (cat.slug && CATEGORY_ICON_MAP[cat.slug]) return CATEGORY_ICON_MAP[cat.slug];
+    const nameLower = cat.name.toLowerCase();
+    for (const [slugKey, iconName] of Object.entries(CATEGORY_ICON_MAP)) {
+      if (nameLower.includes(slugKey.replace(/-/g, ' '))) return iconName;
+    }
+    return 'medical_services';
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,31 +295,23 @@ export default function HomeContent() {
           <h3 className="text-4xl font-bold text-navy mb-12">Find the products you need</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { id: '01', title: 'Diagnostic and Measure', desc: 'Patient monitors, ECG, ultrasound, thermometers, glucose meters, scales and more.', icon: 'monitor_heart' },
-              { id: '02', title: 'Furniture', desc: 'Hospital beds, operating tables and medical furniture.', icon: 'bed' },
-              { id: '03', title: 'Disposables and Care Supplies', desc: 'Gloves, gowns, bandages, dressings, tubes, syringes and general care supplies.', icon: 'clean_hands' },
-              { id: '04', title: 'Hygiene, Disinfection and Sterilisation', desc: 'Autoclaves, UV sterilisers, cleaning products, sanitisers and disinfectants.', icon: 'sanitizer' },
-              { id: '05', title: 'Emergency, Reanimation and Surgery', desc: 'Defibrillators, AEDs, resuscitation equipment, stretchers, surgical equipment and more.', icon: 'medical_services' },
-              { id: '06', title: 'Living Aid', desc: 'Wheelchairs, crutches, walkers, bathroom aids, patient transfer aids and daily living support.', icon: 'accessible' },
-              { id: '07', title: 'Instruments', desc: 'Scissors, forceps, speculums, laryngoscopes, otoscopes and instrument sets.', icon: 'content_cut' },
-              { id: '08', title: 'Lab', desc: 'Laboratory equipment, fridges, freezers, containers, petri dishes, tubes and lab disposables.', icon: 'science' },
-              { id: '09', title: 'Veterinary', desc: 'Veterinary equipment, instruments and consumables.', icon: 'pets' },
-            ].map((cat) => (
+            {categories.map((cat, idx) => (
               <Link
-                href={`/products?category=${encodeURIComponent(cat.title)}`}
+                href={`/products?category=${encodeURIComponent(cat.name)}`}
                 key={cat.id}
                 className="bg-white p-1 md:p-3 rounded-xl border border-blue-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] group flex items-center"
               >
                 <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center text-blue-600 bg-blue-50 rounded-full group-hover:scale-105 transition-transform shrink-0 mr-6">
-                  <span className="material-symbols-outlined text-5xl!">{cat.icon}</span>
+                  <span className="material-symbols-outlined text-5xl!">{getCatIcon(cat)}</span>
                 </div>
                 <div className="flex-1 pr-4">
-                  <div className="text-gold text-sm font-bold mb-1">{cat.id}</div>
+                  <div className="text-gold text-sm font-bold mb-1">
+                    {cat.code || String(idx + 1).padStart(2, '0')}
+                  </div>
                   <h4 className="text-navy font-bold text-lg leading-tight mb-2 group-hover:text-blue-600 transition-colors">
-                    {cat.title}
+                    {cat.name}
                   </h4>
-                  <p className="text-gray-500 text-sm leading-relaxed">{cat.desc}</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">{cat.description || ''}</p>
                 </div>
                 <span className="material-symbols-outlined text-blue-600 font-bold self-center">
                   chevron_right

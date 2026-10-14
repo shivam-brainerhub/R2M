@@ -4,12 +4,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { productsApi, inquiriesApi } from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, token, isAuthenticated, isLoading, logout } = useAuth();
+  const [productCount, setProductCount] = useState<number | null>(null);
+  const [inquiriesCount, setInquiriesCount] = useState<number | null>(null);
 
   const handleLogout = () => {
     logout();
@@ -22,11 +25,60 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [isLoading, isAuthenticated, router, pathname]);
 
+  useEffect(() => {
+    let isMounted = true;
+    productsApi
+      .getStats()
+      .then((data) => {
+        if (isMounted && data) {
+          setProductCount(data.total_products);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load product count:', err);
+      });
+
+    if (token) {
+      inquiriesApi
+        .getInquiriesStats(token)
+        .then((data) => {
+          if (isMounted && data) {
+            setInquiriesCount(data.total_new);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load inquiries count:', err);
+        });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token, pathname]);
+
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
     { name: 'Users', href: '/admin/users', icon: 'group' },
-    { name: 'Products', href: '/admin/products', icon: 'inventory_2', badge: '4' },
-    { name: 'Quote Requests', href: '/admin/quotes', icon: 'receipt_long', badge: '3', badgeColor: 'bg-amber-500' },
+    {
+      name: 'Products',
+      href: '/admin/products',
+      icon: 'inventory_2',
+      badge: productCount !== null ? String(productCount) : undefined,
+    },
+    {
+      name: 'Quote Requests',
+      href: '/admin/quotes',
+      icon: 'receipt_long',
+      badge: '3',
+      badgeColor: 'bg-amber-500',
+    },
+    {
+      name: 'Inquiries & Leads',
+      href: '/admin/inquiries',
+      icon: 'contact_mail',
+      badge: inquiriesCount !== null && inquiriesCount > 0 ? String(inquiriesCount) : undefined,
+      badgeColor: 'bg-emerald-500',
+    },
     { name: 'Site Content', href: '/admin/content', icon: 'edit_note' },
     { name: 'Categories & Brands', href: '/admin/categories', icon: 'category' },
   ];

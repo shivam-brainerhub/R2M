@@ -12,6 +12,7 @@ from app.api.categories import router as categories_router
 from app.api.products import router as products_router
 from app.api.properties import router as properties_router
 from app.api.site_content import router as site_content_router
+from app.api.inquiries import router as inquiries_router
 from app.database import Base, SessionLocal, engine
 from app.init_db import init_db
 
@@ -54,6 +55,7 @@ app.include_router(brands_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
 app.include_router(properties_router, prefix="/api")
 app.include_router(site_content_router, prefix="/api")
+app.include_router(inquiries_router, prefix="/api")
 
 # Mount Media Files
 MEDIA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "media")

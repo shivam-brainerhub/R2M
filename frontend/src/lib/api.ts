@@ -1030,6 +1030,201 @@ export const contentApi = {
   },
 };
 
+// ==============================================================================
+// Inquiries & Applications API
+// ==============================================================================
+
+export interface ContactMessageItem {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  organization?: string | null;
+  message: string;
+  status: string;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SubmitContactPayload {
+  first_name: string;
+  last_name: string;
+  email: string;
+  organization?: string;
+  message: string;
+}
+
+export interface UpdateContactPayload {
+  status?: string;
+  notes?: string;
+}
+
+export interface SupplierApplicationItem {
+  id: number;
+  company_name: string;
+  website?: string | null;
+  contact_person: string;
+  job_title?: string | null;
+  email: string;
+  phone: string;
+  category: string;
+  overview: string;
+  status: string;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SubmitSupplierPayload {
+  company_name: string;
+  website?: string;
+  contact_person: string;
+  job_title?: string;
+  email: string;
+  phone: string;
+  category: string;
+  overview: string;
+}
+
+export interface UpdateSupplierPayload {
+  status?: string;
+  notes?: string;
+}
+
+export interface InquiriesStatsResponse {
+  new_contact: number;
+  total_contact: number;
+  new_supplier: number;
+  total_supplier: number;
+  total_new: number;
+}
+
+export const inquiriesApi = {
+  // Public submissions
+  async submitContact(payload: SubmitContactPayload): Promise<ContactMessageItem> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<ContactMessageItem>(response);
+  },
+
+  async submitSupplier(payload: SubmitSupplierPayload): Promise<SupplierApplicationItem> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/supplier`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<SupplierApplicationItem>(response);
+  },
+
+  // Admin Contact operations
+  async listContactMessages(
+    token: string,
+    params: { status?: string; search?: string; skip?: number; limit?: number } = {}
+  ): Promise<ContactMessageItem[]> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'All') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    if (params.skip !== undefined) query.append('skip', String(params.skip));
+    if (params.limit !== undefined) query.append('limit', String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/inquiries/contact${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<ContactMessageItem[]>(response);
+  },
+
+  async updateContactMessage(token: string, id: number, payload: UpdateContactPayload): Promise<ContactMessageItem> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/contact/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<ContactMessageItem>(response);
+  },
+
+  async deleteContactMessage(token: string, id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/contact/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await handleResponse<void>(response);
+    }
+  },
+
+  // Admin Supplier operations
+  async listSupplierApplications(
+    token: string,
+    params: { status?: string; search?: string; skip?: number; limit?: number } = {}
+  ): Promise<SupplierApplicationItem[]> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'All') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    if (params.skip !== undefined) query.append('skip', String(params.skip));
+    if (params.limit !== undefined) query.append('limit', String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/inquiries/supplier${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<SupplierApplicationItem[]>(response);
+  },
+
+  async updateSupplierApplication(token: string, id: number, payload: UpdateSupplierPayload): Promise<SupplierApplicationItem> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/supplier/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<SupplierApplicationItem>(response);
+  },
+
+  async deleteSupplierApplication(token: string, id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/supplier/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await handleResponse<void>(response);
+    }
+  },
+
+  // Admin Stats
+  async getInquiriesStats(token: string): Promise<InquiriesStatsResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/inquiries/stats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<InquiriesStatsResponse>(response);
+  },
+};
+
+
 
 export function getMediaUrl(path?: string | null): string {
   if (!path) return '';

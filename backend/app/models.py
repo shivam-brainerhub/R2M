@@ -204,3 +204,33 @@ class SiteContent(TimestampMixin, Base):
     title = Column(String, nullable=True)
     content = Column(JSON, nullable=False, default=dict)
 
+
+class ContactMessage(TimestampMixin, Base):
+    __tablename__ = "contact_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    email = Column(String, index=True, nullable=False)
+    organization = Column(String, nullable=True)
+    message = Column(Text, nullable=False)
+    status = Column(String, default="New", nullable=False, index=True)  # New, In Progress, Responded, Archived
+    notes = Column(Text, nullable=True)
+
+
+class SupplierApplication(TimestampMixin, Base):
+    __tablename__ = "supplier_applications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_name = Column(String, index=True, nullable=False)
+    website = Column(String, nullable=True)
+    contact_person = Column(String, nullable=False)
+    job_title = Column(String, nullable=True)
+    email = Column(String, index=True, nullable=False)
+    phone = Column(String, nullable=False)
+    category = Column(String, index=True, nullable=False)
+    overview = Column(Text, nullable=False)
+    status = Column(String, default="New", nullable=False, index=True)  # New, Under Review, Approved, Declined
+    notes = Column(Text, nullable=True)
+
+
