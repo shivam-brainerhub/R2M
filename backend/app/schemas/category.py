@@ -27,6 +27,18 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = None
 
 
+class SubcategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    category_id: int
+    name: str
+    slug: str
+    product_count: int = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
 class CategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,5 +49,7 @@ class CategoryResponse(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     product_count: int = 0
+    subcategories: list[SubcategoryResponse] = []
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+

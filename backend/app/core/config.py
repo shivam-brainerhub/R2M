@@ -38,6 +38,19 @@ class Settings(BaseSettings):
     # Frontend URL for links in email
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+    # Storage configuration (local vs cloud/S3)
+    STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local")
+    MEDIA_DIR: str = os.getenv(
+        "MEDIA_DIR",
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media"),
+    )
+    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "")
+    S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "")
+    S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "")
+    S3_REGION: str = os.getenv("S3_REGION", "us-east-1")
+    S3_ENDPOINT_URL: str = os.getenv("S3_ENDPOINT_URL", "")
+    S3_CUSTOM_DOMAIN: str = os.getenv("S3_CUSTOM_DOMAIN", "")
+
     model_config = SettingsConfigDict(case_sensitive=True)
 
 

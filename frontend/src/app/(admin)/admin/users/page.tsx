@@ -260,23 +260,23 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Toast Notification */}
+      {/* Toast Notification (Topmost layer above all modals & backdrops) */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+        <div className="fixed top-6 right-6 z-100 animate-scale-in">
           <div
-            className={`px-4 py-3 rounded-xl shadow-lg border flex items-center gap-3 text-sm font-semibold ${
+            className={`px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 text-sm font-semibold ${
               toast.type === 'success'
-                ? 'bg-emerald-900 text-emerald-100 border-emerald-700'
-                : 'bg-rose-900 text-rose-100 border-rose-700'
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-950/20'
+                : 'bg-rose-600 text-white border-rose-500 shadow-rose-950/20'
             }`}
           >
-            <span className="material-symbols-outlined text-lg!">
+            <span className="material-symbols-outlined text-white text-lg!">
               {toast.type === 'success' ? 'check_circle' : 'error'}
             </span>
             <span>{toast.message}</span>
             <button
               onClick={() => setToast(null)}
-              className="ml-2 hover:opacity-80"
+              className="ml-2 hover:opacity-80 cursor-pointer p-0.5 rounded"
               aria-label="Dismiss toast"
             >
               <span className="material-symbols-outlined text-sm!">close</span>
@@ -303,7 +303,7 @@ export default function AdminUsersPage() {
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setCreateUserModalOpen(true)}
-            className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-200 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-1.5 shadow-md"
+            className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-200 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-1.5 shadow-md cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg!">person_add</span>
             Create User
@@ -311,7 +311,7 @@ export default function AdminUsersPage() {
           <button
             onClick={fetchUsers}
             disabled={isLoading}
-            className="bg-white/10 hover:bg-white/20 text-white font-medium px-3.5 py-2.5 rounded-xl transition-all border border-white/15 text-xs sm:text-sm flex items-center gap-1.5"
+            className="bg-white/10 hover:bg-white/20 text-white font-medium px-3.5 py-2.5 rounded-xl transition-all border border-white/15 text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             title="Refresh user list"
           >
             <span className={`material-symbols-outlined text-lg! ${isLoading ? 'animate-spin' : ''}`}>
@@ -373,7 +373,7 @@ export default function AdminUsersPage() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer p-0.5"
               >
                 <span className="material-symbols-outlined text-base!">cancel</span>
               </button>
@@ -389,7 +389,7 @@ export default function AdminUsersPage() {
                 setVerifiedFilter('all');
                 setSearchQuery('');
               }}
-              className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-800 font-semibold self-start lg:self-center"
+              className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-800 font-semibold self-start lg:self-center cursor-pointer transition-colors"
             >
               <span className="material-symbols-outlined text-sm!">filter_alt_off</span>
               Reset filters
@@ -405,7 +405,7 @@ export default function AdminUsersPage() {
             <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50">
               <button
                 onClick={() => setRoleFilter('all')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   roleFilter === 'all' ? 'bg-white text-navy shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -413,7 +413,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setRoleFilter('admin')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   roleFilter === 'admin' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -421,7 +421,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setRoleFilter('user')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   roleFilter === 'user' ? 'bg-slate-700 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -436,7 +436,7 @@ export default function AdminUsersPage() {
             <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'all' ? 'bg-white text-navy shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -444,7 +444,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setStatusFilter('active')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'active' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -452,7 +452,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setStatusFilter('suspended')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   statusFilter === 'suspended' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -467,7 +467,7 @@ export default function AdminUsersPage() {
             <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50">
               <button
                 onClick={() => setVerifiedFilter('all')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   verifiedFilter === 'all' ? 'bg-white text-navy shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -475,7 +475,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={() => setVerifiedFilter('verified')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                   verifiedFilter === 'verified' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
                 }`}
               >
@@ -663,14 +663,14 @@ export default function AdminUsersPage() {
 
                       {/* Action buttons */}
                       <td className="px-5 py-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1.5">
                           {/* Resend Confirmation Email (Only if not verified) */}
                           {!u.is_email_verified && (
                             <button
                               onClick={() => handleResendConfirmation(u)}
                               disabled={isActionLoading}
                               title="Resend verification email"
-                              className="p-1.5 text-purple-700 hover:bg-purple-50 rounded-lg transition-colors border border-purple-200"
+                              className="p-1.5 text-purple-700 hover:bg-purple-100/70 rounded-lg transition-all border border-purple-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                             >
                               <span className="material-symbols-outlined text-base!">mark_email_read</span>
                             </button>
@@ -686,7 +686,7 @@ export default function AdminUsersPage() {
                               setIsPasswordModalOpen(true);
                             }}
                             title="Set / Reset Password"
-                            className="p-1.5 text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200"
+                            className="p-1.5 text-blue-700 hover:bg-blue-100/70 rounded-lg transition-all border border-blue-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                           >
                             <span className="material-symbols-outlined text-base!">lock_reset</span>
                           </button>
@@ -700,10 +700,10 @@ export default function AdminUsersPage() {
                                 setSuspendModalOpen(true);
                               }}
                               title={u.is_active ? 'Suspend account' : 'Reactivate account'}
-                              className={`p-1.5 rounded-lg transition-colors border ${
+                              className={`p-1.5 rounded-lg transition-all border cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs ${
                                 u.is_active
-                                  ? 'text-amber-700 hover:bg-amber-50 border-amber-200'
-                                  : 'text-emerald-700 hover:bg-emerald-50 border-emerald-200'
+                                  ? 'text-amber-700 hover:bg-amber-100/70 border-amber-200'
+                                  : 'text-emerald-700 hover:bg-emerald-100/70 border-emerald-200'
                               }`}
                             >
                               <span className="material-symbols-outlined text-base!">
@@ -720,7 +720,7 @@ export default function AdminUsersPage() {
                                 setDeleteModalOpen(true);
                               }}
                               title="Permanently delete suspended account"
-                              className="p-1.5 text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border border-rose-200"
+                              className="p-1.5 text-rose-700 hover:bg-rose-100/70 rounded-lg transition-all border border-rose-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                             >
                               <span className="material-symbols-outlined text-base!">delete</span>
                             </button>
@@ -733,7 +733,7 @@ export default function AdminUsersPage() {
                               setViewDetailsModalOpen(true);
                             }}
                             title="View user details"
-                            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                            className="p-1.5 text-gray-600 hover:text-navy hover:bg-slate-100 rounded-lg transition-all border border-gray-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                           >
                             <span className="material-symbols-outlined text-base!">visibility</span>
                           </button>
@@ -815,7 +815,7 @@ export default function AdminUsersPage() {
             <div className="pt-4 border-t border-gray-100 flex justify-end">
               <button
                 onClick={() => setViewDetailsModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs cursor-pointer transition-colors"
               >
                 Close
               </button>
@@ -835,7 +835,7 @@ export default function AdminUsersPage() {
               </div>
               <button
                 onClick={() => setIsPasswordModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer rounded-lg"
               >
                 <span className="material-symbols-outlined text-lg!">close</span>
               </button>
@@ -882,14 +882,14 @@ export default function AdminUsersPage() {
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoadingId === selectedUser.id}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {actionLoadingId === selectedUser.id ? (
                     <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
@@ -935,14 +935,14 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setSuspendModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleToggleSuspendConfirm}
                 disabled={actionLoadingId === selectedUser.id}
-                className={`px-4 py-2 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm ${
+                className={`px-4 py-2 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-colors ${
                   targetSuspendState
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-amber-600 hover:bg-amber-700'
@@ -979,14 +979,14 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setDeleteModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteUserConfirm}
                 disabled={actionLoadingId === selectedUser.id}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
               >
                 {actionLoadingId === selectedUser.id && (
                   <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
@@ -1009,7 +1009,7 @@ export default function AdminUsersPage() {
               </div>
               <button
                 onClick={() => setCreateUserModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer rounded-lg"
               >
                 <span className="material-symbols-outlined text-lg!">close</span>
               </button>
@@ -1092,13 +1092,13 @@ export default function AdminUsersPage() {
                 <button
                   type="button"
                   onClick={() => setCreateUserModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-navy hover:bg-navy-light text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-2 bg-navy hover:bg-navy-light text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                 >
                   <span className="material-symbols-outlined text-sm!">check</span>
                   Create Account

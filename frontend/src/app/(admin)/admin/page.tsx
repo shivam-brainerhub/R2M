@@ -2,12 +2,43 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { productsApi, ProductStatsResponse, ProductItem, getMediaUrl } from '@/lib/api';
 
 export default function AdminDashboardPage() {
+  const [productStats, setProductStats] = useState<ProductStatsResponse | null>(null);
+  const [liveProducts, setLiveProducts] = useState<ProductItem[]>([]);
+
+  useEffect(() => {
+    productsApi.getStats().then(setProductStats).catch(() => {});
+    productsApi.listProducts({ limit: 4 }).then(setLiveProducts).catch(() => {});
+  }, []);
+
   const stats = [
-    { title: 'Total Products', value: '4', change: '+2 in review', icon: 'inventory_2', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'Pending Quotes', value: '3', change: 'Requires response', icon: 'receipt_long', color: 'text-amber-600', bg: 'bg-amber-50' },
-    { title: 'Active Brands', value: '6', change: 'Mindray, Philips...', icon: 'domain', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    {
+      title: 'Total Products',
+      value: productStats ? String(productStats.total_products) : '4',
+      change: productStats ? `${productStats.active_products} active, ${productStats.draft_products} draft` : '+2 in review',
+      icon: 'inventory_2',
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      title: 'Brochures',
+      value: productStats ? String(productStats.with_brochure_count) : '4',
+      change: 'Attached spec sheets',
+      icon: 'picture_as_pdf',
+      color: 'text-red-600',
+      bg: 'bg-red-50',
+    },
+    {
+      title: 'Active Brands',
+      value: productStats ? String(productStats.total_brands) : '6',
+      change: 'Mindray, Philips...',
+      icon: 'domain',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
   ];
 
   const recentQuotes = [
@@ -38,13 +69,6 @@ export default function AdminDashboardPage() {
       status: 'Quoted',
       statusClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     },
-  ];
-
-  const topProducts = [
-    { id: '1', name: 'BeneVision N12', brand: 'Mindray', views: 842, quotes: 18, image: '/images/benevision_n12.jpg' },
-    { id: '2', name: 'IntelliVue MX450', brand: 'Philips', views: 710, quotes: 14, image: '/images/intellivue_mx450.jpg' },
-    { id: '3', name: 'Infinity M300', brand: 'Dräger', views: 564, quotes: 9, image: '/images/infinity_m300.jpg' },
-    { id: '4', name: 'CMS8000', brand: 'Contec', views: 490, quotes: 12, image: '/images/contec_cms8000.jpg' },
   ];
 
   return (
@@ -182,35 +206,40 @@ export default function AdminDashboardPage() {
                 Live Products
               </h2>
               <Link href="/admin/products" className="text-xs font-semibold text-blue-600 hover:underline">
-                Manage (4)
+                Manage ({productStats?.total_products ?? liveProducts.length})
               </Link>
             </div>
 
             <div className="space-y-3">
-              {topProducts.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-gray-100">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 relative overflow-hidden shrink-0 flex items-center justify-center p-1">
-                      <Image
-                        src={p.image}
-                        alt={p.name}
-                        fill
-                        sizes="48px"
-                        className="object-contain"
-                      />
+              {liveProducts.map((p) => {
+                const img = p.primary_image_url || p.images[0]?.image_url || '/images/benevision_n12.jpg';
+                return (
+                  <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-gray-100">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 relative overflow-hidden shrink-0 flex items-center justify-center p-1">
+                        <Image
+                          src={getMediaUrl(img)}
+                          alt={p.name}
+                          fill
+                          sizes="48px"
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="truncate">
+                        <Link href={`/products/${p.slug}`} target="_blank" className="text-xs font-bold text-navy hover:text-blue-600 truncate block">
+                          {p.name}
+                        </Link>
+                        <div className="text-[11px] text-gray-400 uppercase font-semibold">{p.brand_name || 'Generic'}</div>
+                      </div>
                     </div>
-                    <div className="truncate">
-                      <div className="text-xs font-bold text-navy truncate">{p.name}</div>
-                      <div className="text-[11px] text-gray-400 uppercase font-semibold">{p.brand}</div>
+                    <div className="text-right shrink-0 pl-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'Active' ? 'text-emerald-700 bg-emerald-50' : 'text-gray-600 bg-gray-100'}`}>
+                        {p.status}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-right shrink-0 pl-2">
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      Active
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

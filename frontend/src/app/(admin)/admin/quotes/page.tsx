@@ -161,11 +161,11 @@ export default function AdminQuotesPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       
-      {/* Toast */}
+      {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-navy text-white px-5 py-3 rounded-xl shadow-2xl border border-gold/40 flex items-center gap-3 animate-fade-in">
-          <span className="material-symbols-outlined text-gold text-xl!">check_circle</span>
-          <span className="text-sm font-medium">{toastMessage}</span>
+        <div className="fixed top-6 right-6 z-100 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-emerald-950/20 border border-emerald-500/80 flex items-center gap-3 animate-scale-in">
+          <span className="material-symbols-outlined text-white text-xl!">check_circle</span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
         </div>
       )}
 

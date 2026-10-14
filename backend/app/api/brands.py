@@ -3,7 +3,7 @@ import re
 import shutil
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import asc, desc, or_
 from sqlalchemy.orm import Session
 from app.core.dependencies import require_admin
@@ -15,6 +15,8 @@ from app.schemas.brand import (
     BrandToggleSliderResponse,
     BrandUpdate,
 )
+from app.services.filter_cache import filter_cache_service
+from app.services.storage import get_storage_service
 
 router = APIRouter(
     prefix="/brands",
@@ -41,10 +43,6 @@ def get_unique_slug(db: Session, base_slug: str, current_id: Optional[int] = Non
         counter += 1
 
 
-MEDIA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media")
-BRAND_MEDIA_DIR = os.path.join(MEDIA_DIR, "brands")
-os.makedirs(BRAND_MEDIA_DIR, exist_ok=True)
-
 ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"}
 
 
@@ -54,35 +52,16 @@ def upload_brand_logo(
     current_admin: User = Depends(require_admin),
 ):
     """
-    Upload a brand manufacturer logo file. Saved to media/brands disk storage
-    and returns relative public media URL (/media/brands/filename.ext).
+    Upload a brand manufacturer logo file using the active storage service.
     """
-    if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File has no name",
-        )
-
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ALLOWED_IMAGE_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Allowed: {', '.join(sorted(ALLOWED_IMAGE_EXTENSIONS))}",
-        )
-
-    # Generate a clean, unique file name
-    clean_stem = re.sub(r"[^\w-]", "_", os.path.splitext(file.filename)[0].lower())
-    unique_suffix = uuid.uuid4().hex[:8]
-    saved_filename = f"{clean_stem}_{unique_suffix}{ext}"
-    target_path = os.path.join(BRAND_MEDIA_DIR, saved_filename)
-
-    with open(target_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    return {
-        "url": f"/media/brands/{saved_filename}",
-        "filename": saved_filename,
-    }
+    storage = get_storage_service()
+    result = storage.save_file(
+        file=file,
+        folder="brands",
+        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
+        max_size_bytes=10 * 1024 * 1024,
+    )
+    return result
 
 
 @router.get("", response_model=List[BrandResponse])
@@ -173,6 +152,7 @@ def get_brand(brand_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=BrandResponse, status_code=status.HTTP_201_CREATED)
 def create_brand(
     payload: BrandCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
@@ -202,6 +182,8 @@ def create_brand(
     db.commit()
     db.refresh(brand)
 
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
     return BrandResponse(
         id=brand.id,
         name=brand.name,
@@ -221,6 +203,7 @@ def create_brand(
 def update_brand(
     brand_id: int,
     payload: BrandUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
@@ -253,7 +236,18 @@ def update_brand(
         brand.slug = get_unique_slug(db, generate_slug(payload.name), current_id=brand_id)
 
     if payload.logo_url is not None:
-        brand.logo_url = payload.logo_url.strip() if payload.logo_url.strip() else None
+        new_logo = payload.logo_url.strip() if payload.logo_url.strip() else None
+        old_logo = brand.logo_url
+        if old_logo and old_logo != new_logo:
+            # Check if any other brand references the old logo
+            other_using = (
+                db.query(Brand)
+                .filter(Brand.logo_url == old_logo, Brand.id != brand.id)
+                .first()
+            )
+            if not other_using:
+                get_storage_service().delete_file(old_logo)
+        brand.logo_url = new_logo
 
     if payload.country is not None:
         brand.country = payload.country.strip() if payload.country.strip() else None
@@ -269,6 +263,8 @@ def update_brand(
 
     db.commit()
     db.refresh(brand)
+
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
 
     product_count = db.query(Product).filter(Product.brand_id == brand.id).count()
     return BrandResponse(
@@ -319,11 +315,12 @@ def toggle_brand_slider(
 @router.delete("/{brand_id}")
 def delete_brand(
     brand_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
     """
-    Delete a brand. Requires Admin role.
+    Delete a brand and clean up its logo from media storage. Requires Admin role.
     """
     brand = db.query(Brand).filter(Brand.id == brand_id).first()
     if not brand:
@@ -333,7 +330,19 @@ def delete_brand(
         )
 
     name = brand.name
+    if brand.logo_url:
+        other_using = (
+            db.query(Brand)
+            .filter(Brand.logo_url == brand.logo_url, Brand.id != brand.id)
+            .first()
+        )
+        if not other_using:
+            get_storage_service().delete_file(brand.logo_url)
+
     db.delete(brand)
     db.commit()
 
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
     return {"message": f"Brand '{name}' deleted successfully"}
+

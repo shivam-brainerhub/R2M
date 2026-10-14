@@ -291,6 +291,16 @@ export const adminUsersApi = {
   },
 };
 
+export interface SubcategoryItem {
+  id: number;
+  category_id: number;
+  name: string;
+  slug: string;
+  product_count: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface CategoryItem {
   id: number;
   name: string;
@@ -299,9 +309,11 @@ export interface CategoryItem {
   description?: string | null;
   icon?: string | null;
   product_count: number;
+  subcategories?: SubcategoryItem[];
   created_at?: string;
   updated_at?: string;
 }
+
 
 export interface CreateCategoryPayload {
   name: string;
@@ -501,18 +513,561 @@ export const brandsApi = {
   },
 };
 
+export interface ProductImageItem {
+  id?: number;
+  image_url: string;
+  alt_text?: string | null;
+  is_primary: boolean;
+  display_order: number;
+}
+
+export interface ProductPropertyItem {
+  property_id?: number;
+  name: string;
+  value: string;
+  group?: string | null;
+}
+
+export interface ProductItem {
+  id: number;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
+  subcategory_id?: number | null;
+  subcategory_name?: string | null;
+  brand_id?: number | null;
+  brand_name?: string | null;
+  brand_logo_url?: string | null;
+  description?: string | null;
+  short_description?: string | null;
+  primary_image_url?: string | null;
+  images: ProductImageItem[];
+  brochure_url?: string | null;
+  status: 'Active' | 'Draft';
+  specifications?: Record<string, string>;
+  properties: ProductPropertyItem[];
+  meta_title?: string | null;
+  meta_description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductCreatePayload {
+  name: string;
+  slug?: string;
+  sku?: string;
+  category_id?: number | null;
+  subcategory_id?: number | null;
+  brand_id?: number | null;
+  description?: string;
+  short_description?: string;
+  brochure_url?: string;
+  status?: 'Active' | 'Draft';
+  meta_title?: string;
+  meta_description?: string;
+  images?: ProductImageItem[];
+  properties?: ProductPropertyItem[];
+}
+
+export interface ProductUpdatePayload {
+  name?: string;
+  slug?: string;
+  sku?: string;
+  category_id?: number | null;
+  subcategory_id?: number | null;
+  brand_id?: number | null;
+  description?: string;
+  short_description?: string;
+  brochure_url?: string;
+  status?: 'Active' | 'Draft';
+  meta_title?: string;
+  meta_description?: string;
+  images?: ProductImageItem[];
+  properties?: ProductPropertyItem[];
+}
+
+export interface ProductComparePropertyRow {
+  name: string;
+  group?: string | null;
+  values: Record<string, string | null>;
+}
+
+export interface ProductCompareResponse {
+  products: ProductItem[];
+  properties: ProductComparePropertyRow[];
+}
+
+export interface ProductStatsResponse {
+  total_products: number;
+  active_products: number;
+  draft_products: number;
+  with_brochure_count: number;
+  total_brands: number;
+  total_categories: number;
+  total_properties: number;
+  category_distribution: Record<string, number>;
+  brand_distribution: Record<string, number>;
+}
+
+export interface PropertyItem {
+  id: number;
+  name: string;
+  category_id?: number | null;
+  category_name?: string | null;
+  group?: string | null;
+  description?: string | null;
+  product_count: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreatePropertyPayload {
+  name: string;
+  category_id?: number | null;
+  group?: string | null;
+  description?: string | null;
+}
+
+export interface UpdatePropertyPayload {
+  name?: string;
+  category_id?: number | null;
+  group?: string | null;
+  description?: string | null;
+}
+
+export interface SubcategoryFilterOption {
+  id: number;
+  category_id: number;
+  name: string;
+  slug: string;
+  product_count: number;
+}
+
+export interface CategoryFilterOption {
+  id: number;
+  name: string;
+  slug: string;
+  code?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  product_count: number;
+  subcategories: SubcategoryFilterOption[];
+}
+
+export interface BrandFilterOption {
+  id?: number | null;
+  name: string;
+  slug?: string | null;
+  count: number;
+}
+
+export interface PropertyValueOption {
+  value: string;
+  count: number;
+}
+
+export interface PropertyGroupFilterOption {
+  name: string;
+  group?: string | null;
+  options: PropertyValueOption[];
+}
+
+export interface AvailabilityFilterOption {
+  active_count: number;
+  brochure_count: number;
+}
+
+export interface ProductFilterOptionsResponse {
+  total_products: number;
+  categories: CategoryFilterOption[];
+  brands: BrandFilterOption[];
+  properties: PropertyGroupFilterOption[];
+  availability: AvailabilityFilterOption;
+}
+
+export const productsApi = {
+  async getFilterOptions(): Promise<ProductFilterOptionsResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/products/filters`, {
+      method: 'GET',
+    });
+    return handleResponse<ProductFilterOptionsResponse>(response);
+  },
+
+  async listProducts(params: {
+    search?: string;
+    category?: string;
+    subcategory?: string;
+    brand?: string;
+    status?: string;
+    sort_by?: string;
+    sort_order?: string;
+    limit?: number;
+    skip?: number;
+  } = {}): Promise<ProductItem[]> {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category) query.append('category', params.category);
+    if (params.subcategory) query.append('subcategory', params.subcategory);
+    if (params.brand) query.append('brand', params.brand);
+    if (params.status && params.status !== 'All') query.append('status', params.status);
+    if (params.sort_by) query.append('sort_by', params.sort_by);
+    if (params.sort_order) query.append('sort_order', params.sort_order);
+    if (params.limit !== undefined) query.append('limit', String(params.limit));
+    if (params.skip !== undefined) query.append('skip', String(params.skip));
+
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/products${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, { method: 'GET' });
+    return handleResponse<ProductItem[]>(response);
+  },
+
+  async getProduct(slugOrId: string | number): Promise<ProductItem> {
+    const response = await fetch(`${API_BASE_URL}/api/products/${slugOrId}`, {
+      method: 'GET',
+    });
+    return handleResponse<ProductItem>(response);
+  },
+
+  async getStats(): Promise<ProductStatsResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/products/stats`, {
+      method: 'GET',
+    });
+    return handleResponse<ProductStatsResponse>(response);
+  },
+
+  async compareProducts(items: string[] | string): Promise<ProductCompareResponse> {
+    const itemsParam = Array.isArray(items) ? items.join(',') : items;
+    const response = await fetch(`${API_BASE_URL}/api/products/compare?items=${encodeURIComponent(itemsParam)}`, {
+      method: 'GET',
+    });
+    return handleResponse<ProductCompareResponse>(response);
+  },
+
+  async createProduct(token: string, payload: ProductCreatePayload): Promise<ProductItem> {
+    const response = await fetch(`${API_BASE_URL}/api/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<ProductItem>(response);
+  },
+
+  async updateProduct(token: string, productId: number, payload: ProductUpdatePayload): Promise<ProductItem> {
+    const response = await fetch(`${API_BASE_URL}/api/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<ProductItem>(response);
+  },
+
+  async toggleStatus(token: string, productId: number): Promise<ProductItem> {
+    const response = await fetch(`${API_BASE_URL}/api/products/${productId}/toggle-status`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<ProductItem>(response);
+  },
+
+  async deleteProduct(token: string, productId: number): Promise<MessageResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<MessageResponse>(response);
+  },
+
+  async uploadBrochure(token: string, file: File): Promise<{ url: string; filename: string; size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/products/upload-brochure`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return handleResponse<{ url: string; filename: string; size: number }>(response);
+  },
+
+  async uploadImage(token: string, file: File): Promise<{ url: string; filename: string; size: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return handleResponse<{ url: string; filename: string; size: number }>(response);
+  },
+
+  async deleteMedia(token: string, fileUrl: string, force = false): Promise<MessageResponse> {
+    const query = new URLSearchParams({ file_url: fileUrl });
+    if (force) query.append('force', 'true');
+    const response = await fetch(`${API_BASE_URL}/api/products/media?${query.toString()}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<MessageResponse>(response);
+  },
+};
+
+export const propertiesApi = {
+  async listProperties(params: { search?: string; category_id?: number; group?: string } = {}): Promise<PropertyItem[]> {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category_id) query.append('category_id', String(params.category_id));
+    if (params.group) query.append('group', params.group);
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/properties${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, { method: 'GET' });
+    return handleResponse<PropertyItem[]>(response);
+  },
+
+  async getProperty(id: number): Promise<PropertyItem> {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${id}`, {
+      method: 'GET',
+    });
+    return handleResponse<PropertyItem>(response);
+  },
+
+  async createProperty(token: string, payload: CreatePropertyPayload): Promise<PropertyItem> {
+    const response = await fetch(`${API_BASE_URL}/api/properties`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<PropertyItem>(response);
+  },
+
+  async updateProperty(token: string, propertyId: number, payload: UpdatePropertyPayload): Promise<PropertyItem> {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<PropertyItem>(response);
+  },
+
+  async deleteProperty(token: string, propertyId: number): Promise<MessageResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<MessageResponse>(response);
+  },
+};
+
+export interface HeroContent {
+  headlinePart1: string;
+  headlinePart2: string;
+  headlineAccent: string;
+  subheading: string;
+  showSearchBar: boolean;
+  searchPlaceholder?: string;
+  popularSearches?: string[];
+  badgeTitle?: string;
+  badgeTagline?: string;
+  headline_part1?: string;
+  headline_part2?: string;
+  headline_accent?: string;
+  show_search_bar?: boolean;
+  search_placeholder?: string;
+  popular_searches?: string[];
+  badge_title?: string;
+  badge_tagline?: string;
+}
+
+export interface CompanyContent {
+  companyName: string;
+  phone: string;
+  tollFree?: string;
+  email: string;
+  salesEmail?: string;
+  physicalAddress: string;
+  hours: string;
+  company_name?: string;
+  toll_free?: string;
+  sales_email?: string;
+  physical_address?: string;
+}
+
+export interface WhyUsItem {
+  id?: string | number;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface WhyUsContent {
+  sectionTag?: string;
+  section_tag?: string;
+  title?: string;
+  items: WhyUsItem[];
+}
+
+export interface CTAContent {
+  heading: string;
+  subheading: string;
+  buttonText?: string;
+  button_text?: string;
+  buttonLink?: string;
+  button_link?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface SiteContentData {
+  hero: HeroContent;
+  company: CompanyContent;
+  why_us?: WhyUsContent;
+  cta?: CTAContent;
+  sections?: Record<string, { id?: number; key: string; title?: string; content: unknown; updated_at?: string }>;
+}
+
+export interface SiteContentSectionResponse {
+  id?: number;
+  key: string;
+  title?: string;
+  content: unknown;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const contentApi = {
+  async getAll(): Promise<SiteContentData> {
+    const response = await fetch(`${API_BASE_URL}/api/content`, {
+      method: 'GET',
+    });
+    return handleResponse<SiteContentData>(response);
+  },
+
+  async getSection(key: string): Promise<SiteContentSectionResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/content/${key}`, {
+      method: 'GET',
+    });
+    return handleResponse<SiteContentSectionResponse>(response);
+  },
+
+  async updateSection(
+    token: string,
+    key: string,
+    payload: { content: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent; title?: string }
+  ): Promise<SiteContentSectionResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/content/${key}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<SiteContentSectionResponse>(response);
+  },
+
+  async updateBatch(token: string, sections: Record<string, unknown>): Promise<SiteContentData> {
+    const response = await fetch(`${API_BASE_URL}/api/content/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ sections }),
+    });
+    return handleResponse<SiteContentData>(response);
+  },
+
+  async resetSection(token: string, key?: string): Promise<SiteContentData> {
+    const url = `${API_BASE_URL}/api/content/reset${key ? `?key=${key}` : ''}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<SiteContentData>(response);
+  },
+
+  async uploadImage(token: string, file: File): Promise<{ url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/api/content/upload-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return handleResponse<{ url: string; filename: string }>(response);
+  },
+};
+
+
 export function getMediaUrl(path?: string | null): string {
   if (!path) return '';
   // If it's already a full external URL (e.g. S3 / GCS cloud bucket), return as is
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  // If it's a relative path starting with /media, return as relative path
-  // Next.js will route /media to backend via next.config.ts rewrites (or Nginx proxy)
-  if (path.startsWith('/')) {
+
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+  // If path is a document/brochure/PDF, return full backend URL for direct downloads/links
+  const isDocument = /\.(pdf|docx?|zip|xlsx?|csv)$/i.test(cleanPath) || cleanPath.startsWith('/brochures/');
+  if (isDocument) {
+    const normalizedBaseUrl = (API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+    if (cleanPath.startsWith('/media/')) {
+      return `${normalizedBaseUrl}${cleanPath}`;
+    }
+    return `${normalizedBaseUrl}/media${cleanPath}`;
+  }
+
+  // For images and other assets, return relative path so Next.js Image component handles them via rewrites without SSRF issues
+  return cleanPath;
+}
+
+export function getFileUrl(path?: string | null): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  return `/${path}`;
+  const normalizedBaseUrl = (API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (cleanPath.startsWith('/media/')) {
+    return `${normalizedBaseUrl}${cleanPath}`;
+  }
+  if (cleanPath.startsWith('/brochures/')) {
+    return `${normalizedBaseUrl}/media${cleanPath}`;
+  }
+  return `${normalizedBaseUrl}/media${cleanPath}`;
 }
 
 export { ApiError };

@@ -27,7 +27,7 @@ export default function Navbar() {
       
       {/* Left: Logo */}
       <Link href="/home" className="flex items-center transition-transform duration-300 hover:scale-105 active:scale-95 shrink-0">
-        <Image src="/logo.png" alt="SA Healthcare Logo" width={110} height={40} className="object-contain h-10 w-auto max-w-36" priority />
+        <Image src="/logo.png" alt="SA Healthcare Logo" width={110} height={40} className="object-contain h-10 w-auto max-w-36" style={{ width: 'auto', height: 'auto' }} priority />
       </Link>
 
       {/* Middle: Desktop Menu */}

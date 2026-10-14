@@ -73,6 +73,7 @@ export default function BrandSlider() {
                 width={120} 
                 height={60} 
                 className="object-contain w-auto h-auto max-w-full max-h-full" 
+                style={{ width: 'auto', height: 'auto' }}
               />
             </div>
             

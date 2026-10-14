@@ -1,0 +1,157 @@
+import io
+import pytest
+
+
+def test_get_all_site_content_public(client):
+    response = client.get("/api/content")
+    assert response.status_code == 200
+    data = response.json()
+    assert "hero" in data
+    assert "company" in data
+    assert "why_us" in data
+    assert "cta" in data
+    assert "headline_part1" in data["hero"] or "headlinePart1" in data["hero"]
+    assert "company_name" in data["company"] or "companyName" in data["company"]
+
+
+def test_get_specific_section_public(client):
+    response = client.get("/api/content/hero")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["key"] == "hero"
+    assert "content" in data
+    assert "Healthcare" in str(data["content"])
+
+
+def test_get_nonexistent_section_404(client):
+    response = client.get("/api/content/nonexistent_section_key")
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+def test_update_section_unauthenticated(client):
+    response = client.put(
+        "/api/content/hero",
+        json={"content": {"headline_part1": "New Headline"}},
+    )
+    assert response.status_code == 401
+
+
+def test_update_section_forbidden_for_regular_user(client, user_token_headers):
+    response = client.put(
+        "/api/content/hero",
+        json={"content": {"headline_part1": "New Headline"}},
+        headers=user_token_headers,
+    )
+    assert response.status_code == 403
+
+
+def test_admin_update_hero_section(client, admin_token_headers):
+    updated_payload = {
+        "title": "Homepage Hero & Search",
+        "content": {
+            "headlinePart1": "Innovative",
+            "headlinePart2": "Healthcare",
+            "headlineAccent": "Everywhere.",
+            "subheading": "Updated subtitle for digital catalogue testing.",
+            "showSearchBar": False,
+            "popularSearches": ["Ultrasound", "Ventilator"],
+        },
+    }
+    response = client.put(
+        "/api/content/hero",
+        json=updated_payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["key"] == "hero"
+    assert data["content"]["headlinePart1"] == "Innovative"
+    assert data["content"]["headline_part1"] == "Innovative"
+    assert data["content"]["showSearchBar"] is False
+    assert data["content"]["show_search_bar"] is False
+
+    # Verify persisted via GET
+    get_res = client.get("/api/content/hero")
+    assert get_res.status_code == 200
+    assert get_res.json()["content"]["headlinePart1"] == "Innovative"
+    assert get_res.json()["content"]["showSearchBar"] is False
+
+
+def test_admin_update_company_section(client, admin_token_headers):
+    updated_payload = {
+        "title": "Contact & Company Info",
+        "content": {
+            "companyName": "SA Healthcare Systems",
+            "phone": "+27 11 999 0000",
+            "tollFree": "0800 999 888",
+            "email": "contact@sahealthcare.com",
+            "salesEmail": "sales@sahealthcare.com",
+            "physicalAddress": "50 Hospital Rd, Pretoria",
+            "hours": "Mon-Fri 07:00 - 18:00",
+        },
+    }
+    response = client.put(
+        "/api/content/company",
+        json=updated_payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["key"] == "company"
+    assert data["content"]["companyName"] == "SA Healthcare Systems"
+    assert data["content"]["phone"] == "+27 11 999 0000"
+
+
+def test_admin_batch_update(client, admin_token_headers):
+    batch_payload = {
+        "sections": {
+            "hero": {
+                "headlinePart1": "Batch",
+                "headlinePart2": "Updated",
+                "headlineAccent": "Now.",
+                "subheading": "Batch testing",
+                "showSearchBar": True,
+            },
+            "cta": {
+                "heading": "Batch CTA Heading",
+                "subheading": "Batch CTA Subheading",
+                "buttonText": "Inquire Today",
+            },
+        }
+    }
+    response = client.post(
+        "/api/content/batch",
+        json=batch_payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["hero"]["headlinePart1"] == "Batch"
+    assert data["cta"]["heading"] == "Batch CTA Heading"
+
+
+def test_admin_reset_section(client, admin_token_headers):
+    # Reset hero section
+    response = client.post(
+        "/api/content/reset?key=hero",
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["hero"]["headlinePart1"] == "Healthcare"
+    assert data["hero"]["showSearchBar"] is True
+
+
+def test_admin_upload_content_image(client, admin_token_headers):
+    file_bytes = b"fake-png-content"
+    file = io.BytesIO(file_bytes)
+    response = client.post(
+        "/api/content/upload-image",
+        files={"file": ("test_banner.png", file, "image/png")},
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "url" in data
+    assert "test_banner" in data["filename"]

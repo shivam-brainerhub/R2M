@@ -81,9 +81,33 @@ export default function AdminCategoriesBrandsPage() {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Inline Category Deletion State (Confirm directly in specific card, no alert)
+  const [confirmingDeleteCategoryId, setConfirmingDeleteCategoryId] = useState<number | null>(null);
+  const [isDeletingCategoryId, setIsDeletingCategoryId] = useState<number | null>(null);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleInlineDeleteCategory = async (cat: CategoryItem) => {
+    if (!token) {
+      showToast('Authentication required to delete category');
+      return;
+    }
+
+    setIsDeletingCategoryId(cat.id);
+    try {
+      await categoriesApi.deleteCategory(token, cat.id);
+      setCategories((prev) => prev.filter((c) => c.id !== cat.id));
+      showToast(`Category "${cat.name}" deleted successfully`);
+      setConfirmingDeleteCategoryId(null);
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to delete category';
+      showToast(msg);
+    } finally {
+      setIsDeletingCategoryId(null);
+    }
   };
 
   const loadData = async () => {
@@ -355,11 +379,11 @@ export default function AdminCategoriesBrandsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Toast Notification */}
+      {/* Toast Notification (Topmost layer above all modals & backdrops) */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-navy text-white px-5 py-3 rounded-xl shadow-2xl border border-gold/40 flex items-center gap-3 animate-fade-in">
-          <span className="material-symbols-outlined text-gold text-xl!">check_circle</span>
-          <span className="text-sm font-medium">{toastMessage}</span>
+        <div className="fixed top-6 right-6 z-100 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-emerald-950/20 border border-emerald-500/80 flex items-center gap-3 animate-scale-in">
+          <span className="material-symbols-outlined text-white text-xl!">check_circle</span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
         </div>
       )}
 
@@ -525,8 +549,65 @@ export default function AdminCategoriesBrandsPage() {
                   {filteredCategories.map((cat) => (
                     <div
                       key={cat.id}
-                      className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow group relative"
+                      className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow group relative overflow-hidden min-h-47.5"
                     >
+                      {/* Inline Card Deletion Confirmation UI */}
+                      {confirmingDeleteCategoryId === cat.id && (
+                        <div className="absolute inset-0 z-20 bg-white/98 backdrop-blur-xs p-5 flex flex-col justify-between animate-scale-in border-2 border-rose-300 rounded-2xl shadow-lg">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold shrink-0">
+                                <span className="material-symbols-outlined text-xl!">warning</span>
+                              </div>
+                              <span className="text-xs font-bold uppercase tracking-wider text-rose-700">
+                                Confirm Deletion
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-navy text-sm truncate">
+                              Delete &quot;{cat.name}&quot;?
+                            </h4>
+                            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                              {cat.product_count > 0 ? (
+                                <span className="text-rose-600 font-semibold">
+                                  Warning: {cat.product_count} active product(s) linked to this category!
+                                </span>
+                              ) : (
+                                'Permanently remove this category. This action cannot be undone.'
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                            <button
+                              type="button"
+                              disabled={isDeletingCategoryId === cat.id}
+                              onClick={() => setConfirmingDeleteCategoryId(null)}
+                              className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isDeletingCategoryId === cat.id}
+                              onClick={() => handleInlineDeleteCategory(cat)}
+                              className="px-3.5 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              {isDeletingCategoryId === cat.id ? (
+                                <>
+                                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <span>Deleting...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="material-symbols-outlined text-sm!">delete</span>
+                                  <span>Confirm Delete</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
@@ -563,13 +644,7 @@ export default function AdminCategoriesBrandsPage() {
                             <span className="text-xs">Edit</span>
                           </button>
                           <button
-                            onClick={() =>
-                              setDeleteModal({
-                                type: 'category',
-                                id: cat.id,
-                                name: cat.name,
-                              })
-                            }
+                            onClick={() => setConfirmingDeleteCategoryId(cat.id)}
                             title="Delete Category"
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           >

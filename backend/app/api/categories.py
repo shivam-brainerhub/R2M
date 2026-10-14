@@ -1,17 +1,24 @@
 import re
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session
 from app.core.dependencies import require_admin
 from app.database import get_db
 from app.models import Category, Product, Subcategory, User
-from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
+from app.schemas.category import (
+    CategoryCreate,
+    CategoryResponse,
+    CategoryUpdate,
+    SubcategoryResponse,
+)
+from app.services.filter_cache import filter_cache_service
 
 router = APIRouter(
     prefix="/categories",
     tags=["Categories"],
 )
+
 
 
 def generate_slug(text: str) -> str:
@@ -47,6 +54,42 @@ def count_category_products(db: Session, category_id: int) -> int:
     )
     return count or 0
 
+def build_category_response(db: Session, cat: Category) -> CategoryResponse:
+    product_count = count_category_products(db, cat.id)
+    subcategories_list = []
+    if cat.subcategories:
+        for sub in sorted(cat.subcategories, key=lambda s: s.name):
+            sub_count = (
+                db.query(func.count(func.distinct(Product.id)))
+                .filter(Product.subcategory_id == sub.id)
+                .scalar()
+                or 0
+            )
+            subcategories_list.append(
+                SubcategoryResponse(
+                    id=sub.id,
+                    category_id=sub.category_id,
+                    name=sub.name,
+                    slug=sub.slug,
+                    product_count=sub_count,
+                    created_at=sub.created_at,
+                    updated_at=sub.updated_at,
+                )
+            )
+
+    return CategoryResponse(
+        id=cat.id,
+        name=cat.name,
+        slug=cat.slug,
+        code=cat.code,
+        description=cat.description,
+        icon=cat.icon,
+        product_count=product_count,
+        subcategories=subcategories_list,
+        created_at=cat.created_at,
+        updated_at=cat.updated_at,
+    )
+
 
 @router.get("", response_model=List[CategoryResponse])
 def list_categories(
@@ -57,7 +100,7 @@ def list_categories(
 ):
     """
     List all product categories. Public endpoint accessible without authentication.
-    Includes active product count.
+    Includes active product count and subcategories.
     """
     query = db.query(Category)
 
@@ -79,26 +122,7 @@ def list_categories(
         query = query.order_by(asc(sort_col).nulls_last())
 
     categories = query.all()
-
-    # Calculate product count for each category
-    result = []
-    for cat in categories:
-        product_count = count_category_products(db, cat.id)
-        result.append(
-            CategoryResponse(
-                id=cat.id,
-                name=cat.name,
-                slug=cat.slug,
-                code=cat.code,
-                description=cat.description,
-                icon=cat.icon,
-                product_count=product_count,
-                created_at=cat.created_at,
-                updated_at=cat.updated_at,
-            )
-        )
-
-    return result
+    return [build_category_response(db, cat) for cat in categories]
 
 
 @router.get("/{category_id}", response_model=CategoryResponse)
@@ -113,23 +137,14 @@ def get_category(category_id: int, db: Session = Depends(get_db)):
             detail="Category not found",
         )
 
-    product_count = count_category_products(db, cat.id)
-    return CategoryResponse(
-        id=cat.id,
-        name=cat.name,
-        slug=cat.slug,
-        code=cat.code,
-        description=cat.description,
-        icon=cat.icon,
-        product_count=product_count,
-        created_at=cat.created_at,
-        updated_at=cat.updated_at,
-    )
+    return build_category_response(db, cat)
+
 
 
 @router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 def create_category(
     payload: CategoryCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
@@ -157,6 +172,8 @@ def create_category(
     db.commit()
     db.refresh(category)
 
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
     return CategoryResponse(
         id=category.id,
         name=category.name,
@@ -174,6 +191,7 @@ def create_category(
 def update_category(
     category_id: int,
     payload: CategoryUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
@@ -218,23 +236,16 @@ def update_category(
     db.commit()
     db.refresh(category)
 
-    product_count = count_category_products(db, category.id)
-    return CategoryResponse(
-        id=category.id,
-        name=category.name,
-        slug=category.slug,
-        code=category.code,
-        description=category.description,
-        icon=category.icon,
-        product_count=product_count,
-        created_at=category.created_at,
-        updated_at=category.updated_at,
-    )
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
+    return build_category_response(db, category)
+
 
 
 @router.delete("/{category_id}")
 def delete_category(
     category_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_admin),
 ):
@@ -252,4 +263,7 @@ def delete_category(
     db.delete(category)
     db.commit()
 
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
     return {"message": f"Category '{name}' deleted successfully"}
+
