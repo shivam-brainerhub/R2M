@@ -331,6 +331,18 @@ export interface UpdateCategoryPayload {
   icon?: string;
 }
 
+export interface CreateSubcategoryPayload {
+  name: string;
+  slug?: string;
+  category_id?: number;
+}
+
+export interface UpdateSubcategoryPayload {
+  name?: string;
+  slug?: string;
+  category_id?: number;
+}
+
 export interface BrandItem {
   id: number;
   name: string;
@@ -420,6 +432,40 @@ export const categoriesApi = {
 
   async deleteCategory(token: string, categoryId: number): Promise<MessageResponse> {
     const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<MessageResponse>(response);
+  },
+
+  async createSubcategory(token: string, categoryId: number, payload: CreateSubcategoryPayload): Promise<SubcategoryItem> {
+    const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}/subcategories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<SubcategoryItem>(response);
+  },
+
+  async updateSubcategory(token: string, subcategoryId: number, payload: UpdateSubcategoryPayload): Promise<SubcategoryItem> {
+    const response = await fetch(`${API_BASE_URL}/api/subcategories/${subcategoryId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<SubcategoryItem>(response);
+  },
+
+  async deleteSubcategory(token: string, subcategoryId: number, force: boolean = false): Promise<MessageResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/subcategories/${subcategoryId}${force ? '?force=true' : ''}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

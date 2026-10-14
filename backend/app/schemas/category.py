@@ -27,6 +27,18 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = None
 
 
+class SubcategoryCreate(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    category_id: Optional[int] = None
+
+
+class SubcategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    category_id: Optional[int] = None
+
+
 class SubcategoryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

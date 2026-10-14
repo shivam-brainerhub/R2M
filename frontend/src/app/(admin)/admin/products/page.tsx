@@ -47,6 +47,7 @@ export default function AdminProductsPage() {
   const [slug, setSlug] = useState('');
   const [sku, setSku] = useState('');
   const [categoryId, setCategoryId] = useState<number | ''>('');
+  const [subcategoryId, setSubcategoryId] = useState<number | ''>('');
   const [brandId, setBrandId] = useState<number | ''>('');
   const [shortDesc, setShortDesc] = useState('');
   const [desc, setDesc] = useState('');
@@ -183,6 +184,7 @@ export default function AdminProductsPage() {
     setSlug('');
     setSku('');
     setCategoryId('');
+    setSubcategoryId('');
     setBrandId('');
     setShortDesc('');
     setDesc('');
@@ -204,6 +206,7 @@ export default function AdminProductsPage() {
     setSlug(product.slug);
     setSku(product.sku || '');
     setCategoryId(product.category_id || '');
+    setSubcategoryId(product.subcategory_id || '');
     setBrandId(product.brand_id || '');
     setShortDesc(product.short_description || '');
     setDesc(product.description || '');
@@ -415,6 +418,7 @@ export default function AdminProductsPage() {
           slug: slug.trim() || undefined,
           sku: sku.trim(),
           category_id: categoryId ? Number(categoryId) : null,
+          subcategory_id: subcategoryId ? Number(subcategoryId) : null,
           brand_id: brandId ? Number(brandId) : null,
           short_description: shortDesc.trim() || undefined,
           description: desc.trim() || undefined,
@@ -435,6 +439,7 @@ export default function AdminProductsPage() {
           slug: slug.trim() || undefined,
           sku: sku.trim(),
           category_id: categoryId ? Number(categoryId) : null,
+          subcategory_id: subcategoryId ? Number(subcategoryId) : null,
           brand_id: brandId ? Number(brandId) : null,
           short_description: shortDesc.trim() || undefined,
           description: desc.trim() || undefined,
@@ -783,9 +788,14 @@ export default function AdminProductsPage() {
                         </span>
                       </td>
 
-                      {/* Category */}
+                      {/* Category & Subcategory */}
                       <td className="px-4 py-4 text-gray-600 whitespace-nowrap text-xs">
-                        {p.category_name || 'Unassigned'}
+                        <div className="font-semibold text-navy">{p.category_name || 'Unassigned'}</div>
+                        {p.subcategory_name && (
+                          <div className="text-[11px] text-gray-500 font-medium flex items-center gap-0.5 mt-0.5">
+                            <span className="text-gray-400">↳</span> {p.subcategory_name}
+                          </div>
+                        )}
                       </td>
 
                       {/* Images Count */}
@@ -994,7 +1004,11 @@ export default function AdminProductsPage() {
                     </label>
                     <select
                       value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+                      onChange={(e) => {
+                        const newCatId = e.target.value ? Number(e.target.value) : '';
+                        setCategoryId(newCatId);
+                        setSubcategoryId('');
+                      }}
                       className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
                     >
                       <option value="">Select Category</option>
@@ -1003,6 +1017,27 @@ export default function AdminProductsPage() {
                           {c.name}
                         </option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                      Subcategory
+                    </label>
+                    <select
+                      value={subcategoryId}
+                      onChange={(e) => setSubcategoryId(e.target.value ? Number(e.target.value) : '')}
+                      disabled={!categoryId}
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">{categoryId ? '-- None (No Subcategory) --' : 'Select Category first'}</option>
+                      {availableCategories
+                        .find((c) => c.id === categoryId)
+                        ?.subcategories?.map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            {sub.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>

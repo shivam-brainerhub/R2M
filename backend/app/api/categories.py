@@ -10,7 +10,9 @@ from app.schemas.category import (
     CategoryCreate,
     CategoryResponse,
     CategoryUpdate,
+    SubcategoryCreate,
     SubcategoryResponse,
+    SubcategoryUpdate,
 )
 from app.services.filter_cache import filter_cache_service
 
@@ -266,4 +268,242 @@ def delete_category(
     background_tasks.add_task(filter_cache_service.refresh_in_background)
 
     return {"message": f"Category '{name}' deleted successfully"}
+
+
+# ---------------------------------------------------------------------------
+# Subcategory CRUD Operations
+# ---------------------------------------------------------------------------
+
+
+def get_unique_subcategory_slug(db: Session, base_slug: str, current_id: Optional[int] = None) -> str:
+    slug = base_slug
+    counter = 1
+    while True:
+        query = db.query(Subcategory).filter(Subcategory.slug == slug)
+        if current_id is not None:
+            query = query.filter(Subcategory.id != current_id)
+        if not query.first():
+            return slug
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+
+@router.post("/{category_id}/subcategories", response_model=SubcategoryResponse, status_code=status.HTTP_201_CREATED)
+def create_subcategory(
+    category_id: int,
+    payload: SubcategoryCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Create a new subcategory under the specified category. Requires Admin role.
+    """
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Parent category not found",
+        )
+
+    clean_name = payload.name.strip()
+    if not clean_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Subcategory name cannot be empty",
+        )
+
+    existing_name = (
+        db.query(Subcategory)
+        .filter(Subcategory.category_id == category_id, Subcategory.name.ilike(clean_name))
+        .first()
+    )
+    if existing_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Subcategory with name '{clean_name}' already exists in '{category.name}'",
+        )
+
+    base_slug = payload.slug.strip() if payload.slug else generate_slug(clean_name)
+    slug = get_unique_subcategory_slug(db, base_slug)
+
+    subcat = Subcategory(
+        category_id=category_id,
+        name=clean_name,
+        slug=slug,
+    )
+    db.add(subcat)
+    db.commit()
+    db.refresh(subcat)
+
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
+    return SubcategoryResponse(
+        id=subcat.id,
+        category_id=subcat.category_id,
+        name=subcat.name,
+        slug=subcat.slug,
+        product_count=0,
+        created_at=subcat.created_at,
+        updated_at=subcat.updated_at,
+    )
+
+
+@router.put("/subcategories/{subcategory_id}", response_model=SubcategoryResponse)
+def update_subcategory(
+    subcategory_id: int,
+    payload: SubcategoryUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Update an existing subcategory. Requires Admin role.
+    """
+    subcat = db.query(Subcategory).filter(Subcategory.id == subcategory_id).first()
+    if not subcat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subcategory not found",
+        )
+
+    target_category_id = payload.category_id if payload.category_id is not None else subcat.category_id
+    if payload.category_id is not None and payload.category_id != subcat.category_id:
+        parent_cat = db.query(Category).filter(Category.id == payload.category_id).first()
+        if not parent_cat:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Target category does not exist",
+            )
+        subcat.category_id = payload.category_id
+
+    if payload.name is not None and payload.name.strip() and payload.name.strip() != subcat.name:
+        clean_name = payload.name.strip()
+        existing = (
+            db.query(Subcategory)
+            .filter(
+                Subcategory.category_id == target_category_id,
+                Subcategory.name.ilike(clean_name),
+                Subcategory.id != subcategory_id,
+            )
+            .first()
+        )
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Subcategory with name '{clean_name}' already exists in this category",
+            )
+        subcat.name = clean_name
+
+    if payload.slug is not None and payload.slug.strip() and payload.slug.strip() != subcat.slug:
+        subcat.slug = get_unique_subcategory_slug(db, generate_slug(payload.slug.strip()), current_id=subcategory_id)
+    elif payload.name is not None and payload.slug is None:
+        subcat.slug = get_unique_subcategory_slug(db, generate_slug(subcat.name), current_id=subcategory_id)
+
+    db.commit()
+    db.refresh(subcat)
+
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
+    product_count = (
+        db.query(func.count(func.distinct(Product.id)))
+        .filter(Product.subcategory_id == subcat.id)
+        .scalar()
+        or 0
+    )
+
+    return SubcategoryResponse(
+        id=subcat.id,
+        category_id=subcat.category_id,
+        name=subcat.name,
+        slug=subcat.slug,
+        product_count=product_count,
+        created_at=subcat.created_at,
+        updated_at=subcat.updated_at,
+    )
+
+
+@router.delete("/subcategories/{subcategory_id}")
+def delete_subcategory(
+    subcategory_id: int,
+    background_tasks: BackgroundTasks,
+    force: bool = Query(False, description="If true, unassigns products instead of blocking deletion"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    Delete a subcategory. Requires Admin role.
+    If products are assigned, requires force=true to unassign them before deletion.
+    """
+    subcat = db.query(Subcategory).filter(Subcategory.id == subcategory_id).first()
+    if not subcat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subcategory not found",
+        )
+
+    assigned_count = db.query(Product).filter(Product.subcategory_id == subcategory_id).count()
+    if assigned_count > 0:
+        if not force:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot delete subcategory '{subcat.name}' because {assigned_count} product(s) are assigned to it. Reassign those products first or confirm force delete.",
+            )
+        # Unlink products safely so they remain in parent category
+        db.query(Product).filter(Product.subcategory_id == subcategory_id).update(
+            {"subcategory_id": None}, synchronize_session="fetch"
+        )
+
+    name = subcat.name
+    db.delete(subcat)
+    db.commit()
+
+    background_tasks.add_task(filter_cache_service.refresh_in_background)
+
+    return {"message": f"Subcategory '{name}' deleted successfully", "unassigned_products": assigned_count}
+
+
+# Direct subcategories router for /api/subcategories
+subcategories_router = APIRouter(
+    prefix="/subcategories",
+    tags=["Categories & Subcategories"],
+)
+
+
+@subcategories_router.post("", response_model=SubcategoryResponse, status_code=status.HTTP_201_CREATED)
+def create_subcategory_direct(
+    payload: SubcategoryCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    if not payload.category_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="category_id is required",
+        )
+    return create_subcategory(payload.category_id, payload, background_tasks, db, current_admin)
+
+
+@subcategories_router.put("/{subcategory_id}", response_model=SubcategoryResponse)
+def update_subcategory_direct(
+    subcategory_id: int,
+    payload: SubcategoryUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    return update_subcategory(subcategory_id, payload, background_tasks, db, current_admin)
+
+
+@subcategories_router.delete("/{subcategory_id}")
+def delete_subcategory_direct(
+    subcategory_id: int,
+    background_tasks: BackgroundTasks,
+    force: bool = Query(False),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    return delete_subcategory(subcategory_id, background_tasks, force, db, current_admin)
+
 
