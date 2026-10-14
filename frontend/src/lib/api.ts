@@ -3,11 +3,18 @@ export interface UserProfile {
   email: string;
   username: string;
   full_name?: string | null;
+  phone?: string | null;
   role: 'admin' | 'user';
   is_active: boolean;
   is_email_verified: boolean;
   created_at?: string;
   last_login_at?: string | null;
+}
+
+export interface UpdateProfilePayload {
+  email?: string;
+  full_name?: string | null;
+  phone?: string | null;
 }
 
 export interface AuthTokens {
@@ -111,6 +118,18 @@ export const authApi = {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+    });
+    return handleResponse<UserProfile>(response);
+  },
+
+  async updateMe(token: string, payload: UpdateProfilePayload): Promise<UserProfile> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
     });
     return handleResponse<UserProfile>(response);
   },
@@ -1269,6 +1288,198 @@ export const inquiriesApi = {
     return handleResponse<InquiriesStatsResponse>(response);
   },
 };
+
+
+// ==============================================================================
+// Quotes & RFQ Types & API
+// ==============================================================================
+
+export interface QuoteItemPayload {
+  product_id?: number | null;
+  product_name: string;
+  product_sku?: string | null;
+  brand_name?: string | null;
+  quantity: number;
+  item_notes?: string | null;
+}
+
+export interface SubmitQuotePayload {
+  facility_name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  sector?: string | null;
+  department?: string | null;
+  city?: string | null;
+  address?: string | null;
+  postal_code?: string | null;
+  urgency?: string;
+  notes?: string | null;
+  items: QuoteItemPayload[];
+}
+
+export interface QuoteItemData {
+  id: number;
+  quote_request_id: number;
+  product_id?: number | null;
+  product_name: string;
+  product_sku?: string | null;
+  brand_name?: string | null;
+  quantity: number;
+  item_notes?: string | null;
+  image_url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface QuoteRequestData {
+  id: number;
+  quote_number: string;
+  user_id?: number | null;
+  facility_name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  sector?: string | null;
+  department?: string | null;
+  city?: string | null;
+  address?: string | null;
+  postal_code?: string | null;
+  urgency: string;
+  status: 'New' | 'In Review' | 'Quoted' | 'Approved' | 'Declined' | string;
+  notes?: string | null;
+  internal_notes?: string | null;
+  quoted_amount?: string | null;
+  created_at: string;
+  updated_at?: string;
+  items: QuoteItemData[];
+}
+
+export interface UpdateQuotePayload {
+  status?: string;
+  internal_notes?: string | null;
+  quoted_amount?: string | null;
+}
+
+export interface QuoteStatsData {
+  total_quotes: number;
+  new_quotes: number;
+  in_review_quotes: number;
+  quoted_quotes: number;
+  approved_quotes: number;
+  declined_quotes: number;
+}
+
+export const quotesApi = {
+  // Submit a new quote (Public or Authenticated)
+  async submitQuote(payload: SubmitQuotePayload, token?: string | null): Promise<QuoteRequestData> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/quotes`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<QuoteRequestData>(response);
+  },
+
+  // Get current user's submitted quote requests
+  async getMyQuotes(token: string): Promise<QuoteRequestData[]> {
+    const response = await fetch(`${API_BASE_URL}/api/quotes/my-quotes`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<QuoteRequestData[]>(response);
+  },
+
+  // Get details for a specific quote
+  async getQuoteDetails(identifier: string | number, token?: string | null, verifyEmail?: string): Promise<QuoteRequestData> {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const query = verifyEmail ? `?verify_email=${encodeURIComponent(verifyEmail)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/quotes/${identifier}${query}`, {
+      method: 'GET',
+      headers,
+    });
+    return handleResponse<QuoteRequestData>(response);
+  },
+
+  // Admin: List all quotes with filter/search
+  async listQuotes(
+    token: string,
+    params: {
+      status?: string;
+      urgency?: string;
+      search?: string;
+      skip?: number;
+      limit?: number;
+    } = {}
+  ): Promise<QuoteRequestData[]> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'All') query.append('status', params.status);
+    if (params.urgency && params.urgency !== 'All') query.append('urgency', params.urgency);
+    if (params.search) query.append('search', params.search);
+    if (params.skip !== undefined) query.append('skip', String(params.skip));
+    if (params.limit !== undefined) query.append('limit', String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/quotes${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<QuoteRequestData[]>(response);
+  },
+
+  // Admin: Update status, internal notes, or quoted amount
+  async updateQuote(token: string, id: number, payload: UpdateQuotePayload): Promise<QuoteRequestData> {
+    const response = await fetch(`${API_BASE_URL}/api/quotes/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<QuoteRequestData>(response);
+  },
+
+  // Admin: Delete quote request
+  async deleteQuote(token: string, id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/quotes/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      await handleResponse<unknown>(response);
+    }
+  },
+
+  // Admin: Statistics for badges
+  async getQuoteStats(token: string): Promise<QuoteStatsData> {
+    const response = await fetch(`${API_BASE_URL}/api/quotes/stats`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<QuoteStatsData>(response);
+  },
+};
+
 
 
 

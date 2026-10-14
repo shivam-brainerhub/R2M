@@ -154,6 +154,9 @@ def update_user(
     if user_update.full_name is not None:
         user.full_name = user_update.full_name
 
+    if user_update.phone is not None:
+        user.phone = user_update.phone
+
     if user_update.role is not None:
         user.role = user_update.role
 

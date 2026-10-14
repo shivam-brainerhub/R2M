@@ -15,9 +15,15 @@ const DEFAULT_BRANDS = [
   { name: 'Baxter', logo: '/media/brands/baxter.png' }
 ];
 
+interface SliderBrand {
+  name: string;
+  logo: string | null;
+}
+
 export default function BrandSlider() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [brands, setBrands] = useState<{ name: string; logo: string }[]>(DEFAULT_BRANDS);
+  const [brands, setBrands] = useState<SliderBrand[]>(DEFAULT_BRANDS);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     brandsApi
@@ -27,7 +33,7 @@ export default function BrandSlider() {
           setBrands(
             data.map((b) => ({
               name: b.name,
-              logo: getMediaUrl(b.logo_url) || `/media/brands/${b.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.png`,
+              logo: b.logo_url ? getMediaUrl(b.logo_url) : null,
             }))
           );
         }
@@ -60,31 +66,46 @@ export default function BrandSlider() {
         ref={scrollContainerRef}
         className="flex overflow-x-auto gap-4 md:gap-6 pb-6 pt-2 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none w-full scroll-smooth"
       >
-        {brands.map((brand) => (
-          <div 
-            key={brand.name} 
-            className="flex-none w-36 md:w-48 bg-white border border-gray-100 h-24 md:h-26 rounded-2xl flex items-center justify-center p-4 md:p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] group transition-all duration-300 hover:-translate-y-2 hover:shadow-xl cursor-pointer active:scale-[0.98] snap-start relative overflow-hidden"
-          >
-            {/* Logo Layer */}
-            <div className="absolute inset-0 flex items-center justify-center p-4 transition-opacity duration-300 group-hover:opacity-0">
-              <Image 
-                src={brand.logo} 
-                alt={`${brand.name} Logo`} 
-                width={120} 
-                height={60} 
-                className="object-contain w-auto h-auto max-w-full max-h-full" 
-                style={{ width: 'auto', height: 'auto' }}
-              />
+        {brands.map((brand) => {
+          const hasValidLogo = Boolean(brand.logo && !failedImages[brand.name]);
+
+          return (
+            <div 
+              key={brand.name} 
+              className="flex-none w-36 md:w-48 bg-white border border-gray-100 h-24 md:h-26 rounded-2xl flex items-center justify-center p-4 md:p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] group transition-all duration-300 hover:-translate-y-2 hover:shadow-xl cursor-pointer active:scale-[0.98] snap-start relative overflow-hidden"
+            >
+              {/* Logo / Badge Layer */}
+              <div className="absolute inset-0 flex items-center justify-center p-4 transition-opacity duration-300 group-hover:opacity-0">
+                {hasValidLogo && brand.logo ? (
+                  <Image 
+                    src={brand.logo} 
+                    alt={`${brand.name} Logo`} 
+                    width={120} 
+                    height={60} 
+                    className="object-contain w-auto h-auto max-w-full max-h-full" 
+                    style={{ width: 'auto', height: 'auto' }}
+                    onError={() => {
+                      setFailedImages((prev) => ({ ...prev, [brand.name]: true }));
+                    }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center px-2">
+                    <span className="font-extrabold text-navy text-xs md:text-sm tracking-wide line-clamp-2">
+                      {brand.name}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Text Overlay Layer */}
+              <div className="absolute inset-0 flex items-center justify-center bg-navy/95 opacity-0 transition-opacity duration-300 group-hover:opacity-100 p-2">
+                <span className="font-bold text-base md:text-lg text-white text-center tracking-wide">
+                  {brand.name}
+                </span>
+              </div>
             </div>
-            
-            {/* Text Overlay Layer */}
-            <div className="absolute inset-0 flex items-center justify-center bg-navy/95 opacity-0 transition-opacity duration-300 group-hover:opacity-100 p-2">
-              <span className="font-bold text-base md:text-lg text-white text-center tracking-wide">
-                {brand.name}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Right Arrow */}

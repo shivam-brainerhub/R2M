@@ -4,11 +4,15 @@ import Footer from "../../components/Footer";
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Navbar />
-      <main className="flex-1">
+      <div className="print:hidden">
+        <Navbar />
+      </div>
+      <main className="flex-1 print:p-0 print:m-0">
         {children}
       </main>
-      <Footer />
+      <div className="print:hidden">
+        <Footer />
+      </div>
     </>
   );
 }

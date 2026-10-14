@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { productsApi, inquiriesApi } from '@/lib/api';
+import { productsApi, inquiriesApi, quotesApi } from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, token, isAuthenticated, isLoading, logout } = useAuth();
   const [productCount, setProductCount] = useState<number | null>(null);
   const [inquiriesCount, setInquiriesCount] = useState<number | null>(null);
+  const [quoteCount, setQuoteCount] = useState<number | null>(null);
 
   const handleLogout = () => {
     logout();
@@ -49,6 +50,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .catch((err) => {
           console.error('Failed to load inquiries count:', err);
         });
+
+      quotesApi
+        .getQuoteStats(token)
+        .then((data) => {
+          if (isMounted && data) {
+            setQuoteCount(data.new_quotes);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load quote count:', err);
+        });
     }
 
     return () => {
@@ -69,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       name: 'Quote Requests',
       href: '/admin/quotes',
       icon: 'receipt_long',
-      badge: '3',
+      badge: quoteCount !== null && quoteCount > 0 ? String(quoteCount) : undefined,
       badgeColor: 'bg-amber-500',
     },
     {
@@ -82,6 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Site Content', href: '/admin/content', icon: 'edit_note' },
     { name: 'Categories & Brands', href: '/admin/categories', icon: 'category' },
   ];
+
 
   if (isLoading) {
     return (

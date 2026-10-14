@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authApi, UserProfile, LoginPayload, RegisterPayload } from '../lib/api';
+import { authApi, UserProfile, LoginPayload, RegisterPayload, UpdateProfilePayload } from '../lib/api';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -12,6 +12,7 @@ interface AuthContextType {
   register: (payload: RegisterPayload) => Promise<UserProfile>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (payload: UpdateProfilePayload) => Promise<UserProfile>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -119,6 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (payload: UpdateProfilePayload): Promise<UserProfile> => {
+    if (!token) throw new Error('Not authenticated');
+    const updated = await authApi.updateMe(token, payload);
+    setUser(updated);
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -130,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         refreshUser,
+        updateProfile,
       }}
     >
       {children}

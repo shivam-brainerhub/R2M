@@ -25,7 +25,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="bg-navy text-white py-12 px-6">
+    <footer className="bg-navy text-white py-12 px-6 print:hidden">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="col-span-1">
           <div className="flex items-center space-x-2 mb-4">

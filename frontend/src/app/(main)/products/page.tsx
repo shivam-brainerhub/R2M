@@ -2,17 +2,19 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   productsApi,
   ProductItem,
   CategoryItem,
-  BrandItem,
   ProductFilterOptionsResponse,
   CategoryFilterOption,
   getMediaUrl,
 } from '@/lib/api';
+
 import { useQuoteCart } from '@/context/QuoteCartContext';
+import BrochureDownloadButton from '@/components/BrochureDownloadButton';
 
 const CATEGORY_ICON_MAP: Record<string, string> = {
   'diagnostic-and-measure': 'monitor_heart',
@@ -47,7 +49,13 @@ function getCategoryIcon(cat: CategoryFilterOption | CategoryItem): string {
   return 'medical_services';
 }
 
-export default function ProductsPage() {
+function ProductsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
+  const urlCategory = searchParams.get('category') || '';
+  const urlBrand = searchParams.get('brand') || '';
+
   const { addItem } = useQuoteCart();
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -61,8 +69,11 @@ export default function ProductsPage() {
   const pageSize = 12;
 
   // Search & Navigation Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  // searchInput: what the user is typing in the box (does NOT call API on input)
+  // activeSearch: the committed search query currently executed and loaded from API
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [activeSearch, setActiveSearch] = useState(urlSearch);
+  const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory || 'All');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
 
   // Accordion Expand/Collapse States
@@ -74,7 +85,7 @@ export default function ProductsPage() {
   const [isAvailabilityExpanded, setIsAvailabilityExpanded] = useState(false);
 
   // Filter Selection States
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(urlBrand ? [urlBrand] : []);
   const [selectedPropertyFilters, setSelectedPropertyFilters] = useState<Record<string, string[]>>({});
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
 
@@ -98,12 +109,25 @@ export default function ProductsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load Initial Data (Filter options fetched from fast in-memory backend cache on page load)
+  // Load Initial Data (Filter options from in-memory cache, products filtered by urlSearch if provided)
   useEffect(() => {
     let active = true;
+    setIsLoading(true);
+
+    if (urlCategory) {
+      setSelectedCategory(urlCategory);
+    }
+    if (urlBrand) {
+      setSelectedBrands([urlBrand]);
+    }
+
     Promise.all([
       productsApi.getFilterOptions().catch(() => null),
-      productsApi.listProducts({ status: 'Active' }),
+      productsApi.listProducts({
+        search: urlSearch.trim() || undefined,
+        status: 'Active',
+        limit: 500,
+      }),
     ])
       .then(([filtersData, prods]) => {
         if (!active) return;
@@ -120,6 +144,62 @@ export default function ProductsPage() {
       active = false;
     };
   }, []);
+
+  // Sync if URL search changes externally (e.g. navigation from Home page search)
+  useEffect(() => {
+    if (urlSearch !== activeSearch) {
+      setSearchInput(urlSearch);
+      setActiveSearch(urlSearch);
+      setIsLoading(true);
+      productsApi
+        .listProducts({
+          search: urlSearch.trim() || undefined,
+          status: 'Active',
+          limit: 500,
+        })
+        .then((prods) => {
+          setProducts(prods);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [urlSearch, activeSearch]);
+
+  // Execute Search: called ONLY when user hits search (Enter or button click)
+  const handleExecuteSearch = useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      setSearchInput(query);
+      setActiveSearch(trimmed);
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (trimmed) {
+        params.set('search', trimmed);
+      } else {
+        params.delete('search');
+      }
+      const qs = params.toString();
+      router.replace(`/products${qs ? `?${qs}` : ''}`, { scroll: false });
+
+      setIsLoading(true);
+      productsApi
+        .listProducts({
+          search: trimmed || undefined,
+          status: 'Active',
+          limit: 500,
+        })
+        .then((prods) => {
+          setProducts(prods);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsLoading(false);
+        });
+    },
+    [router, searchParams]
+  );
 
   // Quick Toast Helper
   const showToast = (msg: string) => {
@@ -145,9 +225,19 @@ export default function ProductsPage() {
 
   // Add to Quote Action
   const handleAddToQuote = (product: ProductItem) => {
-    addItem({ productId: String(product.id), productName: product.name, quantity: 1 });
+    addItem({
+      productId: String(product.id),
+      productName: product.name,
+      slug: product.slug,
+      sku: product.sku,
+      brandName: product.brand_name,
+      imageUrl: product.primary_image_url,
+      categoryName: product.category_name,
+      quantity: 1, // Quantity managed only in cart
+    });
     showToast(`Added "${product.name}" to Quote Request!`);
   };
+
 
   // Toggle category expansion and selection
   const handleCategoryClick = (cat: CategoryItem) => {
@@ -234,25 +324,21 @@ export default function ProductsPage() {
     };
   }, [filterOptions]);
 
-  // Reset pagination to page 1 whenever any filter changes
-  useEffect(() => {
+  // Reset pagination to page 1 whenever any filter changes (render-phase state adjustment)
+  const filterKey = `${activeSearch}_${selectedCategory}_${selectedSubcategory}_${selectedBrands.join(',')}_${JSON.stringify(selectedPropertyFilters)}_${selectedAvailability}_${selectedSort}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
     setCurrentPage(1);
-  }, [
-    searchTerm,
-    selectedCategory,
-    selectedSubcategory,
-    selectedBrands,
-    selectedPropertyFilters,
-    selectedAvailability,
-    selectedSort,
-  ]);
+  }
+
 
   // FILTER PRODUCTS
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       // 1. Search filter
-      if (searchTerm.trim() !== '') {
-        const term = searchTerm.toLowerCase().trim();
+      if (activeSearch.trim() !== '') {
+        const term = activeSearch.toLowerCase().trim();
         const matchesName = p.name.toLowerCase().includes(term);
         const matchesBrand = Boolean(p.brand_name && p.brand_name.toLowerCase().includes(term));
         const matchesSku = Boolean(p.sku && p.sku.toLowerCase().includes(term));
@@ -316,7 +402,7 @@ export default function ProductsPage() {
     });
   }, [
     products,
-    searchTerm,
+    activeSearch,
     selectedCategory,
     selectedSubcategory,
     selectedBrands,
@@ -381,32 +467,39 @@ export default function ProductsPage() {
 
           {/* Search Bar */}
           <div className="w-full max-w-md">
-            <div className="bg-white rounded-full p-1.5 flex items-center shadow-lg overflow-hidden border border-gray-200">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleExecuteSearch(searchInput);
+              }}
+              className="bg-white rounded-full p-1.5 flex items-center shadow-lg overflow-hidden border border-gray-200"
+            >
               <span className="material-symbols-outlined text-gray-400 ml-3 shrink-0">search</span>
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by product, model number, manufacturer..."
                 className="flex-1 bg-transparent border-none outline-none text-navy px-3 min-w-0 w-full text-xs sm:text-sm placeholder:text-gray-400"
               />
-              {searchTerm ? (
+              {searchInput ? (
                 <button
-                  onClick={() => setSearchTerm('')}
-                  className="text-gray-400 hover:text-navy mr-2 p-1"
+                  type="button"
+                  onClick={() => handleExecuteSearch('')}
+                  className="text-gray-400 hover:text-navy mr-2 p-1 cursor-pointer"
                   aria-label="Clear search"
                 >
                   <span className="material-symbols-outlined text-sm! block">close</span>
                 </button>
               ) : null}
               <button
-                onClick={() => {}}
-                className="bg-gold text-navy font-bold px-4 py-2 rounded-full hover:bg-gold-bright transition-all text-xs shrink-0 flex items-center gap-1 shadow-xs"
+                type="submit"
+                className="bg-gold text-navy font-bold px-4 py-2 rounded-full hover:bg-gold-bright transition-all text-xs shrink-0 flex items-center gap-1 shadow-xs cursor-pointer"
               >
                 <span>Search</span>
                 <span className="material-symbols-outlined text-xs!">arrow_forward</span>
               </button>
-            </div>
+            </form>
           </div>
         </div>
 
@@ -416,9 +509,10 @@ export default function ProductsPage() {
           {POPULAR_SEARCH_KEYWORDS.map((keyword) => (
             <button
               key={keyword}
-              onClick={() => setSearchTerm(keyword)}
-              className={`px-3 py-1 rounded-full border transition-colors ${
-                searchTerm === keyword
+              type="button"
+              onClick={() => handleExecuteSearch(keyword)}
+              className={`px-3 py-1 rounded-full border transition-colors cursor-pointer ${
+                activeSearch.toLowerCase() === keyword.toLowerCase()
                   ? 'bg-gold text-navy font-bold border-gold'
                   : 'bg-navy-light/60 text-gray-200 border-white/20 hover:border-gold hover:text-white'
               }`}
@@ -875,20 +969,40 @@ export default function ProductsPage() {
           {/* Header Row with Title */}
           <div className="mb-6">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-              {selectedSubcategory || (selectedCategory === 'All' ? 'All Products' : activeCategoryObj?.name || selectedCategory)}
+              {activeSearch
+                ? `Search results for "${activeSearch}"`
+                : selectedSubcategory ||
+                  (selectedCategory === 'All'
+                    ? 'All Products'
+                    : activeCategoryObj?.name || selectedCategory)}
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 mt-1.5 max-w-2xl">
-              {activeCategoryObj?.description ||
-                'Explore our catalogue of patient monitors, hospital beds, and clinical equipment from trusted global manufacturers.'}
+              {activeSearch
+                ? `Showing medical equipment matching "${activeSearch}".`
+                : activeCategoryObj?.description ||
+                  'Explore our catalogue of patient monitors, hospital beds, and clinical equipment from trusted global manufacturers.'}
             </p>
           </div>
 
-          {/* Results Toolbar: Count, Grid/List Switcher, Sort Dropdown */}
+          {/* Results Toolbar: Count, Active Search Badge, Grid/List Switcher, Sort Dropdown */}
           <div className="relative z-30 flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 mb-6 shadow-2xs gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-navy text-sm sm:text-base">
                 {sortedProducts.length} Products
               </span>
+              {activeSearch && (
+                <div className="inline-flex items-center gap-1.5 bg-gold/20 text-navy font-semibold px-2.5 py-1 rounded-full text-xs border border-gold/40">
+                  <span>Search: &ldquo;{activeSearch}&rdquo;</span>
+                  <button
+                    type="button"
+                    onClick={() => handleExecuteSearch('')}
+                    className="hover:text-red-600 cursor-pointer flex items-center"
+                    title="Clear search"
+                  >
+                    <span className="material-symbols-outlined text-xs!">close</span>
+                  </button>
+                </div>
+              )}
               {activeRefineFiltersCount > 0 && (
                 <button
                   onClick={handleClearAllRefine}
@@ -990,7 +1104,7 @@ export default function ProductsPage() {
                 onClick={() => {
                   handleClearAllRefine();
                   handleResetCategory();
-                  setSearchTerm('');
+                  handleExecuteSearch('');
                 }}
                 className="mt-4 bg-navy text-white text-xs font-semibold px-4 py-2 rounded-full hover:bg-navy-light transition-colors shadow-xs"
               >
@@ -1101,15 +1215,13 @@ export default function ProductsPage() {
                           </Link>
 
                           {p.brochure_url && (
-                            <a
-                              href={getMediaUrl(p.brochure_url)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-blue-600 hover:underline font-semibold"
+                            <BrochureDownloadButton
+                              brochureUrl={p.brochure_url}
+                              className="inline-flex items-center gap-1 text-blue-600 hover:underline font-semibold cursor-pointer"
                             >
                               <span className="material-symbols-outlined text-base!">download</span>
                               <span>Download Brochure</span>
-                            </a>
+                            </BrochureDownloadButton>
                           )}
                         </div>
                       </div>
@@ -1268,5 +1380,21 @@ export default function ProductsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-light-blue/40">
+          <span className="material-symbols-outlined text-4xl animate-spin text-navy">
+            progress_activity
+          </span>
+        </div>
+      }
+    >
+      <ProductsContent />
+    </Suspense>
   );
 }

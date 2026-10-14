@@ -3,16 +3,44 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { productsApi, ProductStatsResponse, ProductItem, getMediaUrl } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import {
+  productsApi,
+  ProductStatsResponse,
+  ProductItem,
+  quotesApi,
+  QuoteRequestData,
+  QuoteItemData,
+  getMediaUrl,
+} from '@/lib/api';
+
 
 export default function AdminDashboardPage() {
+  const { token } = useAuth();
   const [productStats, setProductStats] = useState<ProductStatsResponse | null>(null);
   const [liveProducts, setLiveProducts] = useState<ProductItem[]>([]);
+  const [liveQuotes, setLiveQuotes] = useState<QuoteRequestData[]>([]);
 
   useEffect(() => {
-    productsApi.getStats().then(setProductStats).catch(() => {});
-    productsApi.listProducts({ limit: 4 }).then(setLiveProducts).catch(() => {});
-  }, []);
+    let active = true;
+    productsApi.getStats().then((data) => {
+      if (active) setProductStats(data);
+    }).catch(() => {});
+
+    productsApi.listProducts({ limit: 4 }).then((data) => {
+      if (active) setLiveProducts(data);
+    }).catch(() => {});
+
+    if (token) {
+      quotesApi.listQuotes(token, { limit: 4 }).then((data) => {
+        if (active) setLiveQuotes(data);
+      }).catch(() => {});
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   const stats = [
     {
@@ -41,35 +69,6 @@ export default function AdminDashboardPage() {
     },
   ];
 
-  const recentQuotes = [
-    {
-      id: 'QR-2041',
-      facility: 'Mediclinic Panorama',
-      contact: 'Dr. Johan van der Merwe',
-      items: 'BeneVision N12 (x4), IntelliVue MX450 (x2)',
-      date: 'Today, 09:45 AM',
-      status: 'New',
-      statusClass: 'bg-amber-100 text-amber-800 border-amber-200',
-    },
-    {
-      id: 'QR-2040',
-      facility: 'Netcare St Augustine\'s',
-      contact: 'Sister Nomsa Dlamini',
-      items: 'Infinity M300 (x6)',
-      date: 'Yesterday, 16:20 PM',
-      status: 'Under Review',
-      statusClass: 'bg-blue-100 text-blue-800 border-blue-200',
-    },
-    {
-      id: 'QR-2039',
-      facility: 'Life Westville Hospital',
-      contact: 'Procurement: Kevin Pillay',
-      items: 'CMS8000 (x10), BeneVision N12 (x2)',
-      date: '10 Oct 2026',
-      status: 'Quoted',
-      statusClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    },
-  ];
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -165,34 +164,55 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {recentQuotes.map((q) => (
-                  <tr key={q.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-navy">{q.facility}</div>
-                      <div className="text-[11px] text-gray-400 font-mono mt-0.5">{q.id} &bull; {q.contact}</div>
-                    </td>
-                    <td className="px-4 py-4 text-gray-600 max-w-xs truncate" title={q.items}>
-                      {q.items}
-                    </td>
-                    <td className="px-4 py-4 text-gray-500 whitespace-nowrap text-xs">
-                      {q.date}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${q.statusClass}`}>
-                        {q.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-right whitespace-nowrap">
-                      <Link
-                        href={`/admin/quotes?id=${q.id}`}
-                        className="text-xs font-semibold text-navy bg-slate-100 hover:bg-gold hover:text-navy px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1"
-                      >
-                        Respond
-                      </Link>
+                {liveQuotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-gray-400">
+                      No incoming quote requests yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  liveQuotes.map((q: QuoteRequestData) => (
+                    <tr key={q.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-navy">{q.facility_name}</div>
+                        <div className="text-[11px] text-gray-400 font-mono mt-0.5">{q.quote_number} &bull; {q.contact_name}</div>
+                      </td>
+                      <td className="px-4 py-4 text-gray-600 max-w-xs truncate" title={q.items.map((it: QuoteItemData) => `${it.product_name} (x${it.quantity})`).join(', ')}>
+                        {q.items.map((it: QuoteItemData) => `${it.product_name} (x${it.quantity})`).join(', ')}
+                      </td>
+
+                      <td className="px-4 py-4 text-gray-500 whitespace-nowrap text-xs">
+                        {new Date(q.created_at).toLocaleDateString('en-ZA', {
+                          day: '2-digit',
+                          month: 'short',
+                        })}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${
+                          q.status === 'New'
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : q.status === 'In Review'
+                            ? 'bg-blue-100 text-blue-800 border-blue-200'
+                            : q.status === 'Quoted'
+                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        }`}>
+                          {q.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right whitespace-nowrap">
+                        <Link
+                          href="/admin/quotes"
+                          className="text-xs font-semibold text-navy bg-slate-100 hover:bg-gold hover:text-navy px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1"
+                        >
+                          Review
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
+
             </table>
           </div>
         </div>
@@ -211,8 +231,9 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {liveProducts.map((p) => {
+              {liveProducts.map((p: ProductItem) => {
                 const img = p.primary_image_url || p.images[0]?.image_url || '/images/benevision_n12.jpg';
+
                 return (
                   <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors border border-gray-100">
                     <div className="flex items-center gap-3 min-w-0">

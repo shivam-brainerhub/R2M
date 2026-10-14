@@ -23,6 +23,7 @@ from app.schemas.user import (
     ResendVerificationRequest,
     ResetPasswordRequest,
     UserPasswordChange,
+    UserProfileUpdate,
     UserRegister,
     UserResponse,
     VerifyEmailRequest,
@@ -282,6 +283,39 @@ def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """
     Get profile details of currently authenticated user (Admin or Public User).
     """
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+def update_current_user_profile(
+    profile_in: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update profile details (email, full name, phone) for currently authenticated user.
+    """
+    if profile_in.email is not None and profile_in.email != current_user.email:
+        existing_user = (
+            db.query(User)
+            .filter(User.email == profile_in.email, User.id != current_user.id)
+            .first()
+        )
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A user with this email address already exists",
+            )
+        current_user.email = profile_in.email
+
+    if profile_in.full_name is not None:
+        current_user.full_name = profile_in.full_name
+
+    if profile_in.phone is not None:
+        current_user.phone = profile_in.phone
+
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 

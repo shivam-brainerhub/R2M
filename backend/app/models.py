@@ -186,6 +186,7 @@ class User(TimestampMixin, Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
     role = Column(
         Enum(UserRole, name="user_role_enum", native_enum=False),
         default=UserRole.USER,
@@ -232,5 +233,61 @@ class SupplierApplication(TimestampMixin, Base):
     overview = Column(Text, nullable=False)
     status = Column(String, default="New", nullable=False, index=True)  # New, Under Review, Approved, Declined
     notes = Column(Text, nullable=True)
+
+
+class QuoteRequest(TimestampMixin, Base):
+    __tablename__ = "quote_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_number = Column(String, unique=True, index=True, nullable=False)  # e.g. "QR-2026-0001"
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    facility_name = Column(String, index=True, nullable=False)  # Hospital, Clinic, Surgery Centre
+    contact_name = Column(String, nullable=False)
+    email = Column(String, index=True, nullable=False)
+    phone = Column(String, nullable=False)
+    sector = Column(String, nullable=True)  # e.g. "Hospitals & Healthcare Groups"
+    department = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    postal_code = Column(String, nullable=True)
+
+    urgency = Column(String, default="Standard", nullable=False)  # "Standard", "Urgent", "Procurement Tender"
+    status = Column(String, default="New", nullable=False, index=True)  # "New", "In Review", "Quoted", "Approved", "Declined"
+
+    notes = Column(Text, nullable=True)  # Client clinical specifications, PO number, tender specs
+    internal_notes = Column(Text, nullable=True)  # Sales / Admin internal notes
+    quoted_amount = Column(String, nullable=True)  # Pricing entered by admin upon quote generation
+
+    user = relationship("User")
+    items = relationship("QuoteRequestItem", back_populates="quote_request", cascade="all, delete-orphan")
+
+
+class QuoteRequestItem(TimestampMixin, Base):
+    __tablename__ = "quote_request_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    quote_request_id = Column(Integer, ForeignKey("quote_requests.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    product_name = Column(String, nullable=False)
+    product_sku = Column(String, nullable=True)
+    brand_name = Column(String, nullable=True)
+    quantity = Column(Integer, default=1, nullable=False)
+    item_notes = Column(Text, nullable=True)
+
+    quote_request = relationship("QuoteRequest", back_populates="items")
+    product = relationship("Product")
+
+    @property
+    def image_url(self) -> Optional[str]:
+        if self.product and self.product.images:
+            for img in self.product.images:
+                if img.is_primary:
+                    return img.image_url
+            if len(self.product.images) > 0:
+                return self.product.images[0].image_url
+        return None
+
 
 

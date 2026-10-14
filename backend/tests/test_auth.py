@@ -280,3 +280,31 @@ def test_email_verification_flow(client: TestClient):
     )
     assert verified_login.status_code == 200
     assert "access_token" in verified_login.json()
+
+
+def test_update_profile_success(client: TestClient, user_token_headers):
+    # Update full_name and phone
+    payload = {
+        "full_name": "Dr. Johan Update",
+        "phone": "+27 21 555 1234",
+    }
+    response = client.put("/api/auth/me", headers=user_token_headers, json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["full_name"] == "Dr. Johan Update"
+    assert data["phone"] == "+27 21 555 1234"
+
+    # Verify get me returns updated data
+    me_resp = client.get("/api/auth/me", headers=user_token_headers)
+    assert me_resp.status_code == 200
+    assert me_resp.json()["phone"] == "+27 21 555 1234"
+
+
+def test_update_profile_duplicate_email(client: TestClient, user_token_headers, test_admin_user):
+    payload = {
+        "email": test_admin_user.email,
+    }
+    response = client.put("/api/auth/me", headers=user_token_headers, json=payload)
+    assert response.status_code == 400
+    assert "already exists" in response.json()["detail"].lower()
+

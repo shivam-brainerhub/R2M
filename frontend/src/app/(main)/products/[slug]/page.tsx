@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { productsApi, ProductItem, getMediaUrl, ApiError } from '@/lib/api';
+import { useQuoteCart } from '@/context/QuoteCartContext';
+import BrochureDownloadButton from '@/components/BrochureDownloadButton';
 
 export default function ProductDetailPage({
   params,
@@ -13,11 +15,19 @@ export default function ProductDetailPage({
 }) {
   const { slug } = use(params);
   const router = useRouter();
+  const { addItem } = useQuoteCart();
 
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
 
   useEffect(() => {
     let active = true;
@@ -87,9 +97,24 @@ export default function ProductDetailPage({
   const currentImage = galleryImages[selectedImageIndex] || galleryImages[0] || null;
 
   return (
-    <div className="bg-white min-h-screen pb-20">
+    <div className="bg-white min-h-screen pb-20 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-fadeIn">
+          <span className="material-symbols-outlined text-white text-xl!">check_circle</span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
+          <Link
+            href="/quote"
+            className="ml-2 bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-1 rounded-lg font-bold underline"
+          >
+            View Cart
+          </Link>
+        </div>
+      )}
+
       {/* Breadcrumbs */}
       <div className="bg-light-blue py-3.5 px-6 border-b border-gray-100">
+
         <div className="max-w-7xl mx-auto text-xs sm:text-sm text-gray-500 flex items-center space-x-2">
           <Link href="/" className="hover:text-navy">
             Home
@@ -221,30 +246,66 @@ export default function ProductDetailPage({
             )}
 
             {/* Call to Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Link
-                href="/contact"
-                className="flex-1 bg-gold text-navy font-bold py-3.5 px-6 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm shadow-md"
+            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+              <button
+                type="button"
+                onClick={() => {
+                  addItem({
+                    productId: String(product.id),
+                    productName: product.name,
+                    slug: product.slug,
+                    sku: product.sku,
+                    brandName: product.brand_name,
+                    imageUrl: product.primary_image_url,
+                    categoryName: product.category_name,
+                    quantity: 1, // Quantity managed only in cart
+                  });
+                  router.push('/quote');
+                }}
+                className="flex-1 bg-gold text-navy font-bold py-3.5 px-6 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm shadow-md cursor-pointer"
               >
-                Request a Quote <span className="material-symbols-outlined ml-2 text-lg!">arrow_forward</span>
-              </Link>
+                <span>Request a Quote</span>
+                <span className="material-symbols-outlined ml-2 text-lg!">arrow_forward</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  addItem({
+                    productId: String(product.id),
+                    productName: product.name,
+                    slug: product.slug,
+                    sku: product.sku,
+                    brandName: product.brand_name,
+                    imageUrl: product.primary_image_url,
+                    categoryName: product.category_name,
+                    quantity: 1, // Quantity managed only in cart
+                  });
+                  showToast(`Added "${product.name}" to Quote Cart!`);
+                }}
+                className="flex-1 bg-navy text-white font-bold py-3.5 px-6 rounded-xl hover:bg-navy-light transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm shadow-md cursor-pointer"
+              >
+                <span className="material-symbols-outlined mr-2 text-lg!">add_shopping_cart</span>
+                <span>Add to Quote Cart</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => router.push(`/compare?items=${product.slug}`)}
-                className="flex-1 bg-white border-2 border-navy text-navy font-bold py-3.5 px-6 rounded-xl hover:bg-slate-50 transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm cursor-pointer"
+                className="sm:w-auto bg-white border-2 border-navy text-navy font-bold py-3.5 px-4 rounded-xl hover:bg-slate-50 transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm cursor-pointer"
+                title="Add to Compare"
               >
-                <span className="material-symbols-outlined mr-2 text-lg!">compare_arrows</span> Add to Compare
+                <span className="material-symbols-outlined text-lg!">compare_arrows</span>
               </button>
             </div>
+
 
             {/* Brochure & Resources */}
             {product.brochure_url && (
               <div className="space-y-3 pt-2">
-                <a
-                  href={getMediaUrl(product.brochure_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center text-blue-600 hover:text-blue-800 p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-gray-200/80 transition-all group"
+                <BrochureDownloadButton
+                  brochureUrl={product.brochure_url}
+                  className="w-full flex items-center text-blue-600 hover:text-blue-800 p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-gray-200/80 transition-all group cursor-pointer text-left"
                 >
                   <span className="material-symbols-outlined mr-3 text-2xl! text-red-500">
                     picture_as_pdf
@@ -260,7 +321,7 @@ export default function ProductDetailPage({
                   <span className="material-symbols-outlined text-lg! text-gray-400 group-hover:text-blue-600 transition-colors">
                     download
                   </span>
-                </a>
+                </BrochureDownloadButton>
               </div>
             )}
           </div>

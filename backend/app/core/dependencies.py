@@ -54,6 +54,29 @@ def get_current_user(
     return user
 
 
+def get_optional_current_user(
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if not token:
+        return None
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
+        return None
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        return None
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return None
+    user = db.query(User).filter(User.id == user_id).first()
+    if user and user.is_active:
+        return user
+    return None
+
+
+
 def require_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:

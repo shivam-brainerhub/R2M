@@ -107,16 +107,67 @@ export default function AdminInquiriesPage() {
   }, [token, supplierStatusFilter, supplierSearch]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    let active = true;
+    if (!token) return;
+
+    inquiriesApi.getInquiriesStats(token).then((data) => {
+      if (active) setStats(data);
+    }).catch((err) => console.error('Failed to fetch inquiries stats:', err));
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   useEffect(() => {
+    let active = true;
+    if (!token) return;
+
     if (activeTab === 'contact') {
-      fetchContactMessages();
+      inquiriesApi
+        .listContactMessages(token, {
+          status: contactStatusFilter,
+          search: contactSearch,
+        })
+        .then((data) => {
+          if (active) {
+            setContactMessages(data);
+            setIsLoadingContacts(false);
+          }
+        })
+        .catch((err) => {
+          if (active) {
+            const msg = err instanceof ApiError ? err.message : 'Failed to load contact messages';
+            showToast(msg, 'error');
+            setIsLoadingContacts(false);
+          }
+        });
     } else {
-      fetchSupplierApplications();
+      inquiriesApi
+        .listSupplierApplications(token, {
+          status: supplierStatusFilter,
+          search: supplierSearch,
+        })
+        .then((data) => {
+          if (active) {
+            setSupplierApps(data);
+            setIsLoadingSuppliers(false);
+          }
+        })
+        .catch((err) => {
+          if (active) {
+            const msg = err instanceof ApiError ? err.message : 'Failed to load supplier applications';
+            showToast(msg, 'error');
+            setIsLoadingSuppliers(false);
+          }
+        });
     }
-  }, [activeTab, fetchContactMessages, fetchSupplierApplications]);
+
+    return () => {
+      active = false;
+    };
+  }, [token, activeTab, contactStatusFilter, contactSearch, supplierStatusFilter, supplierSearch]);
+
 
   // ---------------------------------------------------------------------------
   // Action Handlers

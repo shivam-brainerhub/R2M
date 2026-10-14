@@ -11,6 +11,7 @@ import {
   getMediaUrl,
   getFileUrl,
 } from '@/lib/api';
+import BrochureDownloadButton from '@/components/BrochureDownloadButton';
 
 function CompareContent() {
   const router = useRouter();
@@ -212,16 +213,14 @@ function CompareContent() {
                           {/* Actions */}
                           <div className="flex items-center gap-2 w-full mt-auto pt-3 border-t border-gray-100">
                             {p.brochure_url ? (
-                              <a
-                                href={getFileUrl(p.brochure_url)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-1 bg-white border border-gray-300 hover:border-red-400 text-gray-700 hover:text-red-600 text-[11px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                              <BrochureDownloadButton
+                                brochureUrl={p.brochure_url}
+                                className="flex-1 bg-white border border-gray-300 hover:border-red-400 text-gray-700 hover:text-red-600 text-[11px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                 title="Download Brochure"
                               >
                                 <span className="material-symbols-outlined text-xs!">picture_as_pdf</span>
                                 <span>PDF</span>
-                              </a>
+                              </BrochureDownloadButton>
                             ) : (
                               <span className="flex-1 text-[11px] text-gray-400 text-center py-2">
                                 No PDF
@@ -302,15 +301,13 @@ function CompareContent() {
                   {productsList.map((p) => (
                     <td key={p.id} className="p-4">
                       {p.brochure_url ? (
-                        <a
-                          href={getFileUrl(p.brochure_url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-xs underline"
+                        <BrochureDownloadButton
+                          brochureUrl={p.brochure_url}
+                          className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-xs underline cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-sm!">picture_as_pdf</span>
                           Download Spec Sheet
-                        </a>
+                        </BrochureDownloadButton>
                       ) : (
                         <span className="text-gray-400 text-xs">Not available</span>
                       )}

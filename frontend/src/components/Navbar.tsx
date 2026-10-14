@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { itemCount } = useQuoteCart();
+  const { itemCount, isLoaded } = useQuoteCart();
   const { user, isAuthenticated } = useAuth();
 
   const navLinks = [
@@ -23,7 +23,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 left-0 w-full bg-navy text-white px-4 md:px-8 py-3 flex items-center justify-between z-50 shadow-lg border-b border-white/10">
+    <nav className="sticky top-0 left-0 w-full bg-navy text-white px-4 md:px-8 py-3 flex items-center justify-between z-50 shadow-lg border-b border-white/10 print:hidden">
       
       {/* Left: Logo */}
       <Link href="/home" className="flex items-center transition-transform duration-300 hover:scale-105 active:scale-95 shrink-0">
@@ -56,7 +56,7 @@ export default function Navbar() {
           <Link href="/quote" className="text-white px-4 py-2 rounded-full hover:bg-gold transition-all duration-300 hover:scale-[1.02] active:scale-95 text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg shrink-0">
             <span className="relative flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]!">shopping_cart</span>
-              {itemCount > 0 && (
+              {isLoaded && itemCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full min-w-4 text-center">
                   {itemCount}
                 </span>
