@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   productsApi,
@@ -162,6 +162,63 @@ export default function AdminProductsPage() {
 
     return matchesSearch && matchesBrand && matchesCategory && matchesStatus;
   });
+
+  // Calculate live related products preview for Add/Edit Modal
+  const relatedPreview = useMemo(() => {
+    if (!categoryId) {
+      return { level: 'none' as const, count: 0, items: [] as ProductItem[] };
+    }
+
+    const currentId = editingProduct?.id;
+    const activeProds = products.filter((p) => p.status === 'Active' && p.id !== currentId);
+
+    const matches: ProductItem[] = [];
+    const seenIds = new Set<number>();
+
+    // Priority 1: Same subcategory
+    if (subcategoryId) {
+      const subcatMatches = activeProds.filter((p) => p.subcategory_id === subcategoryId);
+      if (brandId) {
+        subcatMatches.sort((a, b) => {
+          if (a.brand_id === brandId && b.brand_id !== brandId) return -1;
+          if (b.brand_id === brandId && a.brand_id !== brandId) return 1;
+          return 0;
+        });
+      }
+      for (const p of subcatMatches) {
+        if (!seenIds.has(p.id)) {
+          seenIds.add(p.id);
+          matches.push(p);
+        }
+      }
+    }
+
+    // Priority 2: Same category fallback
+    if (matches.length < 4) {
+      const catMatches = activeProds.filter(
+        (p) => p.category_id === categoryId && !seenIds.has(p.id)
+      );
+      if (brandId) {
+        catMatches.sort((a, b) => {
+          if (a.brand_id === brandId && b.brand_id !== brandId) return -1;
+          if (b.brand_id === brandId && a.brand_id !== brandId) return 1;
+          return 0;
+        });
+      }
+      for (const p of catMatches) {
+        if (!seenIds.has(p.id)) {
+          seenIds.add(p.id);
+          matches.push(p);
+        }
+      }
+    }
+
+    return {
+      level: subcategoryId ? ('subcategory' as const) : ('category' as const),
+      count: matches.length,
+      items: matches.slice(0, 4),
+    };
+  }, [categoryId, subcategoryId, brandId, products, editingProduct]);
 
   // Close Product Modal & Revoke any temporary object URLs
   const handleCloseProductModal = () => {
@@ -1039,6 +1096,66 @@ export default function AdminProductsPage() {
                           </option>
                         ))}
                     </select>
+                  </div>
+
+                  {/* Related Products: Quick Logic & Preview */}
+                  <div className="sm:col-span-2 bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap text-gray-700">
+                        <span className="material-symbols-outlined text-blue-600 text-base!">auto_awesome</span>
+                        <span className="font-bold text-navy">Related Products:</span>
+                        <span className="text-gray-600">
+                          Matched by <strong className="text-blue-700">Subcategory</strong> &gt; Category &gt; Brand.
+                        </span>
+                      </div>
+
+                      <div>
+                        {subcategoryId ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                            <span className="material-symbols-outlined text-xs!">check_circle</span>
+                            Exact Subcategory Match ({relatedPreview.count})
+                          </span>
+                        ) : categoryId ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200" title="Select a subcategory for accurate equipment matching">
+                            <span className="material-symbols-outlined text-xs!">warning</span>
+                            Category Fallback &bull; Select subcategory for best match
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">Select Category to preview</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Compact Chip Preview */}
+                    {categoryId && relatedPreview.items.length > 0 && (
+                      <div className="flex items-center gap-2 overflow-x-auto pt-2 mt-2 border-t border-slate-200/60">
+                        {/* <span className="text-[10px] uppercase font-bold text-gray-400 shrink-0">
+                          Storefront Preview:
+                        </span> */}
+                        {relatedPreview.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2 py-1 shrink-0 text-[11px] shadow-2xs"
+                            title={`${item.name} (${item.brand_name || 'Generic'})`}
+                          >
+                            <div className="w-15 h-15 relative bg-slate-50 rounded shrink-0 overflow-hidden">
+                              {item.primary_image_url || item.images[0]?.image_url ? (
+                                <Image
+                                  src={getMediaUrl(item.primary_image_url || item.images[0]?.image_url || '')}
+                                  alt={item.name}
+                                  fill
+                                  sizes="16px"
+                                  className="object-contain"
+                                />
+                              ) : (
+                                <span className="material-symbols-outlined text-xs! text-gray-300">inventory_2</span>
+                              )}
+                            </div>
+                            <span className="font-semibold text-navy max-w-28 truncate">{item.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

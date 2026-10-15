@@ -376,3 +376,35 @@ def test_product_lifecycle_updates_filter_cache_in_background(
     assert res_after_del.status_code == 200
     assert res_after_del.json()["total_products"] == init_total
 
+
+def test_get_related_products(client: TestClient):
+    res = client.get("/api/products/benevision-n12/related?limit=4")
+    assert res.status_code == 200
+    data = res.json()
+    assert isinstance(data, list)
+    # The reference product itself must not be in the results
+    slugs = [p["slug"] for p in data]
+    assert "benevision-n12" not in slugs
+    # All returned products must be Active
+    for p in data:
+        assert p["status"] == "Active"
+
+
+def test_get_related_products_by_id(client: TestClient):
+    # Lookup first product's id
+    list_res = client.get("/api/products")
+    first_product = list_res.json()[0]
+    prod_id = first_product["id"]
+
+    res = client.get(f"/api/products/{prod_id}/related?limit=3")
+    assert res.status_code == 200
+    data = res.json()
+    assert isinstance(data, list)
+    assert all(p["id"] != prod_id for p in data)
+
+
+def test_get_related_products_not_found(client: TestClient):
+    res = client.get("/api/products/completely-unknown-slug/related")
+    assert res.status_code == 404
+
+

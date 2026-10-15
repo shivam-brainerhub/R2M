@@ -796,6 +796,13 @@ export const productsApi = {
     return handleResponse<ProductItem>(response);
   },
 
+  async getRelatedProducts(slugOrId: string | number, limit = 4): Promise<ProductItem[]> {
+    const response = await fetch(`${API_BASE_URL}/api/products/${slugOrId}/related?limit=${limit}`, {
+      method: 'GET',
+    });
+    return handleResponse<ProductItem[]>(response);
+  },
+
   async getStats(): Promise<ProductStatsResponse> {
     const response = await fetch(`${API_BASE_URL}/api/products/stats`, {
       method: 'GET',

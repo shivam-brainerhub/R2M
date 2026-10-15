@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { productsApi, ProductItem, getMediaUrl, ApiError } from '@/lib/api';
 import { useQuoteCart } from '@/context/QuoteCartContext';
 import BrochureDownloadButton from '@/components/BrochureDownloadButton';
+import RelatedProducts from '@/components/RelatedProducts';
 
 export default function ProductDetailPage({
   params,
@@ -326,6 +327,12 @@ export default function ProductDetailPage({
             )}
           </div>
         </div>
+
+        {/* Clinical Recommendations & Related Products */}
+        <RelatedProducts
+          currentProductSlug={product.slug}
+          onAddToCartToast={showToast}
+        />
       </div>
     </div>
   );

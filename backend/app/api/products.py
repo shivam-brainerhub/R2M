@@ -2,7 +2,7 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import asc, desc, func, or_
+from sqlalchemy import asc, case, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import require_admin
@@ -478,6 +478,98 @@ def list_products(
 
     products = query.offset(skip).limit(limit).all()
     return [build_product_response(p) for p in products]
+
+
+@router.get("/{slug_or_id}/related", response_model=List[ProductResponse])
+def get_related_products(
+    slug_or_id: str,
+    limit: int = Query(4, ge=1, le=12),
+    db: Session = Depends(get_db),
+):
+    """
+    Get related products for a given product by slug or integer ID.
+    Relevance Algorithm (Auto):
+    1. Resolve reference product.
+    2. Exclude current product and inactive products (status != 'Active').
+    3. Priority 1: Same subcategory_id (exact clinical peers, e.g. Patient Monitors -> Patient Monitors).
+    4. Priority 2: Same category_id (same broader medical equipment domain).
+       Prefer same brand_id if possible.
+    5. Priority 3: Same brand_id across catalogue.
+    6. Priority 4: Active catalogue products fallback if needed.
+    """
+    target = (
+        db.query(Product)
+        .filter(Product.slug == slug_or_id.strip())
+        .first()
+    )
+    if not target and slug_or_id.isdigit():
+        target = db.query(Product).filter(Product.id == int(slug_or_id)).first()
+
+    if not target:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product '{slug_or_id}' not found",
+        )
+
+    related_products: List[Product] = []
+    collected_ids = {target.id}
+
+    def fetch_candidates(base_filter, order_expressions=None):
+        nonlocal related_products
+        needed = limit - len(related_products)
+        if needed <= 0:
+            return
+
+        q = (
+            db.query(Product)
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.brand),
+                joinedload(Product.images),
+                joinedload(Product.property_values).joinedload(ProductPropertyValue.property),
+            )
+            .filter(Product.status == "Active")
+            .filter(~Product.id.in_(list(collected_ids)))
+            .filter(base_filter)
+        )
+
+        if order_expressions:
+            for expr in order_expressions:
+                q = q.order_by(expr)
+        else:
+            q = q.order_by(Product.id.desc())
+
+        candidates = q.limit(needed).all()
+        for p in candidates:
+            if p.id not in collected_ids:
+                collected_ids.add(p.id)
+                related_products.append(p)
+
+    # 1. Same subcategory (exact clinical peers)
+    if target.subcategory_id:
+        order = []
+        if target.brand_id:
+            order.append(case((Product.brand_id == target.brand_id, 1), else_=0).desc())
+        order.append(Product.id.desc())
+        fetch_candidates(Product.subcategory_id == target.subcategory_id, order)
+
+    # 2. Same category (fallback if subcategory has fewer than limit)
+    if target.category_id and len(related_products) < limit:
+        order = []
+        if target.brand_id:
+            order.append(case((Product.brand_id == target.brand_id, 1), else_=0).desc())
+        order.append(Product.id.desc())
+        fetch_candidates(Product.category_id == target.category_id, order)
+
+    # 3. Same brand (if still under limit)
+    if target.brand_id and len(related_products) < limit:
+        fetch_candidates(Product.brand_id == target.brand_id, [Product.id.desc()])
+
+    # 4. General active catalogue fallback (if very few items in category/brand)
+    if len(related_products) < limit:
+        fetch_candidates(Product.id != target.id, [Product.id.desc()])
+
+    return [build_product_response(p) for p in related_products]
 
 
 @router.get("/{slug_or_id}", response_model=ProductResponse)
