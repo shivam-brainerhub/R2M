@@ -9,6 +9,7 @@ import {
   InquiriesStatsResponse,
   ApiError,
 } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 type InquiryTab = 'contact' | 'supplier';
 
@@ -393,15 +394,16 @@ export default function AdminInquiriesPage() {
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-xl">rate_review</span>
+            <span className="material-symbols-outlined text-xl">pending_actions</span>
           </div>
           <div>
             <div className="text-2xl font-bold text-navy">
-              {(stats?.new_contact ?? 0) + (stats?.new_supplier ?? 0)}
+              {stats ? (stats.total_in_progress ?? ((stats.in_progress_contact ?? 0) + (stats.under_review_supplier ?? 0))) : '—'}
             </div>
-            <div className="text-xs text-gray-500 font-medium">Requires Action</div>
+            <div className="text-xs text-gray-500 font-medium">In Progress / In Review</div>
           </div>
         </div>
+
       </div>
 
       {/* Main Content Area: Tabs + Filters + Table */}
@@ -473,34 +475,36 @@ export default function AdminInquiriesPage() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <label className="text-xs text-gray-500 font-medium">Status:</label>
-            <select
+            <CustomSelect
               value={activeTab === 'contact' ? contactStatusFilter : supplierStatusFilter}
-              onChange={(e) => {
+              onChange={(val) => {
                 if (activeTab === 'contact') {
-                  setContactStatusFilter(e.target.value);
+                  setContactStatusFilter(val);
                 } else {
-                  setSupplierStatusFilter(e.target.value);
+                  setSupplierStatusFilter(val);
                 }
               }}
-              className="py-1.5 px-3 text-xs bg-white border border-gray-200 rounded-lg outline-none focus:border-navy cursor-pointer font-medium text-gray-700"
-            >
-              <option value="All">All Statuses</option>
-              {activeTab === 'contact' ? (
-                <>
-                  <option value="New">New</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Responded">Responded</option>
-                  <option value="Archived">Archived</option>
-                </>
-              ) : (
-                <>
-                  <option value="New">New</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Declined">Declined</option>
-                </>
-              )}
-            </select>
+              options={
+                activeTab === 'contact'
+                  ? [
+                      { value: 'All', label: 'All Statuses' },
+                      { value: 'New', label: 'New' },
+                      { value: 'In Progress', label: 'In Progress' },
+                      { value: 'Responded', label: 'Responded' },
+                      { value: 'Archived', label: 'Archived' },
+                    ]
+                  : [
+                      { value: 'All', label: 'All Statuses' },
+                      { value: 'New', label: 'New' },
+                      { value: 'Under Review', label: 'Under Review' },
+                      { value: 'Approved', label: 'Approved' },
+                      { value: 'Declined', label: 'Declined' },
+                    ]
+              }
+              size="sm"
+              align="right"
+              className="min-w-36"
+            />
           </div>
         </div>
 
@@ -761,17 +765,14 @@ export default function AdminInquiriesPage() {
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
                 <span className="text-gray-500 font-medium block mb-1">Status</span>
-                <select
+                <CustomSelect
                   disabled={isUpdatingStatus}
                   value={selectedContact.status}
-                  onChange={(e) => handleUpdateContactStatus(e.target.value)}
-                  className="w-full mt-0.5 py-1 px-2 font-semibold text-xs border border-gray-200 rounded bg-white outline-none focus:border-navy cursor-pointer"
-                >
-                  <option value="New">New</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Responded">Responded</option>
-                  <option value="Archived">Archived</option>
-                </select>
+                  onChange={(val) => handleUpdateContactStatus(val)}
+                  options={['New', 'In Progress', 'Responded', 'Archived']}
+                  size="sm"
+                  className="w-full mt-1"
+                />
               </div>
             </div>
 
@@ -811,7 +812,7 @@ export default function AdminInquiriesPage() {
             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
               <a
                 href={`mailto:${selectedContact.email}?subject=RE: Inquiry to SA Healthcare`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-navy text-xs font-bold rounded-lg hover:bg-gold-bright transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-navy text-xs font-bold rounded-lg hover:bg-gold-bright transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">reply</span>
                 <span>Reply by Email</span>
@@ -842,7 +843,7 @@ export default function AdminInquiriesPage() {
               </div>
               <button
                 onClick={() => setSelectedSupplier(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg cursor-pointer"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -903,17 +904,14 @@ export default function AdminInquiriesPage() {
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
                 <span className="text-gray-500 font-medium block mb-1">Status</span>
-                <select
+                <CustomSelect
                   disabled={isUpdatingStatus}
                   value={selectedSupplier.status}
-                  onChange={(e) => handleUpdateSupplierStatus(e.target.value)}
-                  className="w-full mt-0.5 py-1 px-2 font-semibold text-xs border border-gray-200 rounded bg-white outline-none focus:border-navy cursor-pointer"
-                >
-                  <option value="New">New</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Approved">Approved</option>
-                  <option value="Declined">Declined</option>
-                </select>
+                  onChange={(val) => handleUpdateSupplierStatus(val)}
+                  options={['New', 'Under Review', 'Approved', 'Declined']}
+                  size="sm"
+                  className="w-full mt-1"
+                />
               </div>
             </div>
 
@@ -953,7 +951,7 @@ export default function AdminInquiriesPage() {
             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
               <a
                 href={`mailto:${selectedSupplier.email}?subject=RE: Supplier Partnership with SA Healthcare`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-navy text-xs font-bold rounded-lg hover:bg-gold-bright transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold text-navy text-xs font-bold rounded-lg hover:bg-gold-bright transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">reply</span>
                 <span>Reply by Email</span>

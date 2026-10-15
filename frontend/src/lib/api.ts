@@ -1170,7 +1170,11 @@ export interface InquiriesStatsResponse {
   new_supplier: number;
   total_supplier: number;
   total_new: number;
+  in_progress_contact?: number;
+  under_review_supplier?: number;
+  total_in_progress?: number;
 }
+
 
 export const inquiriesApi = {
   // Public submissions

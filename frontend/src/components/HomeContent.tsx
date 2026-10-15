@@ -325,11 +325,24 @@ export default function HomeContent() {
       {/* Healthcare Sectors */}
       <section className="py-20 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4 mb-4">
-            <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">HEALTHCARE SECTORS</h2>
-            <div className="h-px bg-gold w-12"></div>
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <div className="flex items-center space-x-4 mb-4">
+                <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">HEALTHCARE SECTORS</h2>
+                <div className="h-px bg-gold w-12"></div>
+              </div>
+              <h3 className="text-4xl font-bold text-navy">Browse by healthcare sector</h3>
+            </div>
+            <Link
+              href="/sectors"
+              className="hidden md:inline-flex items-center text-sm font-bold text-blue-600 hover:text-navy transition-colors group"
+            >
+              View all sectors
+              <span className="material-symbols-outlined ml-1 text-sm font-bold group-hover:translate-x-1 transition-transform">
+                arrow_forward
+              </span>
+            </Link>
           </div>
-          <h3 className="text-4xl font-bold text-navy mb-12">Browse by healthcare sector</h3>
 
           <div className="flex overflow-x-auto pb-6 gap-6 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
             {[
@@ -344,11 +357,13 @@ export default function HomeContent() {
               <Link
                 href="/sectors"
                 key={idx}
-                className="snap-start flex-none w-50 bg-white border border-gray-100 p-8 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] hover:shadow-xl transition-all duration-300 hover:-translate-y-2 active:scale-[0.98] flex flex-col items-center text-center group"
+                className="snap-start flex-none w-52 bg-white border border-gray-100 p-7 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 active:scale-[0.98] flex flex-col items-center text-center group"
               >
-                <span className="material-symbols-outlined text-5xl! text-blue-300 mb-6 group-hover:scale-110 transition-transform">
-                  {sector.icon}
-                </span>
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-5 group-hover:bg-navy group-hover:text-white transition-all duration-300">
+                  <span className="material-symbols-outlined text-4xl! group-hover:scale-110 transition-transform">
+                    {sector.icon}
+                  </span>
+                </div>
                 <h4 className="text-navy font-bold text-sm whitespace-pre-line group-hover:text-blue-600 transition-colors leading-tight">
                   {sector.title}
                 </h4>
@@ -359,13 +374,24 @@ export default function HomeContent() {
       </section>
 
       {/* Our Manufacturers */}
-      <section className="py-20 px-6 bg-slate-50">
+      <section className="py-20 px-6 bg-slate-50/70 border-t border-slate-200/70">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4 mb-4">
-            <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">OUR MANUFACTURERS</h2>
-            <div className="h-px bg-gold w-12"></div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div>
+              <div className="flex items-center space-x-3 mb-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-gold"></span>
+                <span className="text-blue-600 text-xs font-bold uppercase tracking-widest">
+                  GLOBAL MEDICAL PARTNERS
+                </span>
+              </div>
+              <h3 className="text-3xl md:text-4xl font-bold text-navy tracking-tight">
+                World-leading medical brands
+              </h3>
+            </div>
+            <p className="text-gray-500 text-sm md:text-base max-w-md leading-relaxed">
+              Direct authorized distribution, certified clinical equipment, and factory warranties from globally accredited manufacturers.
+            </p>
           </div>
-          <h3 className="text-4xl font-bold text-navy mb-12">World-leading medical brands</h3>
 
           <BrandSlider />
         </div>

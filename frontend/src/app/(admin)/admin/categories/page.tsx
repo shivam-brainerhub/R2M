@@ -955,7 +955,7 @@ export default function AdminCategoriesBrandsPage() {
               </h3>
               <button
                 onClick={() => setIsCategoryModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-xl!">close</span>
               </button>
@@ -1023,7 +1023,7 @@ export default function AdminCategoriesBrandsPage() {
                       onClick={() =>
                         setCategoryFormData({ ...categoryFormData, icon: iconName })
                       }
-                      className={`p-1 rounded-md text-xs border transition-colors ${
+                      className={`p-1 rounded-md text-xs border transition-colors cursor-pointer ${
                         categoryFormData.icon === iconName
                           ? 'bg-navy text-white border-navy'
                           : 'bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100'
@@ -1080,7 +1080,7 @@ export default function AdminCategoriesBrandsPage() {
               </h3>
               <button
                 onClick={() => setIsBrandModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-xl!">close</span>
               </button>

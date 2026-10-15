@@ -119,7 +119,7 @@ export default function ContactForm() {
             });
             setErrors({});
           }}
-          className="mt-4 bg-navy text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-navy-light transition-all shadow-sm hover:scale-105 active:scale-95"
+          className="mt-4 bg-navy text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-navy-light transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
         >
           Send Another Message
         </button>

@@ -246,8 +246,11 @@ def get_inquiries_stats(
     """
     new_contact = db.query(ContactMessage).filter(ContactMessage.status == "New").count()
     total_contact = db.query(ContactMessage).count()
+    in_progress_contact = db.query(ContactMessage).filter(ContactMessage.status == "In Progress").count()
+
     new_supplier = db.query(SupplierApplication).filter(SupplierApplication.status == "New").count()
     total_supplier = db.query(SupplierApplication).count()
+    under_review_supplier = db.query(SupplierApplication).filter(SupplierApplication.status == "Under Review").count()
 
     return {
         "new_contact": new_contact,
@@ -255,4 +258,8 @@ def get_inquiries_stats(
         "new_supplier": new_supplier,
         "total_supplier": total_supplier,
         "total_new": new_contact + new_supplier,
+        "in_progress_contact": in_progress_contact,
+        "under_review_supplier": under_review_supplier,
+        "total_in_progress": in_progress_contact + under_review_supplier,
     }
+

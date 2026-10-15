@@ -128,3 +128,8 @@ def test_admin_get_inquiries_stats(client: TestClient, admin_token_headers: dict
     assert "new_supplier" in data
     assert "total_supplier" in data
     assert "total_new" in data
+    assert "in_progress_contact" in data
+    assert "under_review_supplier" in data
+    assert "total_in_progress" in data
+    assert isinstance(data["total_in_progress"], int)
+

@@ -192,11 +192,15 @@ def update_property(
                 )
             prop.category_id = payload.category_id
 
-    if payload.group is not None:
-        prop.group = payload.group.strip() if payload.group else None
+    update_data = payload.model_dump(exclude_unset=True)
+    if "group" in update_data:
+        val = update_data["group"]
+        prop.group = val.strip() if (isinstance(val, str) and val.strip()) else None
 
-    if payload.description is not None:
-        prop.description = payload.description.strip() if payload.description else None
+    if "description" in update_data:
+        val = update_data["description"]
+        prop.description = val.strip() if (isinstance(val, str) and val.strip()) else None
+
 
     db.commit()
     db.refresh(prop)

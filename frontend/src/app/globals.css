@@ -21,9 +21,83 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
+@layer base {
+  /* Restore pointer cursor for buttons and interactive controls in Tailwind v4 */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]::file-selector-button,
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  /* Indicate disabled state clearly */
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  [role="button"][aria-disabled="true"],
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Form labels associated with interactive controls */
+  label[for] {
+    cursor: pointer;
+  }
+  label:has(input:not(:disabled)) {
+    cursor: pointer;
+  }
+  label:has(select:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  /* Modern appearance reset for any native select fallback */
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1em 1em;
+    padding-right: 2.25rem;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+@keyframes marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 90s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+    overflow-x: auto;
+  }
 }
 
 @media print {
@@ -37,3 +111,4 @@ body {
     margin: 0 !important;
   }
 }
+

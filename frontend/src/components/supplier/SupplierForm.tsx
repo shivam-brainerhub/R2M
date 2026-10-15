@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { inquiriesApi, categoriesApi, CategoryItem, ApiError } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 interface SupplierFormState {
   companyName: string;
@@ -173,7 +174,7 @@ export default function SupplierForm() {
             });
             setErrors({});
           }}
-          className="mt-4 bg-navy text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-navy-light transition-all shadow-sm hover:scale-105 active:scale-95"
+          className="mt-4 bg-navy text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:bg-navy-light transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
         >
           Submit Another Enquiry
         </button>
@@ -317,23 +318,18 @@ export default function SupplierForm() {
         <label className="text-sm font-semibold text-navy">
           Primary Product Categories <span className="text-red-500">*</span>
         </label>
-        <select
+        <CustomSelect
           value={formData.category}
-          onChange={(e) => handleChange('category', e.target.value)}
-          className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors text-gray-700 ${
-            errors.category
-              ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-              : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
-          }`}
-        >
-          <option value="">Select a category...</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.name}>
-              {cat.name}
-            </option>
-          ))}
-          <option value="Other">Other</option>
-        </select>
+          onChange={(val) => handleChange('category', val)}
+          options={[
+            ...categories.map((cat) => ({ value: cat.name, label: cat.name })),
+            { value: 'Other', label: 'Other' },
+          ]}
+          placeholder="Select a category..."
+          size="lg"
+          error={Boolean(errors.category)}
+          className="w-full"
+        />
         {errors.category && (
           <p className="text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
             <span className="material-symbols-outlined text-sm!">error</span>

@@ -62,7 +62,7 @@ export const DEFAULT_CTA: CTAContent = {
   subheading:
     'Speak to our team for expert guidance and tailored solutions for your facility.',
   buttonText: 'Request a Quote',
-  buttonLink: '/contact',
+  buttonLink: '/quote',
   phone: '+27 11 555 0100',
   email: 'info@sahealthcare.com',
 };

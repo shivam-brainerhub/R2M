@@ -21,7 +21,7 @@ export default function NotFoundView() {
     { title: 'Product Catalogue', desc: 'Explore all medical equipment', href: '/products', icon: 'medical_services' },
     { title: 'Global Manufacturers', desc: 'Browse Mindray, Philips, Dräger & more', href: '/partners', icon: 'domain' },
     { title: 'Healthcare Sectors', desc: 'Solutions tailored by clinical sector', href: '/sectors', icon: 'local_hospital' },
-    { title: 'Request a Quote', desc: 'Get assistance from our medical team', href: '/contact', icon: 'request_quote' },
+    { title: 'Request a Quote', desc: 'Get assistance from our medical team', href: '/quote', icon: 'request_quote' },
   ];
 
   return (

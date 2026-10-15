@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { adminUsersApi, UserProfile, ApiError } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
 
 type RoleFilter = 'all' | 'admin' | 'user';
 type StatusFilter = 'all' | 'active' | 'suspended';
@@ -1078,14 +1079,17 @@ export default function AdminUsersPage() {
 
               <div>
                 <label className="block text-gray-700 font-semibold mb-1">User Role</label>
-                <select
+                <CustomSelect
                   value={newUserData.role}
-                  onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as 'admin' | 'user' })}
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm"
-                >
-                  <option value="user">User (Healthcare Client)</option>
-                  <option value="admin">Admin (Full Control)</option>
-                </select>
+                  onChange={(val) => setNewUserData({ ...newUserData, role: val as 'admin' | 'user' })}
+                  options={[
+                    { value: 'user', label: 'User (Healthcare Client)' },
+                    { value: 'admin', label: 'Admin (Full Control)' },
+                  ]}
+                  size="md"
+                  variant="slate"
+                  className="w-full"
+                />
               </div>
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">

@@ -15,6 +15,7 @@ import {
 
 import { useQuoteCart } from '@/context/QuoteCartContext';
 import BrochureDownloadButton from '@/components/BrochureDownloadButton';
+import CustomSelect from '@/components/CustomSelect';
 
 const CATEGORY_ICON_MAP: Record<string, string> = {
   'diagnostic-and-measure': 'monitor_heart',
@@ -57,7 +58,6 @@ function ProductsContent() {
   const urlBrand = searchParams.get('brand') || '';
 
   const { addItem } = useQuoteCart();
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
 
   // Primary Data
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -93,21 +93,9 @@ function ProductsContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [selectedSort, setSelectedSort] = useState('A-Z');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Close sort dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Load Initial Data (Filter options from in-memory cache, products filtered by urlSearch if provided)
   useEffect(() => {
@@ -544,7 +532,7 @@ function ProductsContent() {
 
         {/* Mobile Filter Backdrop */}
         <div
-          className={`fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs transition-opacity duration-300 ${
+          className={`fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs transition-opacity duration-300 cursor-pointer ${
             showMobileFilters ? 'opacity-100 visible' : 'opacity-0 invisible'
           }`}
           onClick={() => setShowMobileFilters(false)}
@@ -1042,44 +1030,14 @@ function ProductsContent() {
               </div>
 
               {/* Sort By Dropdown */}
-              <div className="relative" ref={sortDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen((prev) => !prev)}
-                  className="flex items-center justify-between border border-gray-200 rounded-lg py-1.5 px-3 text-gray-700 bg-white hover:border-blue-400 hover:text-navy transition-colors text-xs font-semibold shadow-xs gap-2 cursor-pointer"
-                  aria-haspopup="listbox"
-                  aria-expanded={isDropdownOpen}
-                >
-                  <span className="font-bold text-navy">{selectedSort}</span>
-                  <span className="material-symbols-outlined text-gray-400 text-sm!">
-                    {isDropdownOpen ? 'expand_less' : 'expand_more'}
-                  </span>
-                </button>
-                {isDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-1.5 w-44 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden py-1 text-xs">
-                    {['A-Z', 'Z-A', 'Newest', 'Oldest', 'Most Popular'].map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => {
-                          setSelectedSort(option);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3.5 py-2 hover:bg-light-blue transition-colors flex items-center justify-between cursor-pointer ${
-                          selectedSort === option
-                            ? 'text-navy font-bold bg-light-blue/50'
-                            : 'text-gray-700 hover:text-navy'
-                        }`}
-                      >
-                        <span>{option}</span>
-                        {selectedSort === option && (
-                          <span className="material-symbols-outlined text-xs! text-blue-600">check</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CustomSelect
+                value={selectedSort}
+                onChange={(val) => setSelectedSort(val)}
+                options={['A-Z', 'Z-A', 'Newest', 'Oldest', 'Most Popular']}
+                size="sm"
+                align="right"
+                dropdownClassName="w-44"
+              />
             </div>
           </div>
 

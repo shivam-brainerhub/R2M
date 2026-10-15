@@ -7,6 +7,7 @@ import { useQuoteCart } from '@/context/QuoteCartContext';
 import { useAuth } from '@/context/AuthContext';
 import { quotesApi, QuoteRequestData, getMediaUrl, ApiError } from '@/lib/api';
 import AuthModal from '@/components/auth/AuthModal';
+import CustomSelect from '@/components/CustomSelect';
 
 const HEALTHCARE_SECTORS = [
   'Hospitals & Healthcare Groups',
@@ -634,17 +635,15 @@ export default function QuotePage() {
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                 Healthcare Sector <span className="text-red-500">*</span>
               </label>
-              <select
+              <CustomSelect
                 value={sector}
-                onChange={(e) => setSector(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none text-navy bg-slate-50 focus:bg-white transition-all cursor-pointer"
-              >
-                {HEALTHCARE_SECTORS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSector(val)}
+                options={HEALTHCARE_SECTORS}
+                placeholder="Select Healthcare Sector"
+                size="md"
+                variant="slate"
+                className="w-full"
+              />
             </div>
 
             {/* Email Address */}

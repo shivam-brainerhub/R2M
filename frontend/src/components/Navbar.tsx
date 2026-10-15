@@ -97,7 +97,7 @@ export default function Navbar() {
 
         {/* Mobile Hamburger */}
         <button 
-          className="lg:hidden text-white hover:text-gold transition-all duration-300 active:scale-90 p-2 -mr-2 flex items-center justify-center rounded-full hover:bg-white/5 relative w-10 h-10"
+          className="lg:hidden text-white hover:text-gold transition-all duration-300 active:scale-90 p-2 -mr-2 flex items-center justify-center rounded-full hover:bg-white/5 relative w-10 h-10 cursor-pointer"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           <span className={`material-symbols-outlined text-3xl absolute transition-all duration-300 ${isMobileMenuOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`}>
@@ -170,7 +170,7 @@ export default function Navbar() {
               Login
             </Link>
           )}
-          <Link href="/contact" onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)} className="bg-gold text-navy font-semibold px-6 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 active:scale-95 text-base flex justify-center items-center gap-2 w-full shadow-lg group mt-2">
+          <Link href="/quote" onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)} className="bg-gold text-navy font-semibold px-6 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 active:scale-95 text-base flex justify-center items-center gap-2 w-full shadow-lg group mt-2">
             Request a Quote <span className="material-symbols-outlined transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
           </Link>
         </div>

@@ -7,18 +7,18 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   productsApi,
   ProductCompareResponse,
-  ProductItem,
   getMediaUrl,
-  getFileUrl,
 } from '@/lib/api';
 import BrochureDownloadButton from '@/components/BrochureDownloadButton';
+import AddCompareProductModal from '@/components/compare/AddCompareProductModal';
+import { useQuoteCart } from '@/context/QuoteCartContext';
 
 function CompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { addItem } = useQuoteCart();
 
   const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
-  const [allProducts, setAllProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -27,16 +27,11 @@ function CompareContent() {
 
   useEffect(() => {
     let ignore = false;
-    productsApi.listProducts({ status: 'Active' })
-      .then(async (allProds) => {
-        if (ignore) return;
-        setAllProducts(allProds);
+    setIsLoading(true);
 
-        let targetItems = itemsParam;
-        if (!targetItems && allProds.length > 0) {
-          targetItems = allProds.slice(0, 3).map((p) => p.slug).join(',');
-        }
-
+    const loadComparison = async () => {
+      try {
+        const targetItems = itemsParam?.trim();
         if (targetItems) {
           const res = await productsApi.compareProducts(targetItems);
           if (ignore) return;
@@ -44,13 +39,19 @@ function CompareContent() {
         } else {
           setCompareData({ products: [], properties: [] });
         }
-        setIsLoading(false);
-      })
-      .catch(() => {
-        if (ignore) return;
-        setCompareData({ products: [], properties: [] });
-        setIsLoading(false);
-      });
+      } catch (err) {
+        if (!ignore) {
+          console.error('Failed to load comparison data', err);
+          setCompareData({ products: [], properties: [] });
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadComparison();
 
     return () => {
       ignore = true;
@@ -146,7 +147,7 @@ function CompareContent() {
             <div className="pt-2">
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="bg-gold text-navy font-bold px-5 py-2.5 rounded-full hover:bg-gold-bright transition-all text-xs"
+                className="bg-gold text-navy font-bold px-5 py-2.5 rounded-full hover:bg-gold-bright transition-all text-xs cursor-pointer shadow-xs"
               >
                 Choose Products
               </button>
@@ -168,7 +169,7 @@ function CompareContent() {
                     </p>
                   </th>
                   {productsList.map((p) => {
-                    const img = p.primary_image_url || p.images[0]?.image_url || '/images/benevision_n12.jpg';
+                    const img = p.primary_image_url || p.images?.[0]?.image_url;
                     return (
                       <th key={p.id} className="p-4 align-top w-1/4 min-w-55">
                         <div className="relative bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs flex flex-col items-center text-center h-full">
@@ -182,19 +183,27 @@ function CompareContent() {
                           </button>
 
                           {/* Brand */}
-                          <div className="text-red-600 font-bold text-xs uppercase tracking-wider mb-2">
-                            {p.brand_name || 'Generic'}
-                          </div>
+                          {p.brand_name && (
+                            <div className="text-red-600 font-bold text-xs uppercase tracking-wider mb-2">
+                              {p.brand_name}
+                            </div>
+                          )}
 
                           {/* Image */}
-                          <div className="w-28 h-28 relative overflow-hidden rounded-xl bg-slate-50 mb-3 p-1">
-                            <Image
-                              src={getMediaUrl(img)}
-                              alt={p.name}
-                              fill
-                              sizes="120px"
-                              className="object-contain p-2"
-                            />
+                          <div className="w-28 h-28 relative overflow-hidden rounded-xl bg-slate-50 mb-3 p-1 flex items-center justify-center">
+                            {img ? (
+                              <Image
+                                src={getMediaUrl(img)}
+                                alt={p.name}
+                                fill
+                                sizes="120px"
+                                className="object-contain p-2"
+                              />
+                            ) : (
+                              <span className="material-symbols-outlined text-4xl text-gray-300">
+                                inventory_2
+                              </span>
+                            )}
                           </div>
 
                           {/* Name & SKU */}
@@ -226,13 +235,27 @@ function CompareContent() {
                                 No PDF
                               </span>
                             )}
-                            <Link
-                              href="/contact"
-                              className="flex-1 bg-gold text-navy text-[11px] font-bold py-2 rounded-lg hover:bg-gold-bright transition-all text-center flex items-center justify-center gap-1"
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const primaryImg = p.primary_image_url || p.images?.[0]?.image_url;
+                                addItem({
+                                  productId: String(p.id),
+                                  productName: p.name,
+                                  slug: p.slug,
+                                  sku: p.sku,
+                                  brandName: p.brand_name,
+                                  imageUrl: primaryImg,
+                                  categoryName: p.category_name,
+                                  quantity: 1,
+                                });
+                                router.push('/quote');
+                              }}
+                              className="flex-1 bg-gold text-navy text-[11px] font-bold py-2 rounded-lg hover:bg-gold-bright transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <span>Quote</span>
                               <span className="material-symbols-outlined text-xs!">arrow_forward</span>
-                            </Link>
+                            </button>
                           </div>
                         </div>
                       </th>
@@ -321,63 +344,12 @@ function CompareContent() {
       </div>
 
       {/* Add Product Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-navy">Add Product to Comparison</h3>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-gray-400 hover:text-navy p-1"
-              >
-                <span className="material-symbols-outlined text-xl!">close</span>
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 py-4 space-y-2">
-              {allProducts.map((p) => {
-                const isAlreadyAdded = productsList.some((cp) => cp.slug === p.slug);
-                const img = p.primary_image_url || p.images[0]?.image_url || '/images/benevision_n12.jpg';
-
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 bg-white rounded-lg border border-gray-200 relative overflow-hidden shrink-0 flex items-center justify-center p-1">
-                        <Image
-                          src={getMediaUrl(img)}
-                          alt={p.name}
-                          fill
-                          sizes="40px"
-                          className="object-contain"
-                        />
-                      </div>
-                      <div className="truncate">
-                        <div className="text-xs font-bold text-navy truncate">{p.name}</div>
-                        <div className="text-[11px] text-gray-400 uppercase">{p.brand_name || 'Generic'}</div>
-                      </div>
-                    </div>
-
-                    <button
-                      disabled={isAlreadyAdded}
-                      onClick={() => handleAddProduct(p.slug)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
-                        isAlreadyAdded
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-navy text-white hover:bg-navy-light shadow-xs'
-                      }`}
-                    >
-                      {isAlreadyAdded ? 'Added' : 'Compare'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <AddCompareProductModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSelectProduct={handleAddProduct}
+        existingSlugs={productsList.map((p) => p.slug)}
+      />
     </div>
   );
 }

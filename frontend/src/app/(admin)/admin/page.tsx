@@ -13,6 +13,7 @@ import {
   QuoteItemData,
   getMediaUrl,
 } from '@/lib/api';
+import QuoteDetailsModal, { getStatusBadge } from '@/components/admin/QuoteDetailsModal';
 
 
 export default function AdminDashboardPage() {
@@ -20,6 +21,17 @@ export default function AdminDashboardPage() {
   const [productStats, setProductStats] = useState<ProductStatsResponse | null>(null);
   const [liveProducts, setLiveProducts] = useState<ProductItem[]>([]);
   const [liveQuotes, setLiveQuotes] = useState<QuoteRequestData[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<QuoteRequestData | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleQuoteUpdated = (updated: QuoteRequestData) => {
+    setLiveQuotes((prev) => prev.map((q) => (q.id === updated.id ? updated : q)));
+  };
 
   useEffect(() => {
     let active = true;
@@ -188,25 +200,19 @@ export default function AdminDashboardPage() {
                         })}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${
-                          q.status === 'New'
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
-                            : q.status === 'In Review'
-                            ? 'bg-blue-100 text-blue-800 border-blue-200'
-                            : q.status === 'Quoted'
-                            ? 'bg-purple-100 text-purple-800 border-purple-200'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        }`}>
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${getStatusBadge(q.status)}`}>
                           {q.status}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-right whitespace-nowrap">
-                        <Link
-                          href="/admin/quotes"
-                          className="text-xs font-semibold text-navy bg-slate-100 hover:bg-gold hover:text-navy px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1"
+                        <button
+                          type="button"
+                          onClick={() => setSelectedQuote(q)}
+                          className="text-xs font-semibold text-navy bg-slate-100 hover:bg-gold hover:text-navy px-3 py-1.5 rounded-lg transition-all inline-flex items-center gap-1 cursor-pointer"
                         >
-                          Review
-                        </Link>
+                          <span>Review</span>
+                          <span className="material-symbols-outlined text-xs!">visibility</span>
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -304,6 +310,22 @@ export default function AdminDashboardPage() {
         </div>
 
       </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-100 bg-navy text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 animate-fadeIn">
+          <span className="material-symbols-outlined text-gold text-xl!">info</span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Quote Details Modal */}
+      <QuoteDetailsModal
+        quote={selectedQuote}
+        onClose={() => setSelectedQuote(null)}
+        onQuoteUpdated={handleQuoteUpdated}
+        onToast={showToast}
+      />
 
     </div>
   );

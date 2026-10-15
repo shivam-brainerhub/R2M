@@ -270,6 +270,17 @@ def test_properties_crud_endpoints(client: TestClient, admin_token_headers):
     )
     assert update_res.status_code == 200
     assert update_res.json()["name"] == "Optical Laser Wavelength"
+    assert update_res.json()["group"] == "Optics & Lasers"
+
+    # 4b. Clear group by sending empty string or null
+    clear_group_res = client.put(
+        f"/api/properties/{prop_id}",
+        json={"name": "Optical Laser Wavelength", "group": ""},
+        headers=admin_token_headers,
+    )
+    assert clear_group_res.status_code == 200
+    assert clear_group_res.json()["group"] is None
+
 
     # 5. Delete property
     del_res = client.delete(f"/api/properties/{prop_id}", headers=admin_token_headers)

@@ -19,6 +19,9 @@ import {
   getMediaUrl,
   ApiError,
 } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
+import PropertyCombobox from '@/components/admin/PropertyCombobox';
+
 
 export default function AdminProductsPage() {
   const { token } = useAuth();
@@ -85,6 +88,11 @@ export default function AdminProductsPage() {
   const [newPropName, setNewPropName] = useState('');
   const [newPropGroup, setNewPropGroup] = useState('');
   const [isCreatingProp, setIsCreatingProp] = useState(false);
+  const [editingPropId, setEditingPropId] = useState<number | null>(null);
+  const [editingPropName, setEditingPropName] = useState('');
+  const [editingPropGroup, setEditingPropGroup] = useState('');
+  const [isSavingProp, setIsSavingProp] = useState(false);
+
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -393,9 +401,10 @@ export default function AdminProductsPage() {
     );
     const newRow: PropertyRowState = {
       id: `row-${Date.now()}`,
+      property_id: unusedProp ? unusedProp.id : undefined,
       name: unusedProp ? unusedProp.name : '',
       value: '',
-      isCustom: !unusedProp,
+      isCustom: false,
     };
     setPropertyRows((prev) => [...prev, newRow]);
   };
@@ -409,6 +418,32 @@ export default function AdminProductsPage() {
       prev.map((r) => (r.id === id ? { ...r, [field]: val } : r))
     );
   };
+
+  const handleCreatePropertyInline = async (propName: string): Promise<PropertyItem | null> => {
+    const cleanName = propName.trim();
+    if (!cleanName) return null;
+    if (!token) {
+      showToast('Admin session required to create property');
+      return null;
+    }
+
+    try {
+      const created = await propertiesApi.createProperty(token, {
+        name: cleanName,
+        group: 'General',
+      });
+      setAvailableProperties((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
+      );
+      showToast(`Created specification property "${created.name}"`);
+      return created;
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to create property';
+      showToast(msg);
+      return null;
+    }
+  };
+
 
   // Save Product (Create or Update)
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -607,6 +642,65 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Edit Property in Manager Modal
+  const handleStartEditProperty = (prop: PropertyItem) => {
+    setEditingPropId(prop.id);
+    setEditingPropName(prop.name);
+    setEditingPropGroup(prop.group || '');
+  };
+
+  const handleCancelEditProperty = () => {
+    setEditingPropId(null);
+    setEditingPropName('');
+    setEditingPropGroup('');
+  };
+
+  const handleSaveEditProperty = async (propId: number) => {
+    const cleanName = editingPropName.trim();
+    if (!cleanName) {
+      showToast('Property name cannot be empty');
+      return;
+    }
+    if (!token) {
+      showToast('Admin session required');
+      return;
+    }
+
+    try {
+      setIsSavingProp(true);
+      const cleanGroup = editingPropGroup.trim();
+      const updated = await propertiesApi.updateProperty(token, propId, {
+        name: cleanName,
+        group: cleanGroup ? cleanGroup : null,
+      });
+
+
+      setAvailableProperties((prev) =>
+        prev
+          .map((p) => (p.id === propId ? updated : p))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      );
+
+      // Also update any specification rows in current form using this property
+      setPropertyRows((prev) =>
+        prev.map((r) =>
+          r.property_id === propId || r.name.toLowerCase() === cleanName.toLowerCase()
+            ? { ...r, name: updated.name, property_id: updated.id }
+            : r
+        )
+      );
+
+      handleCancelEditProperty();
+      showToast(`Updated property "${updated.name}"`);
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to update property';
+      showToast(msg);
+    } finally {
+      setIsSavingProp(false);
+    }
+  };
+
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast Notification (Topmost layer above all modals & backdrops) */}
@@ -725,41 +819,42 @@ export default function AdminProductsPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <select
+          <CustomSelect
             value={brandFilter}
-            onChange={(e) => setBrandFilter(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-gray-200 rounded-xl text-navy font-medium outline-none focus:border-blue-500"
-          >
-            <option value="All">All Brands</option>
-            {availableBrands.map((b) => (
-              <option key={b.id} value={b.name}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setBrandFilter(val)}
+            options={[
+              { value: 'All', label: 'All Brands' },
+              ...availableBrands.map((b) => ({ value: b.name, label: b.name })),
+            ]}
+            size="sm"
+            variant="slate"
+            className="min-w-32"
+          />
 
-          <select
+          <CustomSelect
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-gray-200 rounded-xl text-navy font-medium outline-none focus:border-blue-500"
-          >
-            <option value="All">All Categories</option>
-            {availableCategories.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setCategoryFilter(val)}
+            options={[
+              { value: 'All', label: 'All Categories' },
+              ...availableCategories.map((c) => ({ value: c.name, label: c.name })),
+            ]}
+            size="sm"
+            variant="slate"
+            className="min-w-36"
+          />
 
-          <select
+          <CustomSelect
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-xs bg-slate-50 border border-gray-200 rounded-xl text-navy font-medium outline-none focus:border-blue-500"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Draft">Draft</option>
-          </select>
+            onChange={(val) => setStatusFilter(val)}
+            options={[
+              { value: 'All', label: 'All Statuses' },
+              { value: 'Active', label: 'Active' },
+              { value: 'Draft', label: 'Draft' },
+            ]}
+            size="sm"
+            variant="slate"
+            className="min-w-32"
+          />
 
           <div className="text-xs text-gray-500 font-semibold px-2">
             {filteredProducts.length} items
@@ -1027,75 +1122,78 @@ export default function AdminProductsPage() {
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Catalogue Status
                     </label>
-                    <select
+                    <CustomSelect
                       value={status}
-                      onChange={(e) => setStatus(e.target.value as 'Active' | 'Draft')}
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
-                    >
-                      <option value="Active">Active (Published on live catalogue)</option>
-                      <option value="Draft">Draft (Hidden from public views)</option>
-                    </select>
+                      onChange={(val) => setStatus(val as 'Active' | 'Draft')}
+                      options={[
+                        { value: 'Active', label: 'Active (Published on live catalogue)' },
+                        { value: 'Draft', label: 'Draft (Hidden from public views)' },
+                      ]}
+                      size="md"
+                      variant="slate"
+                      className="w-full"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Brand / Manufacturer
                     </label>
-                    <select
-                      value={brandId}
-                      onChange={(e) => setBrandId(e.target.value ? Number(e.target.value) : '')}
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
-                    >
-                      <option value="">Select Brand</option>
-                      {availableBrands.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
+                    <CustomSelect
+                      value={brandId === '' ? '' : String(brandId)}
+                      onChange={(val) => setBrandId(val ? Number(val) : '')}
+                      options={[
+                        { value: '', label: 'Select Brand' },
+                        ...availableBrands.map((b) => ({ value: String(b.id), label: b.name })),
+                      ]}
+                      placeholder="Select Brand"
+                      size="md"
+                      variant="slate"
+                      className="w-full"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Category
                     </label>
-                    <select
-                      value={categoryId}
-                      onChange={(e) => {
-                        const newCatId = e.target.value ? Number(e.target.value) : '';
+                    <CustomSelect
+                      value={categoryId === '' ? '' : String(categoryId)}
+                      onChange={(val) => {
+                        const newCatId = val ? Number(val) : '';
                         setCategoryId(newCatId);
                         setSubcategoryId('');
                       }}
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium"
-                    >
-                      <option value="">Select Category</option>
-                      {availableCategories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: '', label: 'Select Category' },
+                        ...availableCategories.map((c) => ({ value: String(c.id), label: c.name })),
+                      ]}
+                      placeholder="Select Category"
+                      size="md"
+                      variant="slate"
+                      className="w-full"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Subcategory
                     </label>
-                    <select
-                      value={subcategoryId}
-                      onChange={(e) => setSubcategoryId(e.target.value ? Number(e.target.value) : '')}
+                    <CustomSelect
+                      value={subcategoryId === '' ? '' : String(subcategoryId)}
+                      onChange={(val) => setSubcategoryId(val ? Number(val) : '')}
                       disabled={!categoryId}
-                      className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">{categoryId ? '-- None (No Subcategory) --' : 'Select Category first'}</option>
-                      {availableCategories
-                        .find((c) => c.id === categoryId)
-                        ?.subcategories?.map((sub) => (
-                          <option key={sub.id} value={sub.id}>
-                            {sub.name}
-                          </option>
-                        ))}
-                    </select>
+                      options={[
+                        { value: '', label: categoryId ? '-- None (No Subcategory) --' : 'Select Category first' },
+                        ...(availableCategories
+                          .find((c) => c.id === categoryId)
+                          ?.subcategories?.map((sub) => ({ value: String(sub.id), label: sub.name })) || []),
+                      ]}
+                      placeholder={categoryId ? '-- None (No Subcategory) --' : 'Select Category first'}
+                      size="md"
+                      variant="slate"
+                      className="w-full"
+                    />
                   </div>
 
                   {/* Related Products: Quick Logic & Preview */}
@@ -1420,51 +1518,27 @@ export default function AdminProductsPage() {
                         key={row.id}
                         className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 bg-slate-50 border border-gray-200/80 rounded-xl"
                       >
-                        {/* Property Selector / Creator */}
+                        {/* Property Combobox (Searchable + Inline Creatable) */}
                         <div className="sm:w-1/3">
-                          {row.isCustom ? (
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={row.name}
-                                onChange={(e) => handlePropertyRowChange(row.id, 'name', e.target.value)}
-                                placeholder="Type new property name..."
-                                className="w-full px-3 py-1.5 text-xs bg-white border border-blue-400 rounded-lg outline-none text-navy font-bold"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handlePropertyRowChange(row.id, 'isCustom', false)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 hover:text-navy underline"
-                                title="Pick from list"
-                              >
-                                list
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <select
-                                value={row.name}
-                                onChange={(e) => {
-                                  if (e.target.value === '__custom__') {
-                                    handlePropertyRowChange(row.id, 'isCustom', true);
-                                    handlePropertyRowChange(row.id, 'name', '');
-                                  } else {
-                                    handlePropertyRowChange(row.id, 'name', e.target.value);
-                                  }
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg outline-none text-navy font-semibold"
-                              >
-                                <option value="">Select Property...</option>
-                                {availableProperties.map((ap) => (
-                                  <option key={ap.id} value={ap.name}>
-                                    {ap.name}
-                                  </option>
-                                ))}
-                                <option value="__custom__">+ Create New Property...</option>
-                              </select>
-                            </div>
-                          )}
+                          <PropertyCombobox
+                            value={row.name}
+                            propertyId={row.property_id}
+                            availableProperties={availableProperties}
+                            excludeNames={propertyRows.filter((r) => r.id !== row.id).map((r) => r.name)}
+                            onChange={(name, propertyId) => {
+                              setPropertyRows((prev) =>
+                                prev.map((r) =>
+                                  r.id === row.id
+                                    ? { ...r, name, property_id: propertyId, isCustom: false }
+                                    : r
+                                )
+                              );
+                            }}
+                            onCreateProperty={handleCreatePropertyInline}
+                            placeholder="Select or create property..."
+                          />
                         </div>
+
 
                         {/* Value Input */}
                         <div className="flex-1 flex items-center gap-2">
@@ -1545,7 +1619,7 @@ export default function AdminProductsPage() {
               </div>
               <button
                 onClick={() => setIsPropsModalOpen(false)}
-                className="text-gray-400 hover:text-navy p-1 rounded-lg"
+                className="text-gray-400 hover:text-navy p-1 rounded-lg cursor-pointer"
               >
                 <span className="material-symbols-outlined text-xl!">close</span>
               </button>
@@ -1591,43 +1665,150 @@ export default function AdminProductsPage() {
                   No properties defined yet.
                 </div>
               ) : (
-                availableProperties.map((prop) => (
-                  <div
-                    key={prop.id}
-                    className="flex items-center justify-between p-2.5 bg-slate-50 border border-gray-100 rounded-xl hover:bg-slate-100/70 transition-colors"
-                  >
-                    <div>
-                      <span className="text-xs font-bold text-navy">{prop.name}</span>
-                      {prop.group && (
-                        <span className="ml-2 text-[10px] text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
-                          {prop.group}
-                        </span>
-                      )}
-                      <div className="text-[11px] text-gray-400 mt-0.5">
-                        Used in {prop.product_count} products
+                availableProperties.map((prop) => {
+                  const isEditing = editingPropId === prop.id;
+
+                  if (isEditing) {
+                    return (
+                      <div
+                        key={prop.id}
+                        className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2.5 animate-fadeIn shadow-2xs"
+                      >
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="flex-1">
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1">
+                              Property Name
+                            </label>
+                            <input
+                              type="text"
+                              value={editingPropName}
+                              onChange={(e) => setEditingPropName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveEditProperty(prop.id);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEditProperty();
+                                }
+                              }}
+                              placeholder="Property Name"
+                              autoFocus
+                              className="w-full px-2.5 py-1.5 text-xs bg-white border border-blue-300 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 text-navy font-bold"
+                            />
+                          </div>
+                          <div className="sm:w-40">
+                            <label className="block text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1">
+                              Group
+                            </label>
+                            <input
+                              type="text"
+                              value={editingPropGroup}
+                              onChange={(e) => setEditingPropGroup(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveEditProperty(prop.id);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEditProperty();
+                                }
+                              }}
+                              placeholder="Group (optional)"
+                              className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-400 text-navy font-medium"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-gray-500 pt-1 border-t border-blue-100">
+                          <span>Used in {prop.product_count} products</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={handleCancelEditProperty}
+                              disabled={isSavingProp}
+                              className="px-2.5 py-1 text-xs text-gray-500 hover:text-navy hover:bg-white rounded-lg transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditProperty(prop.id)}
+                              disabled={isSavingProp || !editingPropName.trim()}
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                            >
+                              {isSavingProp ? (
+                                <>
+                                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <span>Saving...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="material-symbols-outlined text-xs!">check</span>
+                                  <span>Save Changes</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={prop.id}
+                      className="flex items-center justify-between p-2.5 bg-slate-50 border border-gray-100 rounded-xl hover:bg-slate-100/70 transition-colors group"
+                    >
+                      <div className="min-w-0 flex-1 pr-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-navy">{prop.name}</span>
+                          {prop.group && (
+                            <span className="text-[10px] text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 font-medium">
+                              {prop.group}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-400 mt-0.5">
+                          Used in {prop.product_count} products
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditProperty(prop)}
+                          className="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+                          title="Edit property"
+                        >
+                          <span className="material-symbols-outlined text-base!">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProperty(prop)}
+                          className="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Delete property"
+                        >
+                          <span className="material-symbols-outlined text-base!">delete</span>
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteProperty(prop)}
-                      className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors cursor-pointer"
-                      title="Delete property"
-                    >
-                      <span className="material-symbols-outlined text-base!">delete</span>
-                    </button>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
             <div className="pt-3 border-t border-gray-100 text-right">
               <button
                 type="button"
-                onClick={() => setIsPropsModalOpen(false)}
+                onClick={() => {
+                  handleCancelEditProperty();
+                  setIsPropsModalOpen(false);
+                }}
                 className="px-4 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer text-navy"
               >
                 Done
               </button>
             </div>
+
           </div>
         </div>
       )}

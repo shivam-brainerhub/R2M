@@ -119,7 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-white focus:outline-none"
+            className="p-1.5 rounded-lg hover:bg-white/10 text-white focus:outline-none cursor-pointer"
             aria-label="Toggle Navigation"
           >
             <span className="material-symbols-outlined text-2xl!">menu</span>
@@ -138,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile Drawer Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-50 md:hidden backdrop-blur-xs"
+          className="fixed inset-0 bg-black/60 z-50 md:hidden backdrop-blur-xs cursor-pointer"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -162,7 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden text-gray-400 hover:text-white"
+            className="md:hidden text-gray-400 hover:text-white cursor-pointer"
           >
             <span className="material-symbols-outlined text-xl!">close</span>
           </button>
@@ -250,7 +250,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             onClick={handleLogout}
             title="Log Out"
-            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0"
+            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg!">logout</span>
           </button>

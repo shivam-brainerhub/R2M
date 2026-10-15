@@ -83,7 +83,7 @@ export default function Footer() {
           <h4 className="font-semibold mb-4 text-gold">Contact</h4>
           <ul className="space-y-2 text-sm text-gray-300">
             <li><Link href="/contact" className="hover:text-white transition-colors duration-200">Get in Touch</Link></li>
-            <li><Link href="/contact" className="hover:text-white transition-colors duration-200">Request a Quote</Link></li>
+            <li><Link href="/quote" className="hover:text-white transition-colors duration-200">Request a Quote</Link></li>
             {company.phone && (
               <li>
                 <a
