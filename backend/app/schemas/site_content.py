@@ -103,6 +103,24 @@ class CTAContentSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
 
+class LegalSectionItemSchema(BaseModel):
+    id: Optional[str] = None
+    heading: Optional[str] = None
+    content: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+
+class LegalContentSchema(BaseModel):
+    title: str = Field(default="Legal Document")
+    subtitle: Optional[str] = Field(default="")
+    last_updated: Optional[str] = Field(default="October 2026", validation_alias="lastUpdated")
+    content: str = Field(default="")
+    sections: Optional[List[LegalSectionItemSchema]] = Field(default=None)
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+
 class SiteContentItemResponse(BaseModel):
     id: int
     key: str
@@ -128,6 +146,8 @@ class AllSiteContentResponse(BaseModel):
     company: Dict[str, Any]
     why_us: Optional[Dict[str, Any]] = None
     cta: Optional[Dict[str, Any]] = None
+    privacy_policy: Optional[Dict[str, Any]] = None
+    terms_of_use: Optional[Dict[str, Any]] = None
     sections: Optional[Dict[str, Dict[str, Any]]] = None
 
     model_config = ConfigDict(extra="allow")

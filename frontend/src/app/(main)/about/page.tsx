@@ -6,6 +6,7 @@ export const metadata: Metadata = {
 
 import Image from 'next/image';
 import Link from 'next/link';
+import AboutStats from '@/components/AboutStats';
 
 export default function About() {
   return (
@@ -64,26 +65,7 @@ export default function About() {
       </section>
 
       {/* Stats/Highlight Section */}
-      <section className="py-16 bg-navy text-white">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-           <div>
-              <div className="text-4xl md:text-5xl font-bold text-gold mb-2">15+</div>
-              <div className="text-gray-300 font-medium">Years of Experience</div>
-           </div>
-           <div>
-              <div className="text-4xl md:text-5xl font-bold text-light-blue mb-2">50+</div>
-              <div className="text-gray-300 font-medium">Global Partners</div>
-           </div>
-           <div>
-              <div className="text-4xl md:text-5xl font-bold text-gold mb-2">1000+</div>
-              <div className="text-gray-300 font-medium">Products</div>
-           </div>
-           <div>
-              <div className="text-4xl md:text-5xl font-bold text-light-blue mb-2">24/7</div>
-              <div className="text-gray-300 font-medium">Customer Support</div>
-           </div>
-        </div>
-      </section>
+      <AboutStats />
 
       {/* Core Values */}
       <section className="py-24 px-6 bg-slate-50">

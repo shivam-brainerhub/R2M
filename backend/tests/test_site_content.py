@@ -155,3 +155,50 @@ def test_admin_upload_content_image(client, admin_token_headers):
     data = response.json()
     assert "url" in data
     assert "test_banner" in data["filename"]
+
+
+def test_get_privacy_policy_and_terms_public(client):
+    response = client.get("/api/content")
+    assert response.status_code == 200
+    data = response.json()
+    assert "privacy_policy" in data
+    assert "terms_of_use" in data
+    assert data["privacy_policy"]["title"] == "Privacy Policy"
+    assert data["terms_of_use"]["title"] == "Terms of Use"
+    assert "content" in data["privacy_policy"]
+    assert "Commitment to Privacy" in data["privacy_policy"]["content"]
+    assert "content" in data["terms_of_use"]
+    assert "Acceptance of Terms" in data["terms_of_use"]["content"]
+
+    # Specific endpoints
+    priv_res = client.get("/api/content/privacy_policy")
+    assert priv_res.status_code == 200
+    assert priv_res.json()["key"] == "privacy_policy"
+    assert "Commitment to Privacy" in str(priv_res.json()["content"])
+
+    terms_res = client.get("/api/content/terms_of_use")
+    assert terms_res.status_code == 200
+    assert terms_res.json()["key"] == "terms_of_use"
+    assert "Acceptance of Terms" in str(terms_res.json()["content"])
+
+
+def test_admin_update_privacy_policy(client, admin_token_headers):
+    updated_payload = {
+        "title": "Privacy Policy",
+        "content": {
+            "title": "Privacy Policy",
+            "subtitle": "Updated POPIA Privacy Notice for Healthcare Clients",
+            "lastUpdated": "November 2026",
+            "content": "<h2>1. Updated Privacy Notice</h2><p>Updated content describing patient and client privacy.</p>",
+        },
+    }
+    response = client.put(
+        "/api/content/privacy_policy",
+        json=updated_payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["content"]["subtitle"] == "Updated POPIA Privacy Notice for Healthcare Clients"
+    assert data["content"]["lastUpdated"] == "November 2026"
+    assert "Updated content describing patient" in data["content"]["content"]

@@ -124,6 +124,46 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["phone"] = result.get("phone") or "+27 11 555 0100"
         result["email"] = result.get("email") or "info@sahealthcare.com"
 
+    elif key in ("privacy_policy", "privacy"):
+        result["title"] = result.get("title") or "Privacy Policy"
+        result["subtitle"] = result.get("subtitle") or "How SA Healthcare collects, protects, and handles your personal information in compliance with POPIA."
+        lu = result.get("lastUpdated") or result.get("last_updated") or "October 2026"
+        result["lastUpdated"] = lu
+        result["last_updated"] = lu
+        if not result.get("content"):
+            sections = result.get("sections")
+            if isinstance(sections, list) and sections:
+                parts = []
+                for s in sections:
+                    if isinstance(s, dict):
+                        h = s.get("heading", "")
+                        c = s.get("content", "")
+                        parts.append(f"<h2>{h}</h2>\n<p>{c}</p>")
+                result["content"] = "\n\n".join(parts)
+            else:
+                default_content = DEFAULT_SITE_CONTENTS.get("privacy_policy", {}).get("content", {})
+                result["content"] = default_content.get("content", "")
+
+    elif key in ("terms_of_use", "terms"):
+        result["title"] = result.get("title") or "Terms of Use"
+        result["subtitle"] = result.get("subtitle") or "Terms governing the use of the SA Healthcare digital equipment catalogue and quote request system."
+        lu = result.get("lastUpdated") or result.get("last_updated") or "October 2026"
+        result["lastUpdated"] = lu
+        result["last_updated"] = lu
+        if not result.get("content"):
+            sections = result.get("sections")
+            if isinstance(sections, list) and sections:
+                parts = []
+                for s in sections:
+                    if isinstance(s, dict):
+                        h = s.get("heading", "")
+                        c = s.get("content", "")
+                        parts.append(f"<h2>{h}</h2>\n<p>{c}</p>")
+                result["content"] = "\n\n".join(parts)
+            else:
+                default_content = DEFAULT_SITE_CONTENTS.get("terms_of_use", {}).get("content", {})
+                result["content"] = default_content.get("content", "")
+
     return result
 
 

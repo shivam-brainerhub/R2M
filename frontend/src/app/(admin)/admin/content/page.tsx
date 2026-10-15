@@ -9,6 +9,7 @@ import {
   CompanyContent,
   WhyUsContent,
   CTAContent,
+  LegalContent,
   ApiError,
 } from '@/lib/api';
 
@@ -17,9 +18,12 @@ import {
   DEFAULT_COMPANY,
   DEFAULT_WHY_US,
   DEFAULT_CTA,
+  DEFAULT_PRIVACY_POLICY,
+  DEFAULT_TERMS_OF_USE,
 } from '@/lib/constants';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
-type ContentTab = 'hero' | 'company' | 'why_us' | 'cta';
+type ContentTab = 'hero' | 'company' | 'why_us' | 'cta' | 'privacy_policy' | 'terms_of_use';
 
 export default function AdminContentPage() {
   const { token } = useAuth();
@@ -33,6 +37,8 @@ export default function AdminContentPage() {
   const [companyInfo, setCompanyInfo] = useState<CompanyContent>(DEFAULT_COMPANY);
   const [whyUsContent, setWhyUsContent] = useState<WhyUsContent>(DEFAULT_WHY_US);
   const [ctaContent, setCtaContent] = useState<CTAContent>(DEFAULT_CTA);
+  const [privacyPolicy, setPrivacyPolicy] = useState<LegalContent>(DEFAULT_PRIVACY_POLICY);
+  const [termsOfUse, setTermsOfUse] = useState<LegalContent>(DEFAULT_TERMS_OF_USE);
 
   // New search tag input helper
   const [newTagInput, setNewTagInput] = useState('');
@@ -90,6 +96,36 @@ export default function AdminContentPage() {
             email: data.cta.email || DEFAULT_CTA.email,
           });
         }
+        if (data.privacy_policy) {
+          setPrivacyPolicy({
+            title: data.privacy_policy.title || DEFAULT_PRIVACY_POLICY.title,
+            subtitle: data.privacy_policy.subtitle !== undefined ? data.privacy_policy.subtitle : DEFAULT_PRIVACY_POLICY.subtitle,
+            lastUpdated:
+              data.privacy_policy.lastUpdated ||
+              data.privacy_policy.last_updated ||
+              DEFAULT_PRIVACY_POLICY.lastUpdated,
+            content:
+              data.privacy_policy.content ||
+              (Array.isArray(data.privacy_policy.sections) && data.privacy_policy.sections.length > 0
+                ? data.privacy_policy.sections.map((s) => `<h2>${s.heading}</h2>\n<p>${s.content}</p>`).join('\n\n')
+                : DEFAULT_PRIVACY_POLICY.content),
+          });
+        }
+        if (data.terms_of_use) {
+          setTermsOfUse({
+            title: data.terms_of_use.title || DEFAULT_TERMS_OF_USE.title,
+            subtitle: data.terms_of_use.subtitle !== undefined ? data.terms_of_use.subtitle : DEFAULT_TERMS_OF_USE.subtitle,
+            lastUpdated:
+              data.terms_of_use.lastUpdated ||
+              data.terms_of_use.last_updated ||
+              DEFAULT_TERMS_OF_USE.lastUpdated,
+            content:
+              data.terms_of_use.content ||
+              (Array.isArray(data.terms_of_use.sections) && data.terms_of_use.sections.length > 0
+                ? data.terms_of_use.sections.map((s) => `<h2>${s.heading}</h2>\n<p>${s.content}</p>`).join('\n\n')
+                : DEFAULT_TERMS_OF_USE.content),
+          });
+        }
       })
       .catch((err) => {
         console.error('Failed to load site content from API:', err);
@@ -112,7 +148,7 @@ export default function AdminContentPage() {
 
     setIsSaving(true);
     try {
-      let contentToSave: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent = heroContent;
+      let contentToSave: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent | LegalContent = heroContent;
       let title = '';
 
       if (sectionKey === 'hero') {
@@ -127,6 +163,12 @@ export default function AdminContentPage() {
       } else if (sectionKey === 'cta') {
         contentToSave = ctaContent;
         title = 'Call to Action Banner';
+      } else if (sectionKey === 'privacy_policy') {
+        contentToSave = privacyPolicy;
+        title = 'Privacy Policy';
+      } else if (sectionKey === 'terms_of_use') {
+        contentToSave = termsOfUse;
+        title = 'Terms of Use';
       }
 
       await contentApi.updateSection(token, sectionKey, {
@@ -134,7 +176,7 @@ export default function AdminContentPage() {
         title,
       });
 
-      showToast(`Saved ${title} successfully! Changes reflect on the live homepage.`);
+      showToast(`Saved ${title} successfully! Changes reflect on the live page.`);
     } catch (err: unknown) {
       const msg = err instanceof ApiError ? err.message : (err instanceof Error ? err.message : 'Failed to save section changes');
       showToast(msg, 'error');
@@ -156,6 +198,8 @@ export default function AdminContentPage() {
         company: companyInfo,
         why_us: whyUsContent,
         cta: ctaContent,
+        privacy_policy: privacyPolicy,
+        terms_of_use: termsOfUse,
       });
       showToast('All CMS sections saved successfully! Live site is up to date.');
     } catch (err: unknown) {
@@ -187,6 +231,10 @@ export default function AdminContentPage() {
         setWhyUsContent({ ...DEFAULT_WHY_US, ...result.why_us });
       } else if (sectionKey === 'cta' && result.cta) {
         setCtaContent({ ...DEFAULT_CTA, ...result.cta });
+      } else if (sectionKey === 'privacy_policy' && result.privacy_policy) {
+        setPrivacyPolicy({ ...DEFAULT_PRIVACY_POLICY, ...result.privacy_policy });
+      } else if (sectionKey === 'terms_of_use' && result.terms_of_use) {
+        setTermsOfUse({ ...DEFAULT_TERMS_OF_USE, ...result.terms_of_use });
       }
       showToast(`Reset ${sectionKey} to default configuration!`);
     } catch (err: unknown) {
@@ -261,11 +309,27 @@ export default function AdminContentPage() {
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <Link
-            href="/home"
+            href={
+              activeTab === 'privacy_policy'
+                ? '/privacy'
+                : activeTab === 'terms_of_use'
+                ? '/terms'
+                : activeTab === 'company'
+                ? '/contact'
+                : '/home'
+            }
             target="_blank"
             className="bg-slate-100 hover:bg-slate-200 text-navy font-bold px-3.5 py-2.5 rounded-xl transition-colors text-xs sm:text-sm flex items-center gap-1.5 border border-gray-200"
           >
-            <span>Live Homepage</span>
+            <span>
+              {activeTab === 'privacy_policy'
+                ? 'Live Privacy Page'
+                : activeTab === 'terms_of_use'
+                ? 'Live Terms Page'
+                : activeTab === 'company'
+                ? 'Live Contact Page'
+                : 'Live Homepage'}
+            </span>
             <span className="material-symbols-outlined text-sm!">open_in_new</span>
           </Link>
 
@@ -331,6 +395,30 @@ export default function AdminContentPage() {
           >
             <span className="material-symbols-outlined text-base!">campaign</span>
             <span>Quotation Banner &amp; CTA</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('privacy_policy')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'privacy_policy'
+                ? 'bg-navy text-white shadow-xs'
+                : 'text-gray-600 hover:text-navy hover:bg-white'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base!">policy</span>
+            <span>Privacy Policy</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('terms_of_use')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'terms_of_use'
+                ? 'bg-navy text-white shadow-xs'
+                : 'text-gray-600 hover:text-navy hover:bg-white'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base!">gavel</span>
+            <span>Terms of Use</span>
           </button>
         </div>
 
@@ -914,6 +1002,180 @@ export default function AdminContentPage() {
               <span className="material-symbols-outlined text-base!">save</span>
               <span>{isSaving ? 'Saving...' : 'Save CTA Changes'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Privacy Policy */}
+      {activeTab === 'privacy_policy' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-navy">Privacy Policy &amp; POPIA Compliance</h2>
+                <p className="text-xs text-gray-500">
+                  Manage the document title, subtitle, effective date, and full rich text policy content displayed on /privacy.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleResetSection('privacy_policy')}
+                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                Reset to Default
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Document Title
+                </label>
+                <input
+                  type="text"
+                  value={privacyPolicy.title}
+                  onChange={(e) => setPrivacyPolicy({ ...privacyPolicy, title: e.target.value })}
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Last Updated / Effective Date
+                </label>
+                <input
+                  type="text"
+                  value={privacyPolicy.lastUpdated || ''}
+                  onChange={(e) => setPrivacyPolicy({ ...privacyPolicy, lastUpdated: e.target.value })}
+                  placeholder="e.g. October 2026"
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Policy Subtitle / Summary
+              </label>
+              <textarea
+                rows={2}
+                value={privacyPolicy.subtitle || ''}
+                onChange={(e) => setPrivacyPolicy({ ...privacyPolicy, subtitle: e.target.value })}
+                className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Full Policy Content
+                </label>
+                <span className="text-[11px] text-gray-400">Single field for all policy clauses, contact info &amp; terms</span>
+              </div>
+              <RichTextEditor
+                value={privacyPolicy.content}
+                onChange={(content) => setPrivacyPolicy({ ...privacyPolicy, content })}
+                placeholder="Compose or paste full privacy policy content..."
+              />
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => handleSaveSection('privacy_policy')}
+                disabled={isSaving}
+                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base!">save</span>
+                <span>{isSaving ? 'Saving...' : 'Save Privacy Policy'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: Terms of Use */}
+      {activeTab === 'terms_of_use' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-navy">Terms of Use &amp; Catalogue Conditions</h2>
+                <p className="text-xs text-gray-500">
+                  Manage the document title, subtitle, effective date, and full rich text terms displayed on /terms.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleResetSection('terms_of_use')}
+                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                Reset to Default
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Document Title
+                </label>
+                <input
+                  type="text"
+                  value={termsOfUse.title}
+                  onChange={(e) => setTermsOfUse({ ...termsOfUse, title: e.target.value })}
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Last Updated / Effective Date
+                </label>
+                <input
+                  type="text"
+                  value={termsOfUse.lastUpdated || ''}
+                  onChange={(e) => setTermsOfUse({ ...termsOfUse, lastUpdated: e.target.value })}
+                  placeholder="e.g. October 2026"
+                  className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                Terms Subtitle / Summary
+              </label>
+              <textarea
+                rows={2}
+                value={termsOfUse.subtitle || ''}
+                onChange={(e) => setTermsOfUse({ ...termsOfUse, subtitle: e.target.value })}
+                className="w-full px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Full Terms Content (Rich Text)
+                </label>
+                <span className="text-[11px] text-gray-400">Single field for all catalogue terms, warranty &amp; liabilities</span>
+              </div>
+              <RichTextEditor
+                value={termsOfUse.content}
+                onChange={(content) => setTermsOfUse({ ...termsOfUse, content })}
+                placeholder="Compose or paste full terms of use content..."
+              />
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => handleSaveSection('terms_of_use')}
+                disabled={isSaving}
+                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base!">save</span>
+                <span>{isSaving ? 'Saving...' : 'Save Terms of Use'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

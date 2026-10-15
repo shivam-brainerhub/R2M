@@ -1017,11 +1017,28 @@ export interface CTAContent {
   email?: string;
 }
 
+export interface LegalSectionItem {
+  id?: string | number;
+  heading: string;
+  content: string;
+}
+
+export interface LegalContent {
+  title: string;
+  subtitle?: string;
+  lastUpdated?: string;
+  last_updated?: string;
+  content: string;
+  sections?: LegalSectionItem[];
+}
+
 export interface SiteContentData {
   hero: HeroContent;
   company: CompanyContent;
   why_us?: WhyUsContent;
   cta?: CTAContent;
+  privacy_policy?: LegalContent;
+  terms_of_use?: LegalContent;
   sections?: Record<string, { id?: number; key: string; title?: string; content: unknown; updated_at?: string }>;
 }
 
@@ -1052,7 +1069,7 @@ export const contentApi = {
   async updateSection(
     token: string,
     key: string,
-    payload: { content: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent; title?: string }
+    payload: { content: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent | LegalContent; title?: string }
   ): Promise<SiteContentSectionResponse> {
     const response = await fetch(`${API_BASE_URL}/api/content/${key}`, {
       method: 'PUT',
