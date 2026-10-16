@@ -16,6 +16,8 @@ export default function Navbar() {
   const navLinks = [
     { name: 'Home', href: '/home' },
     { name: 'Products', href: '/products' },
+    { name: 'Solutions', href: '/solutions' },
+    { name: 'Resources', href: '/resources' },
     { name: 'Manufacturers', href: '/partners' },
     { name: 'Healthcare Sectors', href: '/sectors' },
     { name: 'About', href: '/about' },
@@ -31,7 +33,7 @@ export default function Navbar() {
       </Link>
 
       {/* Middle: Desktop Menu */}
-      <div className="hidden lg:flex items-center space-x-8 text-sm font-medium">
+      <div className="hidden lg:flex items-center space-x-5 xl:space-x-7 text-sm font-medium">
         {navLinks.map((link) => {
           const isActive = pathname.startsWith(link.href);
           return (

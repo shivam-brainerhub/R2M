@@ -1,4 +1,4 @@
-import { HeroContent, CompanyContent, WhyUsContent, CTAContent, LegalContent } from './api';
+import { HeroContent, CompanyContent, WhyUsContent, CTAContent, LegalContent, ProductsPageContent } from './api';
 
 export const DEFAULT_HERO: HeroContent = {
   headlinePart1: 'Healthcare',
@@ -20,6 +20,21 @@ export const DEFAULT_HERO: HeroContent = {
   ],
   badgeTitle: 'TRUST • ACCESS • INNOVATION • IMPACT',
   badgeTagline: 'A HEALTHIER TOMORROW TOGETHER.',
+};
+
+export const DEFAULT_PRODUCTS_PAGE: ProductsPageContent = {
+  title: 'Browse the Catalogue',
+  subtitle: 'Explore our range of medical products from trusted global manufacturers.',
+  searchPlaceholder: 'Search by product, model number, manufacturer...',
+  popularSearches: [
+    'Patient Monitor',
+    'Hospital Bed',
+    'ECG',
+    'Pulse Oximeter',
+    'Infusion Pump',
+    'Defibrillator',
+    'Ultrasound',
+  ],
 };
 
 export const DEFAULT_COMPANY: CompanyContent = {

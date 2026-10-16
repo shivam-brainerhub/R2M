@@ -4,6 +4,7 @@ export interface UserProfile {
   username: string;
   full_name?: string | null;
   phone?: string | null;
+  organization?: string | null;
   role: 'admin' | 'user';
   is_active: boolean;
   is_email_verified: boolean;
@@ -15,6 +16,7 @@ export interface UpdateProfilePayload {
   email?: string;
   full_name?: string | null;
   phone?: string | null;
+  organization?: string | null;
 }
 
 export interface AuthTokens {
@@ -33,6 +35,8 @@ export interface RegisterPayload {
   username: string;
   password: string;
   full_name?: string;
+  phone?: string;
+  organization?: string;
 }
 
 export interface ForgotPasswordPayload {
@@ -206,6 +210,8 @@ export interface AdminCreateUserPayload {
   username: string;
   password: string;
   full_name?: string;
+  phone?: string;
+  organization?: string;
   role?: 'admin' | 'user';
   is_active?: boolean;
 }
@@ -214,6 +220,8 @@ export interface AdminUpdateUserPayload {
   email?: string;
   username?: string;
   full_name?: string;
+  phone?: string;
+  organization?: string;
   role?: 'admin' | 'user';
   is_active?: boolean;
 }
@@ -593,6 +601,39 @@ export interface ProductPropertyItem {
   group?: string | null;
 }
 
+export interface ProductDocument {
+  id?: number;
+  product_id?: number | null;
+  title: string;
+  file_url: string;
+  type: 'Brochure' | 'Specifications' | 'User Manual' | 'Certificate' | string;
+  created_at?: string;
+}
+
+export interface ResourceItem {
+  id: number;
+  title: string;
+  file_url: string;
+  type: string;
+  product_id?: number | null;
+  product_name?: string | null;
+  product_slug?: string | null;
+  product_sku?: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
+  category_slug?: string | null;
+  brand_id?: number | null;
+  brand_name?: string | null;
+  brand_logo_url?: string | null;
+  created_at?: string;
+}
+
+export interface SectorItem {
+  id: number;
+  name: string;
+  product_count?: number;
+}
+
 export interface ProductItem {
   id: number;
   name: string;
@@ -610,6 +651,8 @@ export interface ProductItem {
   primary_image_url?: string | null;
   images: ProductImageItem[];
   brochure_url?: string | null;
+  documents?: ProductDocument[];
+  sectors?: SectorItem[];
   status: 'Active' | 'Draft';
   specifications?: Record<string, string>;
   properties: ProductPropertyItem[];
@@ -629,6 +672,8 @@ export interface ProductCreatePayload {
   description?: string;
   short_description?: string;
   brochure_url?: string;
+  documents?: ProductDocument[];
+  sector_ids?: number[];
   status?: 'Active' | 'Draft';
   meta_title?: string;
   meta_description?: string;
@@ -646,6 +691,8 @@ export interface ProductUpdatePayload {
   description?: string;
   short_description?: string;
   brochure_url?: string;
+  documents?: ProductDocument[];
+  sector_ids?: number[];
   status?: 'Active' | 'Draft';
   meta_title?: string;
   meta_description?: string;
@@ -739,6 +786,12 @@ export interface PropertyGroupFilterOption {
   options: PropertyValueOption[];
 }
 
+export interface SectorFilterOption {
+  id: number;
+  name: string;
+  count: number;
+}
+
 export interface AvailabilityFilterOption {
   active_count: number;
   brochure_count: number;
@@ -748,6 +801,7 @@ export interface ProductFilterOptionsResponse {
   total_products: number;
   categories: CategoryFilterOption[];
   brands: BrandFilterOption[];
+  sectors: SectorFilterOption[];
   properties: PropertyGroupFilterOption[];
   availability: AvailabilityFilterOption;
 }
@@ -765,6 +819,7 @@ export const productsApi = {
     category?: string;
     subcategory?: string;
     brand?: string;
+    sector?: string;
     status?: string;
     sort_by?: string;
     sort_order?: string;
@@ -776,6 +831,7 @@ export const productsApi = {
     if (params.category) query.append('category', params.category);
     if (params.subcategory) query.append('subcategory', params.subcategory);
     if (params.brand) query.append('brand', params.brand);
+    if (params.sector) query.append('sector', params.sector);
     if (params.status && params.status !== 'All') query.append('status', params.status);
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
@@ -900,6 +956,22 @@ export const productsApi = {
       },
     });
     return handleResponse<MessageResponse>(response);
+  },
+};
+
+export const sectorsApi = {
+  async listSectors(): Promise<SectorItem[]> {
+    const response = await fetch(`${API_BASE_URL}/api/sectors`, {
+      method: 'GET',
+    });
+    return handleResponse<SectorItem[]>(response);
+  },
+
+  async getSector(sectorId: number): Promise<SectorItem> {
+    const response = await fetch(`${API_BASE_URL}/api/sectors/${sectorId}`, {
+      method: 'GET',
+    });
+    return handleResponse<SectorItem>(response);
   },
 };
 
@@ -1032,6 +1104,15 @@ export interface LegalContent {
   sections?: LegalSectionItem[];
 }
 
+export interface ProductsPageContent {
+  title?: string;
+  subtitle?: string;
+  searchPlaceholder?: string;
+  search_placeholder?: string;
+  popularSearches?: string[];
+  popular_searches?: string[];
+}
+
 export interface SiteContentData {
   hero: HeroContent;
   company: CompanyContent;
@@ -1039,6 +1120,7 @@ export interface SiteContentData {
   cta?: CTAContent;
   privacy_policy?: LegalContent;
   terms_of_use?: LegalContent;
+  products_page?: ProductsPageContent;
   sections?: Record<string, { id?: number; key: string; title?: string; content: unknown; updated_at?: string }>;
 }
 
@@ -1069,7 +1151,7 @@ export const contentApi = {
   async updateSection(
     token: string,
     key: string,
-    payload: { content: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent | LegalContent; title?: string }
+    payload: { content: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent | LegalContent | ProductsPageContent; title?: string }
   ): Promise<SiteContentSectionResponse> {
     const response = await fetch(`${API_BASE_URL}/api/content/${key}`, {
       method: 'PUT',
@@ -1508,8 +1590,46 @@ export const quotesApi = {
   },
 };
 
+export interface ResourceFilterParams {
+  search?: string;
+  category?: string;
+  brand?: string;
+  type?: string;
+  skip?: number;
+  limit?: number;
+}
 
+export const resourcesApi = {
+  async listResources(params: ResourceFilterParams = {}): Promise<ResourceItem[]> {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.brand && params.brand !== 'all') query.append('brand', params.brand);
+    if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.skip !== undefined) query.append('skip', String(params.skip));
+    if (params.limit !== undefined) query.append('limit', String(params.limit));
 
+    const response = await fetch(`${API_BASE_URL}/api/resources?${query.toString()}`, {
+      method: 'GET',
+    });
+    return handleResponse<ResourceItem[]>(response);
+  },
+
+  getDownloadUrl(fileUrl: string, token?: string | null): string {
+    const normalizedBaseUrl = (API_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+    const cleanUrl = fileUrl.trim();
+    const query = new URLSearchParams({ url: cleanUrl });
+    if (token) {
+      query.append('token', token);
+    }
+    return `${normalizedBaseUrl}/api/documents/download?${query.toString()}`;
+  },
+};
+
+export function getProtectedDownloadUrl(fileUrl?: string | null, token?: string | null): string {
+  if (!fileUrl) return '';
+  return resourcesApi.getDownloadUrl(fileUrl, token);
+}
 
 export function getMediaUrl(path?: string | null): string {
   if (!path) return '';

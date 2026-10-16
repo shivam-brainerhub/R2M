@@ -5,7 +5,16 @@ from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import SessionLocal
-from app.models import Brand, Category, Product, ProductPropertyValue, Property, Subcategory
+from app.models import (
+    Brand,
+    Category,
+    Product,
+    ProductPropertyValue,
+    Property,
+    Sector,
+    Subcategory,
+    product_sector_association,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +129,24 @@ class FilterCacheService:
         # Sort descending by count, then alphabetical
         brands_data.sort(key=lambda x: (-x["count"], x["name"].lower()))
 
+        # 3b. Healthcare Sectors with active product counts
+        sectors = db.query(Sector).order_by(asc(Sector.id)).all()
+        sector_counts = dict(
+            db.query(product_sector_association.c.sector_id, func.count(func.distinct(Product.id)))
+            .join(Product, product_sector_association.c.product_id == Product.id)
+            .filter(Product.status == "Active")
+            .group_by(product_sector_association.c.sector_id)
+            .all()
+        )
+        sectors_data = [
+            {
+                "id": s.id,
+                "name": s.name,
+                "count": sector_counts.get(s.id, 0),
+            }
+            for s in sectors
+        ]
+
         # 4. Dynamic Property Groups across active products
         prop_query = (
             db.query(
@@ -187,6 +214,7 @@ class FilterCacheService:
             "total_products": total_products,
             "categories": categories_data,
             "brands": brands_data,
+            "sectors": sectors_data,
             "properties": properties_data,
             "availability": availability_data,
         }

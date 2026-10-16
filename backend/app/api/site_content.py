@@ -59,15 +59,19 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["search_placeholder"] = sp
 
         # popular_searches <-> popularSearches
-        pops = result.get("popularSearches") or result.get("popular_searches") or [
-            "Patient Monitor",
-            "Hospital Bed",
-            "ECG",
-            "Pulse Oximeter",
-            "Infusion Pump",
-            "Defibrillator",
-            "Ultrasound",
-        ]
+        pops = result.get("popularSearches")
+        if pops is None:
+            pops = result.get("popular_searches")
+        if pops is None:
+            pops = [
+                "Patient Monitor",
+                "Hospital Bed",
+                "ECG",
+                "Pulse Oximeter",
+                "Infusion Pump",
+                "Defibrillator",
+                "Ultrasound",
+            ]
         result["popularSearches"] = pops
         result["popular_searches"] = pops
 
@@ -163,6 +167,39 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 default_content = DEFAULT_SITE_CONTENTS.get("terms_of_use", {}).get("content", {})
                 result["content"] = default_content.get("content", "")
+
+    elif key in ("products_page", "products", "catalogue"):
+        result["title"] = result.get("title") or "Browse the Catalogue"
+        result["subtitle"] = (
+            result.get("subtitle")
+            if result.get("subtitle") is not None
+            else "Explore our range of medical products from trusted global manufacturers."
+        )
+        sp = (
+            result.get("searchPlaceholder")
+            or result.get("search_placeholder")
+            or "Search by product, model number, manufacturer..."
+        )
+        result["searchPlaceholder"] = sp
+        result["search_placeholder"] = sp
+
+        pops = result.get("popularSearches")
+        if pops is None:
+            pops = result.get("popular_searches")
+        if pops is None:
+            pops = [
+                "Patient Monitor",
+                "Hospital Bed",
+                "ECG",
+                "Pulse Oximeter",
+                "Infusion Pump",
+                "Defibrillator",
+                "Ultrasound",
+            ]
+        if isinstance(pops, list):
+            pops = [str(p).strip() for p in pops if str(p).strip()]
+        result["popularSearches"] = pops
+        result["popular_searches"] = pops
 
     return result
 

@@ -9,12 +9,20 @@ import { useQuoteCart } from '@/context/QuoteCartContext';
 
 interface RelatedProductsProps {
   currentProductSlug: string;
+  title?: string;
+  subtitle?: string;
+  tag?: string;
   onAddToCartToast?: (message: string) => void;
+  onAddCompare?: (slug: string) => void;
 }
 
 export default function RelatedProducts({
   currentProductSlug,
+  title,
+  subtitle,
+  tag,
   onAddToCartToast,
+  onAddCompare,
 }: RelatedProductsProps) {
   const router = useRouter();
   const { addItem } = useQuoteCart();
@@ -81,13 +89,13 @@ export default function RelatedProducts({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
         <div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-gold block mb-1">
-            Clinical Recommendations
+            {tag || 'Clinical Recommendations'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-            Related Equipment &amp; Solutions
+            {title || 'Related Equipment & Solutions'}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Explore clinically comparable medical devices and complementary equipment in this category.
+            {subtitle || 'Explore clinically comparable medical devices and complementary equipment in this category.'}
           </p>
         </div>
         <Link
@@ -183,7 +191,13 @@ export default function RelatedProducts({
 
                 <button
                   type="button"
-                  onClick={() => router.push(`/compare?items=${item.slug}`)}
+                  onClick={() => {
+                    if (onAddCompare) {
+                      onAddCompare(item.slug);
+                    } else {
+                      router.push(`/compare?items=${item.slug}`);
+                    }
+                  }}
                   className="p-2 border border-gray-200 text-gray-600 hover:text-navy hover:border-navy rounded-xl transition-all flex items-center justify-center cursor-pointer"
                   title="Compare with other equipment"
                   aria-label={`Compare ${item.name}`}

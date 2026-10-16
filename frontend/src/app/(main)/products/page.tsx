@@ -6,12 +6,15 @@ import { Suspense, useEffect, useState, useMemo, useRef, useCallback } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   productsApi,
+  contentApi,
   ProductItem,
   CategoryItem,
   ProductFilterOptionsResponse,
   CategoryFilterOption,
+  ProductsPageContent,
   getMediaUrl,
 } from '@/lib/api';
+import { DEFAULT_PRODUCTS_PAGE } from '@/lib/constants';
 
 import { useQuoteCart } from '@/context/QuoteCartContext';
 import BrochureDownloadButton from '@/components/BrochureDownloadButton';
@@ -30,16 +33,6 @@ const CATEGORY_ICON_MAP: Record<string, string> = {
   'veterinary': 'pets',
 };
 
-const POPULAR_SEARCH_KEYWORDS = [
-  'Patient Monitor',
-  'Hospital Bed',
-  'ECG',
-  'Pulse Oximeter',
-  'Infusion Pump',
-  'Defibrillator',
-  'Ultrasound',
-];
-
 function getCategoryIcon(cat: CategoryFilterOption | CategoryItem): string {
   if (cat.icon && cat.icon.trim() && cat.icon !== 'category') return cat.icon;
   if (cat.slug && CATEGORY_ICON_MAP[cat.slug]) return CATEGORY_ICON_MAP[cat.slug];
@@ -56,6 +49,7 @@ function ProductsContent() {
   const urlSearch = searchParams.get('search') || '';
   const urlCategory = searchParams.get('category') || '';
   const urlBrand = searchParams.get('brand') || '';
+  const urlSector = searchParams.get('sector') || '';
 
   const { addItem } = useQuoteCart();
 
@@ -69,8 +63,8 @@ function ProductsContent() {
   const pageSize = 12;
 
   // Search & Navigation Filters
-  // searchInput: what the user is typing in the box (does NOT call API on input)
-  // activeSearch: the committed search query currently executed and loaded from API
+  // searchInput: local state for text input box
+  // activeSearch: committed search query state
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [activeSearch, setActiveSearch] = useState(urlSearch);
   const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory || 'All');
@@ -78,6 +72,7 @@ function ProductsContent() {
 
   // Accordion Expand/Collapse States
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [isSectorExpanded, setIsSectorExpanded] = useState(true);
   const [isBrandExpanded, setIsBrandExpanded] = useState(true);
   const [showAllBrands, setShowAllBrands] = useState(false);
   const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
@@ -85,6 +80,7 @@ function ProductsContent() {
   const [isAvailabilityExpanded, setIsAvailabilityExpanded] = useState(false);
 
   // Filter Selection States
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(urlSector ? [urlSector] : []);
   const [selectedBrands, setSelectedBrands] = useState<string[]>(urlBrand ? [urlBrand] : []);
   const [selectedPropertyFilters, setSelectedPropertyFilters] = useState<Record<string, string[]>>({});
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
@@ -93,39 +89,37 @@ function ProductsContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [selectedSort, setSelectedSort] = useState('A-Z');
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load Initial Data (Filter options from in-memory cache, products filtered by urlSearch if provided)
+  // CMS Content State
+  const [catalogueContent, setCatalogueContent] = useState<ProductsPageContent>(DEFAULT_PRODUCTS_PAGE);
+
+  // Pin document title to prevent browser tab flickering during state transitions
+  useEffect(() => {
+    document.title = 'Products | SA Healthcare';
+  }, []);
+
+  // Load catalogue CMS content on mount
   useEffect(() => {
     let active = true;
-    setIsLoading(true);
-
-    if (urlCategory) {
-      setSelectedCategory(urlCategory);
-    }
-    if (urlBrand) {
-      setSelectedBrands([urlBrand]);
-    }
-
-    Promise.all([
-      productsApi.getFilterOptions().catch(() => null),
-      productsApi.listProducts({
-        search: urlSearch.trim() || undefined,
-        status: 'Active',
-        limit: 500,
-      }),
-    ])
-      .then(([filtersData, prods]) => {
-        if (!active) return;
-        setFilterOptions(filtersData);
-        setProducts(prods);
-        setIsLoading(false);
+    contentApi
+      .getSection('products_page')
+      .then((res) => {
+        if (!active || !res?.content) return;
+        const data = res.content as ProductsPageContent;
+        setCatalogueContent({
+          title: data.title || DEFAULT_PRODUCTS_PAGE.title,
+          subtitle: data.subtitle !== undefined ? data.subtitle : DEFAULT_PRODUCTS_PAGE.subtitle,
+          searchPlaceholder:
+            data.searchPlaceholder || data.search_placeholder || DEFAULT_PRODUCTS_PAGE.searchPlaceholder,
+          popularSearches: Array.isArray(data.popularSearches || data.popular_searches)
+            ? (data.popularSearches || data.popular_searches)
+            : DEFAULT_PRODUCTS_PAGE.popularSearches,
+        });
       })
-      .catch(() => {
-        if (!active) return;
-        setIsLoading(false);
+      .catch((err) => {
+        console.warn('Failed to fetch catalogue CMS content, using defaults:', err);
       });
 
     return () => {
@@ -133,60 +127,106 @@ function ProductsContent() {
     };
   }, []);
 
-  // Sync if URL search changes externally (e.g. navigation from Home page search)
+  const popularSearches = useMemo(() => {
+    return (catalogueContent.popularSearches || []).filter((term) => term && term.trim().length > 0);
+  }, [catalogueContent.popularSearches]);
+
+  // Load precomputed filter options (cached in backend) once on mount
+  useEffect(() => {
+    let active = true;
+    productsApi
+      .getFilterOptions()
+      .then((data) => {
+        if (!active) return;
+        setFilterOptions(data);
+      })
+      .catch(() => null);
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Fetch catalogue products whenever activeSearch changes (including on initial mount)
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+
+    productsApi
+      .listProducts({
+        search: activeSearch.trim() || undefined,
+        status: 'Active',
+        limit: 500,
+      })
+      .then((prods) => {
+        if (!active) return;
+        setProducts(prods);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.error('Failed to load products:', err);
+        setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeSearch]);
+
+  // Sync if URL search changes from external page navigation
   useEffect(() => {
     if (urlSearch !== activeSearch) {
-      setSearchInput(urlSearch);
       setActiveSearch(urlSearch);
-      setIsLoading(true);
-      productsApi
-        .listProducts({
-          search: urlSearch.trim() || undefined,
-          status: 'Active',
-          limit: 500,
-        })
-        .then((prods) => {
-          setProducts(prods);
-          setIsLoading(false);
-        })
-        .catch(() => {
-          setIsLoading(false);
-        });
+      setSearchInput(urlSearch);
     }
-  }, [urlSearch, activeSearch]);
+  }, [urlSearch]);
 
-  // Execute Search: called ONLY when user hits search (Enter or button click)
+  // Handle browser back and forward history buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentParams = new URLSearchParams(window.location.search);
+      const search = currentParams.get('search') || '';
+      setActiveSearch(search);
+      setSearchInput(search);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Sync if URL sector or category changes externally (e.g. from Sectors or Categories page navigation)
+  useEffect(() => {
+    if (urlSector) {
+      setSelectedSectors((prev) => (prev.includes(urlSector) ? prev : [urlSector]));
+    }
+    if (urlCategory) {
+      setSelectedCategory(urlCategory);
+    }
+    if (urlBrand) {
+      setSelectedBrands((prev) => (prev.includes(urlBrand) ? prev : [urlBrand]));
+    }
+  }, [urlSector, urlCategory, urlBrand]);
+
+  // Execute Search: updates URL parameters and state smoothly with history.replaceState (avoids router transition title flicker)
   const handleExecuteSearch = useCallback(
     (query: string) => {
       const trimmed = query.trim();
-      setSearchInput(query);
+      setSearchInput(trimmed);
       setActiveSearch(trimmed);
 
-      const params = new URLSearchParams(searchParams.toString());
-      if (trimmed) {
-        params.set('search', trimmed);
-      } else {
-        params.delete('search');
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (trimmed) {
+          params.set('search', trimmed);
+        } else {
+          params.delete('search');
+        }
+        const qs = params.toString();
+        const newUrl = `/products${qs ? `?${qs}` : ''}`;
+        window.history.replaceState(null, '', newUrl);
       }
-      const qs = params.toString();
-      router.replace(`/products${qs ? `?${qs}` : ''}`, { scroll: false });
-
-      setIsLoading(true);
-      productsApi
-        .listProducts({
-          search: trimmed || undefined,
-          status: 'Active',
-          limit: 500,
-        })
-        .then((prods) => {
-          setProducts(prods);
-          setIsLoading(false);
-        })
-        .catch(() => {
-          setIsLoading(false);
-        });
     },
-    [router, searchParams]
+    []
   );
 
   // Quick Toast Helper
@@ -195,13 +235,6 @@ function ProductsContent() {
     setTimeout(() => {
       setToastMessage((prev) => (prev === msg ? null : prev));
     }, 3500);
-  };
-
-  // Toggle favorite
-  const toggleFavorite = (slug: string) => {
-    setFavorites((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
-    );
   };
 
   // Toggle comparison selection
@@ -251,6 +284,13 @@ function ProductsContent() {
     setExpandedCategories({});
   };
 
+  // Sector Toggle
+  const toggleSector = (sectorName: string) => {
+    setSelectedSectors((prev) =>
+      prev.includes(sectorName) ? prev.filter((s) => s !== sectorName) : [...prev, sectorName]
+    );
+  };
+
   // Brand Toggle
   const toggleBrand = (brandName: string) => {
     setSelectedBrands((prev) =>
@@ -288,12 +328,14 @@ function ProductsContent() {
 
   // Clear all refined search filters
   const handleClearAllRefine = () => {
+    setSelectedSectors([]);
     setSelectedBrands([]);
     setSelectedPropertyFilters({});
     setSelectedAvailability([]);
   };
 
   const activeRefineFiltersCount =
+    selectedSectors.length +
     selectedBrands.length +
     Object.values(selectedPropertyFilters).reduce((acc, curr) => acc + curr.length, 0) +
     selectedAvailability.length;
@@ -301,6 +343,7 @@ function ProductsContent() {
   // Precomputed Filter Options from Backend (Cached in Memory)
   const categories = filterOptions?.categories || [];
   const brandFilterList = filterOptions?.brands || [];
+  const sectorFilterList = filterOptions?.sectors || [];
   const dynamicPropertyGroups = filterOptions?.properties || [];
   const availabilityCounts = useMemo(() => {
     if (!filterOptions?.availability) {
@@ -313,7 +356,7 @@ function ProductsContent() {
   }, [filterOptions]);
 
   // Reset pagination to page 1 whenever any filter changes (render-phase state adjustment)
-  const filterKey = `${activeSearch}_${selectedCategory}_${selectedSubcategory}_${selectedBrands.join(',')}_${JSON.stringify(selectedPropertyFilters)}_${selectedAvailability}_${selectedSort}`;
+  const filterKey = `${activeSearch}_${selectedCategory}_${selectedSubcategory}_${selectedSectors.join(',')}_${selectedBrands.join(',')}_${JSON.stringify(selectedPropertyFilters)}_${selectedAvailability}_${selectedSort}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey);
@@ -324,14 +367,15 @@ function ProductsContent() {
   // FILTER PRODUCTS
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      // 1. Search filter
-      if (activeSearch.trim() !== '') {
+      // 1. Search filter: only filter client-side when not loading from backend, and check full description
+      if (!isLoading && activeSearch.trim() !== '') {
         const term = activeSearch.toLowerCase().trim();
         const matchesName = p.name.toLowerCase().includes(term);
         const matchesBrand = Boolean(p.brand_name && p.brand_name.toLowerCase().includes(term));
         const matchesSku = Boolean(p.sku && p.sku.toLowerCase().includes(term));
         const matchesDesc = Boolean(
-          p.short_description && p.short_description.toLowerCase().includes(term)
+          (p.description && p.description.toLowerCase().includes(term)) ||
+          (p.short_description && p.short_description.toLowerCase().includes(term))
         );
         const matchesProps = Boolean(
           p.properties?.some((prop) => prop.value && prop.value.toLowerCase().includes(term))
@@ -358,14 +402,25 @@ function ProductsContent() {
         if (!matchesSub) return false;
       }
 
-      // 4. Brand filter (multi-select)
+      // 4. Healthcare Sector filter (multi-select)
+      if (selectedSectors.length > 0) {
+        const prodSectorNames = p.sectors?.map((s) => s.name.toLowerCase()) || [];
+        const matchesSector = selectedSectors.some((sec) =>
+          prodSectorNames.includes(sec.toLowerCase())
+        );
+        if (!matchesSector) {
+          return false;
+        }
+      }
+
+      // 5. Brand filter (multi-select)
       if (selectedBrands.length > 0) {
         if (!p.brand_name || !selectedBrands.includes(p.brand_name)) {
           return false;
         }
       }
 
-      // 5. Dynamic Property Filters (multi-select per property)
+      // 6. Dynamic Property Filters (multi-select per property)
       for (const [propName, desiredValues] of Object.entries(selectedPropertyFilters)) {
         if (!desiredValues || desiredValues.length === 0) continue;
         const matchingProp = p.properties?.find(
@@ -376,7 +431,7 @@ function ProductsContent() {
         }
       }
 
-      // 6. Availability filter
+      // 7. Availability filter
       if (selectedAvailability.length > 0) {
         if (selectedAvailability.includes('active') && p.status !== 'Active') {
           return false;
@@ -393,6 +448,7 @@ function ProductsContent() {
     activeSearch,
     selectedCategory,
     selectedSubcategory,
+    selectedSectors,
     selectedBrands,
     selectedPropertyFilters,
     selectedAvailability,
@@ -447,9 +503,11 @@ function ProductsContent() {
       <div className="bg-navy text-white py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold mb-2.5 tracking-tight">Browse the Catalogue</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-2.5 tracking-tight">
+              {catalogueContent.title || 'Browse the Catalogue'}
+            </h1>
             <p className="text-gray-300 text-sm sm:text-base max-w-xl">
-              Explore our range of medical products from trusted global manufacturers.
+              {catalogueContent.subtitle || 'Explore our range of medical products from trusted global manufacturers.'}
             </p>
           </div>
 
@@ -467,7 +525,7 @@ function ProductsContent() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by product, model number, manufacturer..."
+                placeholder={catalogueContent.searchPlaceholder || 'Search by product, model number, manufacturer...'}
                 className="flex-1 bg-transparent border-none outline-none text-navy px-3 min-w-0 w-full text-xs sm:text-sm placeholder:text-gray-400"
               />
               {searchInput ? (
@@ -492,23 +550,31 @@ function ProductsContent() {
         </div>
 
         {/* Popular Searches Pills */}
-        <div className="max-w-7xl mx-auto mt-5 flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-gray-300 font-semibold mr-1">Popular searches:</span>
-          {POPULAR_SEARCH_KEYWORDS.map((keyword) => (
-            <button
-              key={keyword}
-              type="button"
-              onClick={() => handleExecuteSearch(keyword)}
-              className={`px-3 py-1 rounded-full border transition-colors cursor-pointer ${
-                activeSearch.toLowerCase() === keyword.toLowerCase()
-                  ? 'bg-gold text-navy font-bold border-gold'
-                  : 'bg-navy-light/60 text-gray-200 border-white/20 hover:border-gold hover:text-white'
-              }`}
-            >
-              {keyword}
-            </button>
-          ))}
-        </div>
+        {popularSearches && popularSearches.length > 0 && (
+          <div className="max-w-7xl mx-auto mt-5 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-gray-300 font-semibold mr-1">Popular searches:</span>
+            {popularSearches.map((keyword) => (
+              <button
+                key={keyword}
+                type="button"
+                onClick={() => {
+                  if (activeSearch.toLowerCase() === keyword.toLowerCase()) {
+                    handleExecuteSearch('');
+                  } else {
+                    handleExecuteSearch(keyword);
+                  }
+                }}
+                className={`px-3 py-1 rounded-full border transition-colors cursor-pointer ${
+                  activeSearch.toLowerCase() === keyword.toLowerCase()
+                    ? 'bg-gold text-navy font-bold border-gold'
+                    : 'bg-navy-light/60 text-gray-200 border-white/20 hover:border-gold hover:text-white'
+                }`}
+              >
+                {keyword}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row gap-8">
@@ -721,7 +787,55 @@ function ProductsContent() {
                 )}
               </div>
 
-              {/* 1. COLLAPSIBLE MANUFACTURER (BRAND) FILTER */}
+              {/* 1. COLLAPSIBLE HEALTHCARE SECTOR FILTER */}
+              <div className="pb-3 border-b border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSectorExpanded(!isSectorExpanded)}
+                  className="w-full flex items-center justify-between text-left py-1 text-navy font-bold text-sm select-none group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Healthcare Sector</span>
+                    {selectedSectors.length > 0 && (
+                      <span className="text-[11px] text-blue-600 font-normal">
+                        ({selectedSectors.length})
+                      </span>
+                    )}
+                  </div>
+                  <span className="material-symbols-outlined text-gray-400 group-hover:text-navy text-lg! transition-transform">
+                    {isSectorExpanded ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+
+                {isSectorExpanded && (
+                  <div className="mt-2.5 space-y-1.5">
+                    {sectorFilterList.map((sec) => {
+                      const isChecked = selectedSectors.includes(sec.name);
+                      return (
+                        <label
+                          key={sec.name}
+                          className="flex items-center space-x-2.5 cursor-pointer text-xs text-gray-700 py-1 hover:text-navy select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSector(sec.name)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                          />
+                          <span className={`flex-1 truncate ${isChecked ? 'font-bold text-navy' : ''}`}>
+                            {sec.name}
+                          </span>
+                          <span className="text-gray-400 font-mono text-[11px]">
+                            ({sec.count})
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. COLLAPSIBLE MANUFACTURER (BRAND) FILTER */}
               <div>
                 <button
                   type="button"
@@ -954,29 +1068,67 @@ function ProductsContent() {
             )}
           </nav>
 
-          {/* Header Row with Title */}
-          <div className="mb-6">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-              {activeSearch
-                ? `Search results for "${activeSearch}"`
-                : selectedSubcategory ||
-                  (selectedCategory === 'All'
-                    ? 'All Products'
-                    : activeCategoryObj?.name || selectedCategory)}
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1.5 max-w-2xl">
-              {activeSearch
-                ? `Showing medical equipment matching "${activeSearch}".`
-                : activeCategoryObj?.description ||
-                  'Explore our catalogue of patient monitors, hospital beds, and clinical equipment from trusted global manufacturers.'}
-            </p>
+          {/* Header Row with Title and Resource Section on the right */}
+          <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
+                {activeSearch
+                  ? `Search results for "${activeSearch}"`
+                  : selectedSectors.length === 1 && selectedCategory === 'All'
+                    ? selectedSectors[0]
+                    : selectedSubcategory ||
+                      (selectedCategory === 'All'
+                        ? 'All Products'
+                        : activeCategoryObj?.name || selectedCategory)}
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1.5 max-w-2xl leading-relaxed">
+                {activeSearch
+                  ? `Showing medical equipment matching "${activeSearch}".`
+                  : selectedSectors.length === 1 && selectedCategory === 'All'
+                    ? `Showing tailored healthcare equipment and clinical solutions for ${selectedSectors[0]}.`
+                    : activeCategoryObj?.description ||
+                      'Explore our catalogue of patient monitors, hospital beds, and clinical equipment from trusted global manufacturers.'}
+              </p>
+            </div>
+
+            {/* RESOURCE CENTRE PROMO BANNER (Moved from sidebar to top right) */}
+            <div className="bg-linear-to-br from-navy via-navy to-navy-light text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gold/30 shrink-0 lg:max-w-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-gold text-[11px] font-bold uppercase tracking-wider mb-1">
+                  <span className="material-symbols-outlined text-sm!">folder_open</span>
+                  <span>Resource Centre</span>
+                </div>
+                <h4 className="font-bold text-white text-sm leading-snug">
+                  Product Resources &amp; Downloads
+                </h4>
+                <p className="text-xs text-gray-300 mt-0.5 line-clamp-1">
+                  Brochures, user manuals, spec sheets &amp; certificates.
+                </p>
+              </div>
+              <Link
+                href="/resources"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap bg-gold hover:bg-gold-bright text-navy font-bold text-xs px-3.5 py-2 rounded-xl shadow-md transition-all duration-200 active:scale-95 group shrink-0"
+              >
+                <span>Browse Resources</span>
+                <span className="material-symbols-outlined text-sm! transition-transform duration-200 group-hover:translate-x-1">arrow_forward</span>
+              </Link>
+            </div>
           </div>
 
           {/* Results Toolbar: Count, Active Search Badge, Grid/List Switcher, Sort Dropdown */}
           <div className="relative z-30 flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 mb-6 shadow-2xs gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-navy text-sm sm:text-base">
-                {sortedProducts.length} Products
+              <span className="font-bold text-navy text-sm sm:text-base inline-flex items-center gap-2">
+                {isLoading ? (
+                  <span className="inline-flex items-center gap-1.5 text-gray-400 font-normal text-xs sm:text-sm">
+                    <span className="material-symbols-outlined text-sm! animate-spin text-blue-600">
+                      progress_activity
+                    </span>
+                    <span>Updating...</span>
+                  </span>
+                ) : (
+                  `${sortedProducts.length} Products`
+                )}
               </span>
               {activeSearch && (
                 <div className="inline-flex items-center gap-1.5 bg-gold/20 text-navy font-semibold px-2.5 py-1 rounded-full text-xs border border-gold/40">
@@ -991,6 +1143,23 @@ function ProductsContent() {
                   </button>
                 </div>
               )}
+              {selectedSectors.map((sectorName) => (
+                <div
+                  key={sectorName}
+                  className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-900 font-semibold px-2.5 py-1 rounded-full text-xs border border-blue-200"
+                >
+                  <span className="material-symbols-outlined text-xs! text-blue-600">health_and_safety</span>
+                  <span>{sectorName}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleSector(sectorName)}
+                    className="hover:text-red-600 cursor-pointer flex items-center"
+                    title="Remove sector filter"
+                  >
+                    <span className="material-symbols-outlined text-xs!">close</span>
+                  </button>
+                </div>
+              ))}
               {activeRefineFiltersCount > 0 && (
                 <button
                   onClick={handleClearAllRefine}
@@ -1081,7 +1250,6 @@ function ProductsContent() {
                 const img =
                   p.primary_image_url || p.images[0]?.image_url || '/images/benevision_n12.jpg';
                 const isSelected = selectedProducts.includes(p.slug);
-                const isFavorited = favorites.includes(p.slug);
 
                 return (
                   <div
@@ -1090,24 +1258,13 @@ function ProductsContent() {
                       viewMode === 'list' ? 'sm:flex-row sm:items-stretch sm:gap-6' : 'h-full justify-between'
                     }`}
                   >
-                    {/* Product Photo Box (With Brand & Wishlist header if in Grid View) */}
+                    {/* Product Photo Box (With Brand header if in Grid View) */}
                     <div className={viewMode === 'list' ? 'w-full sm:w-48 md:w-52 shrink-0 flex flex-col justify-center' : 'w-full'}>
                       {viewMode === 'grid' && (
-                        <div className="w-full flex items-center justify-between mb-2">
+                        <div className="w-full flex items-center mb-2">
                           <span className="text-xs font-extrabold uppercase tracking-wider text-red-600">
                             {p.brand_name || 'Generic'}
                           </span>
-                          <button
-                            onClick={() => toggleFavorite(p.slug)}
-                            className={`p-1 rounded-full transition-colors cursor-pointer ${
-                              isFavorited ? 'text-red-500' : 'text-gray-300 hover:text-red-500'
-                            }`}
-                            title={isFavorited ? 'Remove from wishlist' : 'Save to wishlist'}
-                          >
-                            <span className="material-symbols-outlined text-xl!">
-                              {isFavorited ? 'favorite' : 'favorite_border'}
-                            </span>
-                          </button>
                         </div>
                       )}
 
@@ -1133,21 +1290,10 @@ function ProductsContent() {
                     <div className="flex-1 flex flex-col justify-between mt-3 sm:mt-0">
                       <div>
                         {viewMode === 'list' && (
-                          <div className="w-full flex items-center justify-between mb-1.5">
+                          <div className="w-full flex items-center mb-1.5">
                             <span className="text-xs font-extrabold uppercase tracking-wider text-red-600">
                               {p.brand_name || 'Generic'}
                             </span>
-                            <button
-                              onClick={() => toggleFavorite(p.slug)}
-                              className={`p-1 rounded-full transition-colors cursor-pointer ${
-                                isFavorited ? 'text-red-500' : 'text-gray-300 hover:text-red-500'
-                              }`}
-                              title={isFavorited ? 'Remove from wishlist' : 'Save to wishlist'}
-                            >
-                              <span className="material-symbols-outlined text-xl!">
-                                {isFavorited ? 'favorite' : 'favorite_border'}
-                              </span>
-                            </button>
                           </div>
                         )}
 

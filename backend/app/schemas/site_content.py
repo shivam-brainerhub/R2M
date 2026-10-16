@@ -121,6 +121,31 @@ class LegalContentSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
 
+class ProductsPageContentSchema(BaseModel):
+    title: Optional[str] = Field(default="Browse the Catalogue")
+    subtitle: Optional[str] = Field(
+        default="Explore our range of medical products from trusted global manufacturers."
+    )
+    search_placeholder: Optional[str] = Field(
+        default="Search by product, model number, manufacturer...",
+        validation_alias="searchPlaceholder",
+    )
+    popular_searches: List[str] = Field(
+        default=[
+            "Patient Monitor",
+            "Hospital Bed",
+            "ECG",
+            "Pulse Oximeter",
+            "Infusion Pump",
+            "Defibrillator",
+            "Ultrasound",
+        ],
+        validation_alias="popularSearches",
+    )
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+
 class SiteContentItemResponse(BaseModel):
     id: int
     key: str
@@ -148,6 +173,7 @@ class AllSiteContentResponse(BaseModel):
     cta: Optional[Dict[str, Any]] = None
     privacy_policy: Optional[Dict[str, Any]] = None
     terms_of_use: Optional[Dict[str, Any]] = None
+    products_page: Optional[Dict[str, Any]] = None
     sections: Optional[Dict[str, Dict[str, Any]]] = None
 
     model_config = ConfigDict(extra="allow")

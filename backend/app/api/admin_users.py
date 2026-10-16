@@ -40,6 +40,7 @@ def list_users(
                 User.username.ilike(search_pattern),
                 User.email.ilike(search_pattern),
                 User.full_name.ilike(search_pattern),
+                User.organization.ilike(search_pattern),
             )
         )
 
@@ -81,6 +82,8 @@ def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
         email=user_in.email,
         username=user_in.username,
         full_name=user_in.full_name,
+        phone=user_in.phone,
+        organization=user_in.organization,
         hashed_password=get_password_hash(user_in.password),
         role=user_in.role or UserRole.USER,
         is_active=user_in.is_active if user_in.is_active is not None else True,
@@ -156,6 +159,9 @@ def update_user(
 
     if user_update.phone is not None:
         user.phone = user_update.phone
+
+    if user_update.organization is not None:
+        user.organization = user_update.organization
 
     if user_update.role is not None:
         user.role = user_update.role

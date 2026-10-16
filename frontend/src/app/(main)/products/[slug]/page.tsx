@@ -213,6 +213,24 @@ export default function ProductDetailPage({
               )}
             </div>
 
+            {product.sectors && product.sectors.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  Sectors:
+                </span>
+                {product.sectors.map((sec) => (
+                  <Link
+                    key={sec.id}
+                    href={`/products?sector=${encodeURIComponent(sec.name)}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-0.5 rounded-full transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[13px]!">health_and_safety</span>
+                    <span>{sec.name}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             <h1 className="text-3xl sm:text-4xl font-black text-navy mb-3 tracking-tight">
               {product.name}
             </h1>
@@ -301,28 +319,52 @@ export default function ProductDetailPage({
             </div>
 
 
-            {/* Brochure & Resources */}
-            {product.brochure_url && (
+            {/* Official Documentation & Resources (Item 3) */}
+            {((product.documents && product.documents.length > 0) || product.brochure_url) && (
               <div className="space-y-3 pt-2">
-                <BrochureDownloadButton
-                  brochureUrl={product.brochure_url}
-                  className="w-full flex items-center text-blue-600 hover:text-blue-800 p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-gray-200/80 transition-all group cursor-pointer text-left"
-                >
-                  <span className="material-symbols-outlined mr-3 text-2xl! text-red-500">
-                    picture_as_pdf
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-navy group-hover:text-blue-700">
-                      Product Brochure &amp; Datasheet
-                    </div>
-                    <div className="text-xs text-gray-500 font-mono mt-0.5">
-                      Download official manufacturer documentation
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-lg! text-gray-400 group-hover:text-blue-600 transition-colors">
-                    download
-                  </span>
-                </BrochureDownloadButton>
+                <h3 className="font-bold text-navy text-xs uppercase tracking-wider flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm text-blue-600">folder_open</span>
+                  Official Documentation &amp; Downloads
+                </h3>
+                <div className="grid grid-cols-1 gap-2.5">
+                  {(product.documents && product.documents.length > 0 ? product.documents : [
+                    { id: 0, title: `${product.name} Brochure`, file_url: product.brochure_url!, type: 'Brochure' }
+                  ]).map((doc, idx) => {
+                    const isManual = doc.type.toLowerCase().includes('manual');
+                    const isCert = doc.type.toLowerCase().includes('cert');
+                    const isSpec = doc.type.toLowerCase().includes('spec');
+                    const iconName = isManual ? 'menu_book' : isCert ? 'verified' : isSpec ? 'analytics' : 'picture_as_pdf';
+                    const iconColor = isManual ? 'text-teal-600' : isCert ? 'text-amber-600' : isSpec ? 'text-blue-600' : 'text-red-500';
+
+                    return (
+                      <BrochureDownloadButton
+                        key={idx}
+                        brochureUrl={doc.file_url}
+                        className="w-full flex items-center text-blue-600 hover:text-blue-800 p-3 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-gray-200/80 transition-all group cursor-pointer text-left"
+                      >
+                        <span className={`material-symbols-outlined mr-3 text-2xl! ${iconColor}`}>
+                          {iconName}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-navy group-hover:text-blue-700 truncate">
+                              {doc.title}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
+                              {doc.type}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 font-mono mt-0.5">
+                            Verified manufacturer document • Click to download
+                          </div>
+                        </div>
+                        <span className="material-symbols-outlined text-lg! text-gray-400 group-hover:text-blue-600 transition-colors">
+                          download
+                        </span>
+                      </BrochureDownloadButton>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

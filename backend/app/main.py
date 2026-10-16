@@ -14,6 +14,8 @@ from app.api.properties import router as properties_router
 from app.api.site_content import router as site_content_router
 from app.api.inquiries import router as inquiries_router
 from app.api.quotes import router as quotes_router
+from app.api.resources import router as resources_router
+from app.api.sectors import router as sectors_router
 from app.database import Base, SessionLocal, engine
 from app.init_db import init_db
 
@@ -59,6 +61,8 @@ app.include_router(properties_router, prefix="/api")
 app.include_router(site_content_router, prefix="/api")
 app.include_router(inquiries_router, prefix="/api")
 app.include_router(quotes_router, prefix="/api")
+app.include_router(resources_router, prefix="/api")
+app.include_router(sectors_router, prefix="/api")
 
 
 # Mount Media Files

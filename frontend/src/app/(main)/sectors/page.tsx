@@ -10,42 +10,49 @@ export default function SectorsPage() {
     { 
       title: 'Hospitals & Healthcare Groups', 
       icon: 'domain',
+      searchQuery: 'Hospital',
       description: 'Comprehensive medical equipment and advanced systems designed for large-scale hospital environments and healthcare networks. We supply everything from critical care monitors to fully equipped surgical theatres.',
       features: ['ICU & Critical Care', 'Surgical Equipment', 'Patient Monitoring', 'Centralized Systems']
     },
     { 
       title: 'Clinics & Primary Care', 
       icon: 'medical_information',
+      searchQuery: 'Clinic',
       description: 'Essential diagnostic and treatment tools tailored for day clinics, primary care physicians, and outpatient facilities. Reliable, easy-to-use equipment that ensures swift patient turnover.',
       features: ['Diagnostic Sets', 'Vital Signs Monitors', 'Point-of-Care Ultrasound', 'Consumables']
     },
     { 
       title: 'Pharmacies & Retail Healthcare', 
       icon: 'local_pharmacy',
+      searchQuery: 'Blood Pressure',
       description: 'Healthcare screening and retail medical devices perfect for pharmacy clinics and wellness centers. From blood pressure monitors to rapid diagnostic tests.',
       features: ['Blood Pressure Monitors', 'Glucose Testing', 'Thermometry', 'Wellness Screening']
     },
     { 
       title: 'Public Healthcare', 
       icon: 'account_balance',
+      searchQuery: 'Medical',
       description: 'Durable and cost-effective medical solutions built to withstand the high-volume demands of public healthcare institutions and government facilities.',
       features: ['High-Durability Equipment', 'Bulk Supply', 'Scalable Solutions', 'Training & Support']
     },
     { 
       title: 'Laboratories', 
       icon: 'biotech',
+      searchQuery: 'Lab',
       description: 'High-precision instruments and laboratory technology required for accurate diagnostics, pathology, and clinical research.',
       features: ['Analyzers', 'Centrifuges', 'Microscopes', 'Cold Chain Storage']
     },
     { 
       title: 'Specialist Care', 
       icon: 'favorite',
+      searchQuery: 'ECG',
       description: 'Advanced, specialized equipment for specific medical fields including cardiology, obstetrics, gynecology, and emergency medicine.',
       features: ['Cardiology (ECG)', 'Fetal Monitors', 'Defibrillators', 'Endoscopy']
     },
     { 
       title: 'Veterinary Practices', 
       icon: 'pets',
+      searchQuery: 'Veterinary',
       description: 'Adapted medical and surgical equipment specifically calibrated and designed for veterinary care, ensuring the best outcomes for animal patients.',
       features: ['Vet Ultrasound', 'Vet Anesthesia', 'Vet Monitoring', 'Surgical Instruments']
     },
@@ -76,7 +83,10 @@ export default function SectorsPage() {
                   <span className="material-symbols-outlined text-4xl!">{sector.icon}</span>
                 </div>
                 <h2 className="text-2xl font-bold text-navy mb-4 leading-tight">{sector.title}</h2>
-                <Link href="/products" className="text-blue-600 font-semibold flex items-center hover:text-blue-800 transition-colors group mt-auto">
+                <Link
+                  href={`/products?sector=${encodeURIComponent(sector.title)}`}
+                  className="text-blue-600 font-semibold flex items-center hover:text-blue-800 transition-colors group mt-auto"
+                >
                   View relevant products 
                   <span className="material-symbols-outlined text-sm! ml-1 group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </Link>

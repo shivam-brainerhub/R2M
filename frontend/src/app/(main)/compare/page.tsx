@@ -7,10 +7,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   productsApi,
   ProductCompareResponse,
+  ProductItem,
   getMediaUrl,
 } from '@/lib/api';
 import BrochureDownloadButton from '@/components/BrochureDownloadButton';
 import AddCompareProductModal from '@/components/compare/AddCompareProductModal';
+import RelatedProducts from '@/components/RelatedProducts';
 import { useQuoteCart } from '@/context/QuoteCartContext';
 
 function CompareContent() {
@@ -311,35 +313,92 @@ function CompareContent() {
                   </tr>
                 ))}
 
-                {/* Documentation Section */}
+                {/* Documentation Section (Items 2 & 3) */}
                 <tr className="bg-light-blue font-bold text-navy">
                   <td colSpan={productsList.length + 1} className="p-3 text-xs uppercase tracking-wider">
-                    Official Documentation
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm text-blue-700">folder_open</span>
+                      <span>Official Manufacturer Documentation</span>
+                    </div>
                   </td>
                 </tr>
-                <tr>
-                  <td className="p-4 font-bold text-gray-700 bg-slate-50/40">
-                    Product Brochure
-                  </td>
-                  {productsList.map((p) => (
-                    <td key={p.id} className="p-4">
-                      {p.brochure_url ? (
-                        <BrochureDownloadButton
-                          brochureUrl={p.brochure_url}
-                          className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-xs underline cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-sm!">picture_as_pdf</span>
-                          Download Spec Sheet
-                        </BrochureDownloadButton>
-                      ) : (
-                        <span className="text-gray-400 text-xs">Not available</span>
-                      )}
+
+                {[
+                  { key: 'brochure', label: 'Product Brochure', icon: 'picture_as_pdf', color: 'text-red-500' },
+                  { key: 'spec', label: 'Technical Specifications', icon: 'analytics', color: 'text-blue-600' },
+                  { key: 'manual', label: 'User Manual & Instructions', icon: 'menu_book', color: 'text-teal-600' },
+                  { key: 'cert', label: 'Declaration of Conformity', icon: 'verified', color: 'text-amber-600' },
+                ].map((docType) => (
+                  <tr key={docType.key} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="p-4 font-bold text-gray-700 bg-slate-50/40">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`material-symbols-outlined text-base! ${docType.color}`}>
+                          {docType.icon}
+                        </span>
+                        <span>{docType.label}</span>
+                      </div>
                     </td>
-                  ))}
-                </tr>
+                    {productsList.map((p) => {
+                      const matchedDocs: { title: string; file_url: string; type: string }[] = [];
+                      if (p.documents && p.documents.length > 0) {
+                        const matching = p.documents.filter((d) =>
+                          d.type.toLowerCase().includes(docType.key.toLowerCase())
+                        );
+                        matchedDocs.push(...matching);
+                      }
+                      if (docType.key === 'brochure' && p.brochure_url) {
+                        const exists = matchedDocs.some((d) => d.file_url === p.brochure_url);
+                        if (!exists) {
+                          matchedDocs.unshift({
+                            title: `${p.name} Brochure`,
+                            file_url: p.brochure_url,
+                            type: 'Brochure',
+                          });
+                        }
+                      }
+
+                      return (
+                        <td key={p.id} className="p-4 align-top">
+                          {matchedDocs.length > 0 ? (
+                            <div className="flex flex-col gap-1.5">
+                              {matchedDocs.map((doc, dIdx) => (
+                                <BrochureDownloadButton
+                                  key={dIdx}
+                                  brochureUrl={doc.file_url}
+                                  className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-xs hover:underline cursor-pointer group text-left"
+                                  title={`Download ${doc.title}`}
+                                >
+                                  <span className="material-symbols-outlined text-sm! shrink-0 text-blue-500 group-hover:text-blue-700">
+                                    download
+                                  </span>
+                                  <span className="truncate max-w-[200px]" title={doc.title}>
+                                    {doc.title || `Download ${doc.type || 'Doc'}`}
+                                  </span>
+                                </BrochureDownloadButton>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs italic">Not available</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Similar Products Carousel / Grid (Item 8) */}
+        {!isLoading && productsList.length > 0 && productsList[0] && (
+          <RelatedProducts
+            currentProductSlug={productsList[0].slug}
+            tag="Similar Medical Devices"
+            title={productsList[0].category_name ? `Similar ${productsList[0].category_name}` : 'Similar Medical Devices'}
+            subtitle="Other models you may also be interested in comparing side-by-side."
+            onAddCompare={handleAddProduct}
+          />
         )}
       </div>
 

@@ -15,10 +15,12 @@ from app.models import (
     ProductImage,
     ProductPropertyValue,
     Property,
+    Sector,
     Subcategory,
     User,
 )
 from app.schemas.product import (
+    DocumentResponse,
     ProductComparePropertyRow,
     ProductCompareResponse,
     ProductCreate,
@@ -29,6 +31,7 @@ from app.schemas.product import (
     ProductResponse,
     ProductStatsResponse,
     ProductUpdate,
+    SectorResponse,
 )
 from app.services.filter_cache import filter_cache_service
 from app.services.storage import get_storage_service
@@ -135,6 +138,32 @@ def build_product_response(product: Product) -> ProductResponse:
     # If specifications column is empty or missing, populate with specs_dict
     final_specs = product.specifications if product.specifications else specs_dict
 
+    # Build list of attached documents
+    doc_responses = [
+        DocumentResponse(
+            id=doc.id,
+            product_id=doc.product_id,
+            title=doc.title,
+            file_url=doc.file_url,
+            type=doc.type,
+            created_at=doc.created_at,
+        )
+        for doc in (product.documents or [])
+    ]
+    # If product has brochure_url but no document matches it, add it as default Brochure
+    if product.brochure_url and not any(d.file_url == product.brochure_url for d in doc_responses):
+        doc_responses.insert(
+            0,
+            DocumentResponse(
+                id=0,
+                product_id=product.id,
+                title=f"{product.name} Brochure",
+                file_url=product.brochure_url,
+                type="Brochure",
+                created_at=product.created_at,
+            ),
+        )
+
     return ProductResponse(
         id=product.id,
         name=product.name,
@@ -152,6 +181,8 @@ def build_product_response(product: Product) -> ProductResponse:
         primary_image_url=product.primary_image_url,
         images=image_responses,
         brochure_url=product.brochure_url,
+        documents=doc_responses,
+        sectors=[SectorResponse(id=s.id, name=s.name) for s in (product.sectors or [])],
         status=product.status,
         specifications=final_specs,
         properties=prop_responses,
@@ -409,6 +440,7 @@ def list_products(
     category: Optional[str] = Query(None, description="Filter by category slug or ID"),
     subcategory: Optional[str] = Query(None, description="Filter by subcategory slug or ID"),
     brand: Optional[str] = Query(None, description="Filter by brand slug or ID"),
+    sector: Optional[str] = Query(None, description="Filter by healthcare sector name or ID"),
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status (Active, Draft)"),
     sort_by: Optional[str] = Query("name", pattern="^(id|name|sku|created_at)$"),
     sort_order: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
@@ -426,7 +458,9 @@ def list_products(
             joinedload(Product.category),
             joinedload(Product.subcategory),
             joinedload(Product.brand),
+            joinedload(Product.sectors),
             joinedload(Product.images),
+            joinedload(Product.documents),
             joinedload(Product.property_values).joinedload(ProductPropertyValue.property),
         )
     )
@@ -465,6 +499,12 @@ def list_products(
             b = db.query(Brand).filter(Brand.slug == brand).first()
             if b:
                 query = query.filter(Product.brand_id == b.id)
+
+    if sector:
+        if sector.isdigit():
+            query = query.filter(Product.sectors.any(Sector.id == int(sector)))
+        else:
+            query = query.filter(Product.sectors.any(Sector.name.ilike(sector.strip())))
 
     if status_filter and status_filter.lower() != "all":
         query = query.filter(Product.status.ilike(status_filter.strip()))
@@ -582,6 +622,7 @@ def get_product(slug_or_id: str, db: Session = Depends(get_db)):
         joinedload(Product.category),
         joinedload(Product.brand),
         joinedload(Product.images),
+        joinedload(Product.documents),
         joinedload(Product.property_values).joinedload(ProductPropertyValue.property),
     )
 
@@ -728,7 +769,23 @@ def create_product(
                     value=prop_value,
                 )
             )
-            specs_dict[canonical_prop.name] = prop_value
+    # 3. Attach documents if provided
+    if payload.documents:
+        for doc_input in payload.documents:
+            if doc_input.file_url and doc_input.file_url.strip():
+                db.add(
+                    Document(
+                        product_id=product.id,
+                        title=doc_input.title.strip() if doc_input.title else f"{clean_name} Document",
+                        file_url=doc_input.file_url.strip(),
+                        type=doc_input.type.strip() if doc_input.type else "Brochure",
+                    )
+                )
+
+    # 4. Attach healthcare sectors if provided
+    if payload.sector_ids:
+        sectors = db.query(Sector).filter(Sector.id.in_(payload.sector_ids)).all()
+        product.sectors = sectors
 
     product.specifications = specs_dict
     db.commit()
@@ -755,6 +812,7 @@ def update_product(
         .options(
             joinedload(Product.images),
             joinedload(Product.property_values),
+            joinedload(Product.sectors),
         )
         .filter(Product.id == product_id)
         .first()
@@ -922,6 +980,36 @@ def update_product(
             specs_dict[canonical_prop.name] = prop_value
 
         product.specifications = specs_dict
+
+    # Update attached documents if provided
+    if payload.documents is not None:
+        storage = get_storage_service()
+        old_docs = db.query(Document).filter(Document.product_id == product.id).all()
+        old_urls = {d.file_url.strip() for d in old_docs if d.file_url}
+        new_urls = {d.file_url.strip() for d in payload.documents if d.file_url}
+        removed_urls = old_urls - new_urls
+        for removed_url in removed_urls:
+            if not is_media_in_use(db, removed_url, exclude_product_id=product.id):
+                storage.delete_file(removed_url)
+        db.query(Document).filter(Document.product_id == product.id).delete()
+        for doc_in in payload.documents:
+            if doc_in.file_url and doc_in.file_url.strip():
+                db.add(
+                    Document(
+                        product_id=product.id,
+                        title=doc_in.title.strip() if doc_in.title else f"{product.name} Document",
+                        file_url=doc_in.file_url.strip(),
+                        type=doc_in.type.strip() if doc_in.type else "Brochure",
+                    )
+                )
+
+    # Update healthcare sectors if provided
+    if payload.sector_ids is not None:
+        if payload.sector_ids:
+            sectors = db.query(Sector).filter(Sector.id.in_(payload.sector_ids)).all()
+            product.sectors = sectors
+        else:
+            product.sectors = []
 
     db.commit()
     db.refresh(product)

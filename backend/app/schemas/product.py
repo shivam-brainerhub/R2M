@@ -20,6 +20,51 @@ class ProductImageResponse(ProductImageBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class SectorResponse(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DocumentBase(BaseModel):
+    title: str
+    file_url: str
+    type: str = "Brochure"  # Brochure, Specifications, User Manual, Certificate
+
+
+class DocumentCreate(DocumentBase):
+    pass
+
+
+class DocumentResponse(DocumentBase):
+    id: int
+    product_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ResourceItemResponse(BaseModel):
+    id: int
+    title: str
+    file_url: str
+    type: str
+    product_id: Optional[int] = None
+    product_name: Optional[str] = None
+    product_slug: Optional[str] = None
+    product_sku: Optional[str] = None
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+    category_slug: Optional[str] = None
+    brand_id: Optional[int] = None
+    brand_name: Optional[str] = None
+    brand_logo_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProductPropertyInput(BaseModel):
     property_id: Optional[int] = None
     name: str = Field(..., description="Property name e.g. 'Display Size'")
@@ -54,6 +99,8 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     images: Optional[List[Union[str, ProductImageCreate]]] = []
     properties: Optional[List[ProductPropertyInput]] = []
+    documents: Optional[List[DocumentCreate]] = []
+    sector_ids: Optional[List[int]] = []
 
 
 class ProductUpdate(BaseModel):
@@ -71,6 +118,8 @@ class ProductUpdate(BaseModel):
     meta_description: Optional[str] = None
     images: Optional[List[Union[str, ProductImageCreate]]] = None
     properties: Optional[List[ProductPropertyInput]] = None
+    documents: Optional[List[DocumentCreate]] = None
+    sector_ids: Optional[List[int]] = None
 
 
 class ProductResponse(ProductBase):
@@ -83,6 +132,8 @@ class ProductResponse(ProductBase):
     primary_image_url: Optional[str] = None
     images: List[ProductImageResponse] = []
     properties: List[ProductPropertyValueResponse] = []
+    documents: List[DocumentResponse] = []
+    sectors: List[SectorResponse] = []
     specifications: Optional[Dict[str, Any]] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -153,6 +204,12 @@ class PropertyGroupFilterOption(BaseModel):
     options: List[PropertyValueOption] = []
 
 
+class SectorFilterOption(BaseModel):
+    id: int
+    name: str
+    count: int
+
+
 class AvailabilityFilterOption(BaseModel):
     active_count: int
     brochure_count: int
@@ -162,6 +219,7 @@ class ProductFilterOptionsResponse(BaseModel):
     total_products: int
     categories: List[CategoryFilterOption] = []
     brands: List[BrandFilterOption] = []
+    sectors: List[SectorFilterOption] = []
     properties: List[PropertyGroupFilterOption] = []
     availability: AvailabilityFilterOption
 

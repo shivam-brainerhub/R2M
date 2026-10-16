@@ -150,12 +150,24 @@ export default function Footer() {
 
         {/* Column 3: Company & Partners (Single, distinct, useful pages) */}
         <div>
-          <h4 className="font-semibold mb-4 text-gold text-sm uppercase tracking-wider">Company & Partners</h4>
+          <h4 className="font-semibold mb-4 text-gold text-sm uppercase tracking-wider">Company &amp; Solutions</h4>
           <ul className="space-y-2.5 text-xs sm:text-sm text-gray-300">
             <li>
               <Link href="/about" className="hover:text-gold transition-colors duration-200 flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-sm! text-gold/70">chevron_right</span>
                 <span>About SA Healthcare</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/solutions" className="hover:text-gold transition-colors duration-200 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm! text-gold/70">chevron_right</span>
+                <span>Solutions &amp; Services</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/resources" className="hover:text-gold transition-colors duration-200 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm! text-gold/70">chevron_right</span>
+                <span>Resource Centre</span>
               </Link>
             </li>
             <li>

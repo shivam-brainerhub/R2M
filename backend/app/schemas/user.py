@@ -9,12 +9,14 @@ class UserBase(BaseModel):
     username: str
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class UserProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class UserRegister(BaseModel):
@@ -23,6 +25,7 @@ class UserRegister(BaseModel):
     password: str
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    organization: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -36,6 +39,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    organization: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
 

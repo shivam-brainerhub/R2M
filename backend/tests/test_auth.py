@@ -17,12 +17,16 @@ def test_register_public_user_success(client: TestClient):
         "username": f"user_{unique_id}",
         "password": "StrongPassword123!",
         "full_name": "Dr. John Test",
+        "phone": "+27 21 555 9876",
+        "organization": "Groote Schuur Hospital",
     }
     response = client.post("/api/auth/register", json=payload)
     assert response.status_code == 201
     data = response.json()
     assert data["email"] == payload["email"]
     assert data["username"] == payload["username"]
+    assert data["phone"] == payload["phone"]
+    assert data["organization"] == payload["organization"]
     assert data["role"] == "user"
     assert data["is_active"] is True
     assert "hashed_password" not in data
@@ -283,21 +287,24 @@ def test_email_verification_flow(client: TestClient):
 
 
 def test_update_profile_success(client: TestClient, user_token_headers):
-    # Update full_name and phone
+    # Update full_name, phone, and organization
     payload = {
         "full_name": "Dr. Johan Update",
         "phone": "+27 21 555 1234",
+        "organization": "Mediclinic Panorama",
     }
     response = client.put("/api/auth/me", headers=user_token_headers, json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["full_name"] == "Dr. Johan Update"
     assert data["phone"] == "+27 21 555 1234"
+    assert data["organization"] == "Mediclinic Panorama"
 
     # Verify get me returns updated data
     me_resp = client.get("/api/auth/me", headers=user_token_headers)
     assert me_resp.status_code == 200
     assert me_resp.json()["phone"] == "+27 21 555 1234"
+    assert me_resp.json()["organization"] == "Mediclinic Panorama"
 
 
 def test_update_profile_duplicate_email(client: TestClient, user_token_headers, test_admin_user):

@@ -76,6 +76,49 @@ def get_optional_current_user(
     return None
 
 
+def get_current_user_from_header_or_query(
+    token_header: Optional[str] = Depends(oauth2_scheme),
+    token: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> User:
+    effective_token = token_header or token
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required to download official manufacturer documentation. Please sign in.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    if not effective_token:
+        raise credentials_exception
+
+    payload = decode_token(effective_token)
+    if payload is None:
+        raise credentials_exception
+
+    token_type = payload.get("type")
+    if token_type != "access":
+        raise credentials_exception
+
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
+        raise credentials_exception
+
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated",
+        )
+
+    return user
+
 
 def require_admin(
     current_user: User = Depends(get_current_user),

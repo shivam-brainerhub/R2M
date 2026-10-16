@@ -34,10 +34,14 @@ export default function BrandSlider() {
       .then((data) => {
         if (data && data.length > 0) {
           setBrands(
-            data.map((b) => ({
-              name: b.name,
-              logo: b.logo_url ? getMediaUrl(b.logo_url) : null,
-            }))
+            data.map((b) => {
+              const rawLogo = b.logo_url?.trim();
+              const hasLogo = rawLogo && rawLogo !== '' && rawLogo !== 'null' && rawLogo !== '/null';
+              return {
+                name: b.name,
+                logo: hasLogo ? getMediaUrl(rawLogo) : null,
+              };
+            })
           );
         }
       })
@@ -55,14 +59,20 @@ export default function BrandSlider() {
       {/* Infinite Marquee Track */}
       <div className="animate-marquee flex items-center [animation-duration:90s]">
         {displayBrands.map((brand, idx) => {
-          const hasValidLogo = Boolean(brand.logo && !failedImages[`${brand.name}-${idx}`]);
+          const hasValidLogo = Boolean(
+            brand.logo &&
+            brand.logo.trim() !== '' &&
+            brand.logo !== 'null' &&
+            brand.logo !== '/null' &&
+            !failedImages[brand.name]
+          );
 
           return (
             <Link
               key={`${brand.name}-${idx}`}
               href={`/products?brand=${encodeURIComponent(brand.name)}`}
               title={`View ${brand.name} products`}
-              className="flex-none mx-6 md:mx-10 flex items-center justify-center h-20 md:h-24 group transition-transform duration-300 hover:scale-110 cursor-pointer"
+              className="flex-none mx-6 md:mx-10 flex items-center justify-center h-20 md:h-24 group transition-transform duration-300 hover:scale-105 cursor-pointer"
             >
               {hasValidLogo && brand.logo ? (
                 <div className="relative h-18 md:h-22 w-44 md:w-52 flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity duration-300">
@@ -74,15 +84,19 @@ export default function BrandSlider() {
                     style={{ width: 'auto', height: 'auto' }}
                     className="object-contain max-h-16 md:max-h-20 max-w-42.5 md:max-w-50"
                     onError={() => {
-                      setFailedImages((prev) => ({ ...prev, [`${brand.name}-${idx}`]: true }));
+                      setFailedImages((prev) => ({ ...prev, [brand.name]: true }));
                     }}
                   />
                 </div>
-              ) : (
-                <span className="font-bold text-navy text-lg md:text-xl tracking-wide whitespace-nowrap group-hover:text-blue-600 transition-colors">
-                  {brand.name}
-                </span>
-              )}
+              ) : 
+              (
+                <div className="h-14 md:h-16 min-w-36 md:min-w-44 max-w-56 px-5 py-2.5 flex items-center justify-center group-hover:border-blue-400 group-hover:bg-white group-hover:shadow-xs transition-all duration-300">
+                  <span className="font-extrabold text-navy text-sm md:text-2xl tracking-wider uppercase whitespace-nowrap group-hover:text-blue-600 transition-colors text-center truncate">
+                    {brand.name}
+                  </span>
+                </div>
+              )
+              }
             </Link>
           );
         })}

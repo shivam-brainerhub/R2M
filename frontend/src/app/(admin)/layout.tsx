@@ -71,6 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
     { name: 'Users', href: '/admin/users', icon: 'group' },
+    { name: 'Categories & Brands', href: '/admin/categories', icon: 'category' },
     {
       name: 'Products',
       href: '/admin/products',
@@ -92,7 +93,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       badgeColor: 'bg-emerald-500',
     },
     { name: 'Site Content', href: '/admin/content', icon: 'edit_note' },
-    { name: 'Categories & Brands', href: '/admin/categories', icon: 'category' },
   ];
 
 

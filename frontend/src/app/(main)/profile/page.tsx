@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [editFullName, setEditFullName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editOrganization, setEditOrganization] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
   const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function ProfilePage() {
         full_name: editFullName.trim() || null,
         email: editEmail.trim().toLowerCase(),
         phone: editPhone.trim() || null,
+        organization: editOrganization.trim() || null,
       });
       setProfileSuccessMsg('Profile updated successfully!');
       setIsEditingProfile(false);
@@ -212,6 +214,7 @@ export default function ProfilePage() {
                     setEditFullName(user.full_name || '');
                     setEditEmail(user.email || '');
                     setEditPhone(user.phone || '');
+                    setEditOrganization(user.organization || '');
                     setProfileErrorMsg(null);
                     setProfileSuccessMsg(null);
                     setIsEditingProfile(true);
@@ -260,6 +263,17 @@ export default function ProfilePage() {
                   <div className="font-semibold text-navy mt-1">
                     {user.phone ? (
                       <span>{user.phone}</span>
+                    ) : (
+                      <span className="text-gray-400 font-normal italic">Not provided</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-xl sm:col-span-2">
+                  <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Organisation / Facility</div>
+                  <div className="font-semibold text-navy mt-1">
+                    {user.organization ? (
+                      <span>{user.organization}</span>
                     ) : (
                       <span className="text-gray-400 font-normal italic">Not provided</span>
                     )}
@@ -333,6 +347,23 @@ export default function ProfilePage() {
                     />
                     <span className="text-[10px] text-gray-400 mt-1 block">
                       Auto-fills your telephone when requesting quotes.
+                    </span>
+                  </div>
+
+                  {/* Organization */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Organisation / Facility
+                    </label>
+                    <input
+                      type="text"
+                      value={editOrganization}
+                      onChange={(e) => setEditOrganization(e.target.value)}
+                      placeholder="e.g. Groote Schuur Hospital / Mediclinic Panorama"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none text-navy bg-slate-50 focus:bg-white transition-all"
+                    />
+                    <span className="text-[10px] text-gray-400 mt-1 block">
+                      Auto-fills your facility details on official RFQs.
                     </span>
                   </div>
                 </div>

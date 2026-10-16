@@ -63,6 +63,8 @@ def register_public_user(user_in: UserRegister, db: Session = Depends(get_db)):
         email=user_in.email,
         username=user_in.username,
         full_name=user_in.full_name,
+        phone=user_in.phone,
+        organization=user_in.organization,
         hashed_password=get_password_hash(user_in.password),
         role=UserRole.USER,
         is_active=True,
@@ -313,6 +315,9 @@ def update_current_user_profile(
 
     if profile_in.phone is not None:
         current_user.phone = profile_in.phone
+
+    if profile_in.organization is not None:
+        current_user.organization = profile_in.organization
 
     db.commit()
     db.refresh(current_user)

@@ -44,6 +44,8 @@ export default function AdminUsersPage() {
     email: '',
     username: '',
     full_name: '',
+    phone: '',
+    organization: '',
     password: '',
     role: 'user' as 'admin' | 'user',
   });
@@ -242,7 +244,7 @@ export default function AdminUsersPage() {
       setUsers((prev) => [created, ...prev]);
       showToast(`User ${created.username} created successfully.`, 'success');
       setCreateUserModalOpen(false);
-      setNewUserData({ email: '', username: '', full_name: '', password: '', role: 'user' });
+      setNewUserData({ email: '', username: '', full_name: '', phone: '', organization: '', password: '', role: 'user' });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to create user';
       setCreateUserError(msg);
@@ -607,6 +609,12 @@ export default function AdminUsersPage() {
                             <div className="text-xs text-gray-500 truncate">
                               {u.full_name || <span className="italic text-gray-400">No name specified</span>}
                             </div>
+                            {u.organization && (
+                              <div className="text-[11px] text-gray-600 font-medium truncate flex items-center gap-1 mt-0.5">
+                                <span className="material-symbols-outlined text-[12px] text-gray-400">corporate_fare</span>
+                                <span>{u.organization}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -778,6 +786,14 @@ export default function AdminUsersPage() {
               <div className="flex justify-between py-1.5 border-b border-gray-50">
                 <span className="text-gray-500 font-medium">Full Name</span>
                 <span className="text-gray-800">{selectedUser.full_name || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Organization / Facility</span>
+                <span className="text-gray-800">{selectedUser.organization || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Telephone / Mobile</span>
+                <span className="text-gray-800">{selectedUser.phone || 'N/A'}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-gray-50">
                 <span className="text-gray-500 font-medium">Email Address</span>
@@ -1058,6 +1074,28 @@ export default function AdminUsersPage() {
                   value={newUserData.full_name}
                   onChange={(e) => setNewUserData({ ...newUserData, full_name: e.target.value })}
                   placeholder="e.g. Dr. John Smith"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Organisation / Facility</label>
+                <input
+                  type="text"
+                  value={newUserData.organization}
+                  onChange={(e) => setNewUserData({ ...newUserData, organization: e.target.value })}
+                  placeholder="e.g. Mediclinic Panorama / Public Hospital"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold mb-1">Telephone / Mobile</label>
+                <input
+                  type="tel"
+                  value={newUserData.phone}
+                  onChange={(e) => setNewUserData({ ...newUserData, phone: e.target.value })}
+                  placeholder="e.g. +27 21 555 0100"
                   className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-xs sm:text-sm"
                 />
               </div>

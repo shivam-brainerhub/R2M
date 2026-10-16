@@ -198,23 +198,26 @@ export default function HomeContent() {
             )}
 
             {/* Popular Searches */}
-            {hero.popularSearches && hero.popularSearches.length > 0 && (
-              <div className="flex flex-wrap gap-2.5 items-center">
-                <span className="text-white font-medium text-sm mr-2">
-                  Popular searches:
-                </span>
-                {hero.popularSearches.map((term) => (
-                  <button
-                    key={term}
-                    type="button"
-                    onClick={() => handlePopularSearchClick(term)}
-                    className="border border-white/60 text-white rounded-full px-5 py-1.5 hover:bg-white/10 cursor-pointer transition-colors backdrop-blur-sm text-xs font-medium"
-                  >
-                    {term}
-                  </button>
-                ))}
-              </div>
-            )}
+            {hero.popularSearches &&
+              hero.popularSearches.filter((term) => term && term.trim().length > 0).length > 0 && (
+                <div className="flex flex-wrap gap-2.5 items-center">
+                  <span className="text-white font-medium text-sm mr-2">
+                    Popular searches:
+                  </span>
+                  {hero.popularSearches
+                    .filter((term) => term && term.trim().length > 0)
+                    .map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => handlePopularSearchClick(term)}
+                        className="border border-white/60 text-white rounded-full px-5 py-1.5 hover:bg-white/10 cursor-pointer transition-colors backdrop-blur-sm text-xs font-medium"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                </div>
+              )}
           </div>
         </div>
 
@@ -355,7 +358,7 @@ export default function HomeContent() {
               { title: 'Veterinary\nPractices', icon: 'pets' },
             ].map((sector, idx) => (
               <Link
-                href="/sectors"
+                href={`/products?sector=${encodeURIComponent(sector.title.replace('\n', ' '))}`}
                 key={idx}
                 className="snap-start flex-none w-52 bg-white border border-gray-100 p-7 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 active:scale-[0.98] flex flex-col items-center text-center group"
               >

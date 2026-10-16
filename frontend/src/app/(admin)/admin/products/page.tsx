@@ -9,11 +9,13 @@ import {
   categoriesApi,
   brandsApi,
   propertiesApi,
+  sectorsApi,
   ProductItem,
   ProductStatsResponse,
   CategoryItem,
   BrandItem,
   PropertyItem,
+  SectorItem,
   ProductPropertyItem,
   ProductImageItem,
   getMediaUrl,
@@ -22,6 +24,12 @@ import {
 import CustomSelect from '@/components/CustomSelect';
 import PropertyCombobox from '@/components/admin/PropertyCombobox';
 
+const ATTACHED_DOC_TYPES = [
+  { value: 'Brochure', label: 'Brochure', icon: 'picture_as_pdf' },
+  { value: 'Specifications', label: 'Specifications', icon: 'analytics' },
+  { value: 'User Manual', label: 'User Manual', icon: 'menu_book' },
+  { value: 'Certificate', label: 'Certificate', icon: 'verified' },
+];
 
 export default function AdminProductsPage() {
   const { token } = useAuth();
@@ -32,6 +40,7 @@ export default function AdminProductsPage() {
   const [availableCategories, setAvailableCategories] = useState<CategoryItem[]>([]);
   const [availableBrands, setAvailableBrands] = useState<BrandItem[]>([]);
   const [availableProperties, setAvailableProperties] = useState<PropertyItem[]>([]);
+  const [availableSectors, setAvailableSectors] = useState<SectorItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [brandFilter, setBrandFilter] = useState('All');
@@ -52,14 +61,24 @@ export default function AdminProductsPage() {
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [subcategoryId, setSubcategoryId] = useState<number | ''>('');
   const [brandId, setBrandId] = useState<number | ''>('');
+  const [selectedSectorIds, setSelectedSectorIds] = useState<number[]>([]);
   const [shortDesc, setShortDesc] = useState('');
   const [desc, setDesc] = useState('');
   const [status, setStatus] = useState<'Active' | 'Draft'>('Active');
   const [brochureUrl, setBrochureUrl] = useState('');
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
-  // Staged brochure file (Uploads to backend ONLY on save)
   const [selectedBrochureFile, setSelectedBrochureFile] = useState<File | null>(null);
+
+  // Additional Attached Documents State (Multiple document types: brochures, spec sheets, user manuals, certificates)
+  interface AttachedDocItemState {
+    id: string;
+    title: string;
+    file_url?: string;
+    type: string;
+    file?: File;
+  }
+  const [attachedDocs, setAttachedDocs] = useState<AttachedDocItemState[]>([]);
 
   // Images State (Supports both existing server URLs and locally staged files)
   interface ImageItemState {
@@ -101,12 +120,13 @@ export default function AdminProductsPage() {
 
   const reloadData = useCallback(async () => {
     try {
-      const [prodsData, statsData, catsData, brandsData, propsData] = await Promise.all([
+      const [prodsData, statsData, catsData, brandsData, propsData, sectorsData] = await Promise.all([
         productsApi.listProducts({ limit: 100 }),
         productsApi.getStats().catch(() => null),
         categoriesApi.listCategories().catch(() => []),
         brandsApi.listBrands().catch(() => []),
         propertiesApi.listProperties().catch(() => []),
+        sectorsApi.listSectors().catch(() => []),
       ]);
 
       setProducts(prodsData);
@@ -114,6 +134,7 @@ export default function AdminProductsPage() {
       setAvailableCategories(catsData);
       setAvailableBrands(brandsData);
       setAvailableProperties(propsData);
+      setAvailableSectors(sectorsData);
     } catch (err: unknown) {
       const msg = err instanceof ApiError ? err.message : 'Failed to reload products catalogue';
       showToast(msg);
@@ -128,14 +149,16 @@ export default function AdminProductsPage() {
       categoriesApi.listCategories().catch(() => []),
       brandsApi.listBrands().catch(() => []),
       propertiesApi.listProperties().catch(() => []),
+      sectorsApi.listSectors().catch(() => []),
     ])
-      .then(([prodsData, statsData, catsData, brandsData, propsData]) => {
+      .then(([prodsData, statsData, catsData, brandsData, propsData, sectorsData]) => {
         if (!active) return;
         setProducts(prodsData);
         setStats(statsData);
         setAvailableCategories(catsData);
         setAvailableBrands(brandsData);
         setAvailableProperties(propsData);
+        setAvailableSectors(sectorsData);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -251,6 +274,7 @@ export default function AdminProductsPage() {
     setCategoryId('');
     setSubcategoryId('');
     setBrandId('');
+    setSelectedSectorIds([]);
     setShortDesc('');
     setDesc('');
     setStatus('Active');
@@ -260,6 +284,7 @@ export default function AdminProductsPage() {
     setMetaDescription('');
     setImages([]);
     setPropertyRows([]);
+    setAttachedDocs([]);
     setIsProductModalOpen(true);
   };
 
@@ -273,6 +298,7 @@ export default function AdminProductsPage() {
     setCategoryId(product.category_id || '');
     setSubcategoryId(product.subcategory_id || '');
     setBrandId(product.brand_id || '');
+    setSelectedSectorIds(product.sectors ? product.sectors.map((s) => s.id) : []);
     setShortDesc(product.short_description || '');
     setDesc(product.description || '');
     setStatus(product.status);
@@ -280,6 +306,20 @@ export default function AdminProductsPage() {
     setSelectedBrochureFile(null);
     setMetaTitle(product.meta_title || '');
     setMetaDescription(product.meta_description || '');
+
+    // Map Attached Documents
+    if (product.documents && product.documents.length > 0) {
+      setAttachedDocs(
+        product.documents.map((d, idx) => ({
+          id: `existing-doc-${d.id || idx}`,
+          title: d.title,
+          file_url: d.file_url,
+          type: d.type || 'Brochure',
+        }))
+      );
+    } else {
+      setAttachedDocs([]);
+    }
 
     // Map Images (Existing server images)
     if (product.images && product.images.length > 0) {
@@ -394,6 +434,37 @@ export default function AdminProductsPage() {
     setBrochureUrl('');
   };
 
+  // Attached Document Helpers
+  const handleAddAttachedDocFile = (e: React.ChangeEvent<HTMLInputElement>, defaultType: string = 'Brochure') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const cleanFileName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    const newDoc: AttachedDocItemState = {
+      id: `staged-doc-${Date.now()}-${Math.random()}`,
+      title: cleanFileName,
+      type: defaultType,
+      file,
+    };
+    setAttachedDocs((prev) => [...prev, newDoc]);
+    e.target.value = '';
+  };
+
+  const handleRemoveAttachedDoc = (index: number) => {
+    setAttachedDocs((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleUpdateAttachedDocTitle = (index: number, newTitle: string) => {
+    setAttachedDocs((prev) =>
+      prev.map((d, idx) => (idx === index ? { ...d, title: newTitle } : d))
+    );
+  };
+
+  const handleUpdateAttachedDocType = (index: number, newType: string) => {
+    setAttachedDocs((prev) =>
+      prev.map((d, idx) => (idx === index ? { ...d, type: newType } : d))
+    );
+  };
+
   // Dynamic Property Helpers
   const handleAddPropertyRow = () => {
     const unusedProp = availableProperties.find(
@@ -504,6 +575,23 @@ export default function AdminProductsPage() {
         finalImages[0].is_primary = true;
       }
 
+      // Step 3: Upload staged attached documents if any
+      const finalDocs = [];
+      for (const docItem of attachedDocs) {
+        let finalDocUrl = docItem.file_url;
+        if (docItem.file) {
+          const uploadRes = await productsApi.uploadBrochure(token, docItem.file);
+          finalDocUrl = uploadRes.url;
+        }
+        if (finalDocUrl) {
+          finalDocs.push({
+            title: docItem.title.trim() || 'Product Document',
+            file_url: finalDocUrl,
+            type: docItem.type || 'Brochure',
+          });
+        }
+      }
+
       if (editingProduct) {
         const payload = {
           name: name.trim(),
@@ -512,10 +600,12 @@ export default function AdminProductsPage() {
           category_id: categoryId ? Number(categoryId) : null,
           subcategory_id: subcategoryId ? Number(subcategoryId) : null,
           brand_id: brandId ? Number(brandId) : null,
+          sector_ids: selectedSectorIds,
           short_description: shortDesc.trim() || undefined,
           description: desc.trim() || undefined,
           status,
           brochure_url: finalBrochureUrl,
+          documents: finalDocs,
           meta_title: metaTitle.trim() || undefined,
           meta_description: metaDescription.trim() || undefined,
           images: finalImages,
@@ -533,10 +623,12 @@ export default function AdminProductsPage() {
           category_id: categoryId ? Number(categoryId) : null,
           subcategory_id: subcategoryId ? Number(subcategoryId) : null,
           brand_id: brandId ? Number(brandId) : null,
+          sector_ids: selectedSectorIds,
           short_description: shortDesc.trim() || undefined,
           description: desc.trim() || undefined,
           status,
           brochure_url: finalBrochureUrl,
+          documents: finalDocs,
           meta_title: metaTitle.trim() || undefined,
           meta_description: metaDescription.trim() || undefined,
           images: finalImages,
@@ -948,6 +1040,15 @@ export default function AdminProductsPage() {
                             <span className="text-gray-400">↳</span> {p.subcategory_name}
                           </div>
                         )}
+                        {p.sectors && p.sectors.length > 0 && (
+                          <div
+                            className="text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded font-semibold inline-flex items-center gap-1 mt-1 border border-blue-100/60"
+                            title={p.sectors.map((s) => s.name).join(', ')}
+                          >
+                            <span className="material-symbols-outlined text-[12px]!">health_and_safety</span>
+                            {p.sectors.length} {p.sectors.length === 1 ? 'Sector' : 'Sectors'}
+                          </div>
+                        )}
                       </td>
 
                       {/* Images Count */}
@@ -1227,9 +1328,6 @@ export default function AdminProductsPage() {
                     {/* Compact Chip Preview */}
                     {categoryId && relatedPreview.items.length > 0 && (
                       <div className="flex items-center gap-2 overflow-x-auto pt-2 mt-2 border-t border-slate-200/60">
-                        {/* <span className="text-[10px] uppercase font-bold text-gray-400 shrink-0">
-                          Storefront Preview:
-                        </span> */}
                         {relatedPreview.items.map((item) => (
                           <div
                             key={item.id}
@@ -1254,6 +1352,70 @@ export default function AdminProductsPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Healthcare Sectors Multi-Select */}
+                  <div className="sm:col-span-2 pt-2 border-t border-slate-200/80">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                          Healthcare Sectors
+                        </label>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          Select the clinical sectors where this equipment is used (used for catalogue sidebar filtering and sector landing pages).
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSectorIds(availableSectors.map((s) => s.id))}
+                          className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-gray-300">&bull;</span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSectorIds([])}
+                          className="text-[11px] text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {availableSectors.map((sec) => {
+                        const isSelected = selectedSectorIds.includes(sec.id);
+                        return (
+                          <button
+                            key={sec.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSectorIds((prev) =>
+                                prev.includes(sec.id)
+                                  ? prev.filter((id) => id !== sec.id)
+                                  : [...prev, sec.id]
+                              );
+                            }}
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-50 border-blue-600 text-blue-900 shadow-2xs ring-1 ring-blue-600/20'
+                                : 'bg-slate-50 border-gray-200 text-gray-700 hover:bg-white hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="truncate pr-2">{sec.name}</span>
+                            <span
+                              className={`material-symbols-outlined text-base! shrink-0 transition-colors ${
+                                isSelected ? 'text-blue-600' : 'text-gray-400'
+                              }`}
+                            >
+                              {isSelected ? 'check_box' : 'check_box_outline_blank'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1482,6 +1644,100 @@ export default function AdminProductsPage() {
                           className="hidden"
                         />
                       </label>
+                    )}
+                  </div>
+
+                  {/* Additional Attached Documents (Multiple Document Types) */}
+                  <div className="mt-6 pt-5 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-navy">
+                          Multiple Document Types (Spec Sheets, Manuals, Certificates)
+                        </h4>
+                        <p className="text-[11px] text-gray-400">
+                          Attach supplementary documentation, clinical user guides, and regulatory certificates.
+                        </p>
+                      </div>
+                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl cursor-pointer transition-colors shadow-2xs">
+                        <span className="material-symbols-outlined text-sm!">add</span>
+                        <span>Add Document</span>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => handleAddAttachedDocFile(e, 'Specifications')}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {attachedDocs.length === 0 ? (
+                      <div className="text-center py-4 border border-dashed border-gray-200 rounded-xl bg-slate-50/50 text-gray-400 text-xs">
+                        No additional documents attached yet. Click &quot;Add Document&quot; above to attach manuals, technical sheets, or certificates.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {attachedDocs.map((doc, idx) => (
+                          <div
+                            key={doc.id || idx}
+                            className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-slate-50 border border-gray-200 rounded-xl"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="material-symbols-outlined text-lg! text-blue-600 shrink-0">
+                                description
+                              </span>
+                              <input
+                                type="text"
+                                value={doc.title}
+                                onChange={(e) => handleUpdateAttachedDocTitle(idx, e.target.value)}
+                                placeholder="Document Title (e.g. Clinical User Manual)"
+                                className="flex-1 px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-navy focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <CustomSelect
+                                value={doc.type || 'Brochure'}
+                                onChange={(val) => handleUpdateAttachedDocType(idx, val)}
+                                options={
+                                  doc.type && !ATTACHED_DOC_TYPES.some((o) => o.value.toLowerCase() === doc.type.toLowerCase())
+                                    ? [...ATTACHED_DOC_TYPES, { value: doc.type, label: doc.type, icon: 'description' }]
+                                    : ATTACHED_DOC_TYPES
+                                }
+                                size="sm"
+                                variant="white"
+                                className="w-full sm:w-44"
+                              />
+
+                              {doc.file_url && (
+                                <a
+                                  href={getMediaUrl(doc.file_url)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 rounded-lg hover:bg-white transition-colors"
+                                  title="Preview document"
+                                >
+                                  <span className="material-symbols-outlined text-base!">open_in_new</span>
+                                </a>
+                              )}
+
+                              {doc.file && (
+                                <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                  Staged
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveAttachedDoc(idx)}
+                                className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                                title="Remove document"
+                              >
+                                <span className="material-symbols-outlined text-base!">delete</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

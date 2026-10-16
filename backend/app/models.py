@@ -187,6 +187,7 @@ class User(TimestampMixin, Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
+    organization = Column(String, nullable=True)
     role = Column(
         Enum(UserRole, name="user_role_enum", native_enum=False),
         default=UserRole.USER,

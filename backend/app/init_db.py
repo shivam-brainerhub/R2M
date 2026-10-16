@@ -9,10 +9,12 @@ from app.models import (
     ProductImage,
     ProductPropertyValue,
     Property,
+    Sector,
     SiteContent,
     Subcategory,
     User,
     UserRole,
+    product_sector_association,
 )
 
 
@@ -40,6 +42,16 @@ SEED_BRANDS = [
     {"name": "Welch Allyn", "slug": "welch-allyn", "country": "USA", "description": "Leading frontline diagnostic equipment and physical assessment instruments.", "logo_url": "/media/brands/welch_allyn.png", "featured_in_slider": True},
     {"name": "BD", "slug": "bd", "country": "USA", "description": "Medical technology improving drug delivery, vaccine delivery and diagnostics.", "logo_url": "/media/brands/bd.png", "featured_in_slider": True},
     {"name": "3M", "slug": "3m", "country": "USA", "description": "Critical infection prevention, wound care, Littmann stethoscopes and PPE.", "logo_url": "/media/brands/3m.png", "featured_in_slider": True},
+]
+
+SEED_SECTORS = [
+    {"name": "Hospitals & Healthcare Groups"},
+    {"name": "Clinics & Primary Care"},
+    {"name": "Pharmacies & Retail Healthcare"},
+    {"name": "Public Healthcare"},
+    {"name": "Laboratories"},
+    {"name": "Specialist Care"},
+    {"name": "Veterinary Practices"},
 ]
 
 DEFAULT_SITE_CONTENTS = {
@@ -163,6 +175,23 @@ DEFAULT_SITE_CONTENTS = {
 <p>For commercial agreements, tender submissions, or warranty inquiries, contact our commercial department at <a href="mailto:quotes@sahealthcare.com">quotes@sahealthcare.com</a> or +27 11 555 0100 (15 Medical Boulevard, Sandton, Johannesburg).</p>""",
         },
     },
+    "products_page": {
+        "title": "Product Catalogue Search",
+        "content": {
+            "title": "Browse the Catalogue",
+            "subtitle": "Explore our range of medical products from trusted global manufacturers.",
+            "search_placeholder": "Search by product, model number, manufacturer...",
+            "popular_searches": [
+                "Patient Monitor",
+                "Hospital Bed",
+                "ECG",
+                "Pulse Oximeter",
+                "Infusion Pump",
+                "Defibrillator",
+                "Ultrasound",
+            ],
+        },
+    },
 }
 
 
@@ -266,6 +295,58 @@ def init_db(db: Session) -> None:
             db.add(prop)
         db.commit()
         logger.info("Initial properties seeded successfully.")
+
+    # 4b. Seed initial sectors if empty
+    if db.query(Sector).count() == 0:
+        logger.info("Seeding initial healthcare sectors...")
+        for sec_data in SEED_SECTORS:
+            sector = Sector(name=sec_data["name"])
+            db.add(sector)
+        db.commit()
+        logger.info("Initial healthcare sectors seeded successfully.")
+
+    # 4c. Associate initial products to sectors if association table is empty
+    assoc_rows = db.execute(product_sector_association.select()).fetchall()
+    if len(assoc_rows) == 0:
+        logger.info("Associating catalogue products to initial sectors...")
+        all_sectors = {s.name: s for s in db.query(Sector).all()}
+        all_products = db.query(Product).all()
+
+        for p in all_products:
+            cat_code = p.category.code if p.category else ""
+            cat_name = p.category.name.lower() if p.category else ""
+            prod_name = p.name.lower()
+
+            p_sectors = []
+            if cat_code == "09" or "veterinary" in cat_name or "vet" in prod_name:
+                if "Veterinary Practices" in all_sectors:
+                    p_sectors.append(all_sectors["Veterinary Practices"])
+            elif cat_code == "08" or "lab" in cat_name:
+                if "Laboratories" in all_sectors:
+                    p_sectors.append(all_sectors["Laboratories"])
+            else:
+                # General clinical / medical equipment
+                if cat_code in ["01", "02", "04", "05", "07"]:
+                    if "Hospitals & Healthcare Groups" in all_sectors:
+                        p_sectors.append(all_sectors["Hospitals & Healthcare Groups"])
+                if cat_code in ["01", "03", "06"] or "clinic" in prod_name or "vital signs" in prod_name:
+                    if "Clinics & Primary Care" in all_sectors:
+                        p_sectors.append(all_sectors["Clinics & Primary Care"])
+                if cat_code in ["01", "03", "06"] and ("blood pressure" in prod_name or "thermometer" in prod_name or "bandage" in prod_name or "pulse oximeter" in prod_name or "wheelchair" in prod_name):
+                    if "Pharmacies & Retail Healthcare" in all_sectors:
+                        p_sectors.append(all_sectors["Pharmacies & Retail Healthcare"])
+                if cat_code in ["01", "02", "03", "04", "05", "06"]:
+                    if "Public Healthcare" in all_sectors:
+                        p_sectors.append(all_sectors["Public Healthcare"])
+                if cat_code in ["01", "05", "07"] and ("ecg" in prod_name or "defibrillator" in prod_name or "suction" in prod_name or "ventilator" in prod_name or "surgical" in prod_name or "holter" in prod_name or "doppler" in prod_name):
+                    if "Specialist Care" in all_sectors:
+                        p_sectors.append(all_sectors["Specialist Care"])
+
+            if p_sectors:
+                p.sectors = list(set(p_sectors))
+
+        db.commit()
+        logger.info("Catalogue products associated with initial sectors successfully.")
 
 
 

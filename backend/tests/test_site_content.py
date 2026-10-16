@@ -202,3 +202,76 @@ def test_admin_update_privacy_policy(client, admin_token_headers):
     assert data["content"]["subtitle"] == "Updated POPIA Privacy Notice for Healthcare Clients"
     assert data["content"]["lastUpdated"] == "November 2026"
     assert "Updated content describing patient" in data["content"]["content"]
+
+
+def test_get_products_page_public(client):
+    response = client.get("/api/content/products_page")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["key"] == "products_page"
+    assert "content" in data
+    assert data["content"]["title"] == "Browse the Catalogue"
+    assert "popularSearches" in data["content"]
+    assert len(data["content"]["popularSearches"]) > 0
+
+
+def test_admin_update_products_page(client, admin_token_headers):
+    updated_payload = {
+        "title": "Product Catalogue Search",
+        "content": {
+            "title": "Specialized Medical Equipment Catalogue",
+            "subtitle": "Discover world-class healthcare tools.",
+            "searchPlaceholder": "Search diagnostics, monitors, MRI...",
+            "popularSearches": ["MRI Scanner", "Surgical Table", "Endoscope"],
+        },
+    }
+    response = client.put(
+        "/api/content/products_page",
+        json=updated_payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["content"]["title"] == "Specialized Medical Equipment Catalogue"
+    assert data["content"]["searchPlaceholder"] == "Search diagnostics, monitors, MRI..."
+    assert data["content"]["popularSearches"] == ["MRI Scanner", "Surgical Table", "Endoscope"]
+
+    # Verify persisted via GET
+    get_res = client.get("/api/content/products_page")
+    assert get_res.status_code == 200
+    assert get_res.json()["content"]["popularSearches"] == ["MRI Scanner", "Surgical Table", "Endoscope"]
+
+
+def test_admin_update_products_page_empty_searches(client, admin_token_headers):
+    updated_payload = {
+        "title": "Product Catalogue Search",
+        "content": {
+            "title": "Specialized Medical Equipment Catalogue",
+            "popularSearches": [],
+        },
+    }
+    response = client.put(
+        "/api/content/products_page",
+        json=updated_payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["content"]["popularSearches"] == []
+
+    # Verify GET returns [] and not defaults
+    get_res = client.get("/api/content/products_page")
+    assert get_res.status_code == 200
+    assert get_res.json()["content"]["popularSearches"] == []
+
+
+def test_admin_reset_products_page(client, admin_token_headers):
+    response = client.post(
+        "/api/content/reset?key=products_page",
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "products_page" in data
+    assert data["products_page"]["title"] == "Browse the Catalogue"
+    assert len(data["products_page"]["popularSearches"]) == 7
+

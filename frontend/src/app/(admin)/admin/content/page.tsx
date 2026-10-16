@@ -10,6 +10,7 @@ import {
   WhyUsContent,
   CTAContent,
   LegalContent,
+  ProductsPageContent,
   ApiError,
 } from '@/lib/api';
 
@@ -20,10 +21,11 @@ import {
   DEFAULT_CTA,
   DEFAULT_PRIVACY_POLICY,
   DEFAULT_TERMS_OF_USE,
+  DEFAULT_PRODUCTS_PAGE,
 } from '@/lib/constants';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 
-type ContentTab = 'hero' | 'company' | 'why_us' | 'cta' | 'privacy_policy' | 'terms_of_use';
+type ContentTab = 'hero' | 'products_page' | 'company' | 'why_us' | 'cta' | 'privacy_policy' | 'terms_of_use';
 
 export default function AdminContentPage() {
   const { token } = useAuth();
@@ -34,14 +36,16 @@ export default function AdminContentPage() {
 
   // Content states
   const [heroContent, setHeroContent] = useState<HeroContent>(DEFAULT_HERO);
+  const [productsPageContent, setProductsPageContent] = useState<ProductsPageContent>(DEFAULT_PRODUCTS_PAGE);
   const [companyInfo, setCompanyInfo] = useState<CompanyContent>(DEFAULT_COMPANY);
   const [whyUsContent, setWhyUsContent] = useState<WhyUsContent>(DEFAULT_WHY_US);
   const [ctaContent, setCtaContent] = useState<CTAContent>(DEFAULT_CTA);
   const [privacyPolicy, setPrivacyPolicy] = useState<LegalContent>(DEFAULT_PRIVACY_POLICY);
   const [termsOfUse, setTermsOfUse] = useState<LegalContent>(DEFAULT_TERMS_OF_USE);
 
-  // New search tag input helper
+  // New search tag input helpers
   const [newTagInput, setNewTagInput] = useState('');
+  const [newProductTagInput, setNewProductTagInput] = useState('');
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -111,6 +115,14 @@ export default function AdminContentPage() {
                 : DEFAULT_PRIVACY_POLICY.content),
           });
         }
+        if (data.products_page) {
+          setProductsPageContent({
+            title: data.products_page.title || DEFAULT_PRODUCTS_PAGE.title,
+            subtitle: data.products_page.subtitle !== undefined ? data.products_page.subtitle : DEFAULT_PRODUCTS_PAGE.subtitle,
+            searchPlaceholder: data.products_page.searchPlaceholder || data.products_page.search_placeholder || DEFAULT_PRODUCTS_PAGE.searchPlaceholder,
+            popularSearches: data.products_page.popularSearches || data.products_page.popular_searches || DEFAULT_PRODUCTS_PAGE.popularSearches,
+          });
+        }
         if (data.terms_of_use) {
           setTermsOfUse({
             title: data.terms_of_use.title || DEFAULT_TERMS_OF_USE.title,
@@ -148,12 +160,15 @@ export default function AdminContentPage() {
 
     setIsSaving(true);
     try {
-      let contentToSave: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent | LegalContent = heroContent;
+      let contentToSave: Record<string, unknown> | HeroContent | CompanyContent | WhyUsContent | CTAContent | LegalContent | ProductsPageContent = heroContent;
       let title = '';
 
       if (sectionKey === 'hero') {
         contentToSave = heroContent;
         title = 'Homepage Hero & Search';
+      } else if (sectionKey === 'products_page') {
+        contentToSave = productsPageContent;
+        title = 'Product Catalogue Search';
       } else if (sectionKey === 'company') {
         contentToSave = companyInfo;
         title = 'Contact & Company Info';
@@ -195,6 +210,7 @@ export default function AdminContentPage() {
     try {
       await contentApi.updateBatch(token, {
         hero: heroContent,
+        products_page: productsPageContent,
         company: companyInfo,
         why_us: whyUsContent,
         cta: ctaContent,
@@ -225,6 +241,8 @@ export default function AdminContentPage() {
       const result = await contentApi.resetSection(token, sectionKey);
       if (sectionKey === 'hero' && result.hero) {
         setHeroContent({ ...DEFAULT_HERO, ...result.hero });
+      } else if (sectionKey === 'products_page' && result.products_page) {
+        setProductsPageContent({ ...DEFAULT_PRODUCTS_PAGE, ...result.products_page });
       } else if (sectionKey === 'company' && result.company) {
         setCompanyInfo({ ...DEFAULT_COMPANY, ...result.company });
       } else if (sectionKey === 'why_us' && result.why_us) {
@@ -262,6 +280,27 @@ export default function AdminContentPage() {
     const currentTags = heroContent.popularSearches || [];
     setHeroContent({
       ...heroContent,
+      popularSearches: currentTags.filter((t) => t !== tagToRemove),
+    });
+  };
+
+  const addProductPopularSearchTag = () => {
+    const trimmed = newProductTagInput.trim();
+    if (!trimmed) return;
+    const currentTags = productsPageContent.popularSearches || [];
+    if (!currentTags.includes(trimmed)) {
+      setProductsPageContent({
+        ...productsPageContent,
+        popularSearches: [...currentTags, trimmed],
+      });
+    }
+    setNewProductTagInput('');
+  };
+
+  const removeProductPopularSearchTag = (tagToRemove: string) => {
+    const currentTags = productsPageContent.popularSearches || [];
+    setProductsPageContent({
+      ...productsPageContent,
       popularSearches: currentTags.filter((t) => t !== tagToRemove),
     });
   };
@@ -316,6 +355,8 @@ export default function AdminContentPage() {
                 ? '/terms'
                 : activeTab === 'company'
                 ? '/contact'
+                : activeTab === 'products_page'
+                ? '/products'
                 : '/home'
             }
             target="_blank"
@@ -328,6 +369,8 @@ export default function AdminContentPage() {
                 ? 'Live Terms Page'
                 : activeTab === 'company'
                 ? 'Live Contact Page'
+                : activeTab === 'products_page'
+                ? 'Live Products Page'
                 : 'Live Homepage'}
             </span>
             <span className="material-symbols-outlined text-sm!">open_in_new</span>
@@ -359,6 +402,18 @@ export default function AdminContentPage() {
           >
             <span className="material-symbols-outlined text-base!">view_headline</span>
             <span>Homepage Hero &amp; Search</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('products_page')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'products_page'
+                ? 'bg-navy text-white shadow-xs'
+                : 'text-gray-600 hover:text-navy hover:bg-white'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base!">storefront</span>
+            <span>Product Catalogue Search</span>
           </button>
 
           <button
@@ -547,6 +602,11 @@ export default function AdminContentPage() {
               </p>
 
               <div className="flex flex-wrap gap-2 pt-1">
+                {(heroContent.popularSearches || []).length === 0 && (
+                  <p className="text-xs text-gray-400 italic py-1">
+                    No search tags configured. &ldquo;Popular searches:&rdquo; will be hidden on the hero banner.
+                  </p>
+                )}
                 {(heroContent.popularSearches || []).map((term) => (
                   <span
                     key={term}
@@ -664,18 +724,240 @@ export default function AdminContentPage() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-[11px] text-gray-300 font-medium mr-1">Popular searches:</span>
-                {(heroContent.popularSearches || []).map((t) => (
-                  <span
-                    key={t}
-                    className="border border-white/30 text-white rounded-full px-3 py-0.5 text-[10px] backdrop-blur-xs font-medium"
-                  >
-                    {t}
-                  </span>
-                ))}
+              {(heroContent.popularSearches || []).filter((t) => t && t.trim().length > 0).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[11px] text-gray-300 font-medium mr-1">Popular searches:</span>
+                  {(heroContent.popularSearches || [])
+                    .filter((t) => t && t.trim().length > 0)
+                    .map((t) => (
+                      <span
+                        key={t}
+                        className="border border-white/30 text-white rounded-full px-3 py-0.5 text-[10px] backdrop-blur-xs font-medium"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Product Catalogue Search & Banner */}
+      {activeTab === 'products_page' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-navy">Product Catalogue Banner &amp; Search Keywords</h2>
+                <p className="text-xs text-gray-500">
+                  Manage the header copy, search placeholder, and distinct quick popular search chips displayed on the Product Catalogue page (/products).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleResetSection('products_page')}
+                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                Reset to Default
+              </button>
+            </div>
+
+            {/* Banner Copy Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Catalogue Main Title
+                </label>
+                <input
+                  type="text"
+                  value={productsPageContent.title || ''}
+                  onChange={(e) => setProductsPageContent({ ...productsPageContent, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy font-semibold"
+                  placeholder="e.g. Browse the Catalogue"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Search Bar Placeholder
+                </label>
+                <input
+                  type="text"
+                  value={productsPageContent.searchPlaceholder || ''}
+                  onChange={(e) => setProductsPageContent({ ...productsPageContent, searchPlaceholder: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy"
+                  placeholder="e.g. Search by product, model number, manufacturer..."
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Catalogue Subtitle Description
+                </label>
+                <input
+                  type="text"
+                  value={productsPageContent.subtitle || ''}
+                  onChange={(e) => setProductsPageContent({ ...productsPageContent, subtitle: e.target.value })}
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-navy"
+                  placeholder="e.g. Explore our range of medical products from trusted global manufacturers."
+                />
               </div>
             </div>
+
+            {/* Catalogue Popular Searches Chips Manager */}
+            <div className="p-4 sm:p-5 bg-slate-50 rounded-xl border border-gray-200 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-navy uppercase tracking-wider">
+                    Catalogue Popular Search Terms (Filter Chips)
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    These keywords appear underneath the search bar on /products. Clicking a chip executes instant filtering.
+                  </p>
+                </div>
+                {(productsPageContent.popularSearches || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setProductsPageContent({ ...productsPageContent, popularSearches: [] })}
+                    className="text-xs text-rose-600 hover:text-rose-800 font-semibold self-start sm:self-auto cursor-pointer"
+                  >
+                    Clear All Tags
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                {(productsPageContent.popularSearches || []).length === 0 ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-xs text-amber-800 w-full flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-600 text-base!">info</span>
+                      <span>No search tags configured. The &ldquo;Popular searches:&rdquo; line will be completely hidden on the catalogue page.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProductsPageContent({ ...productsPageContent, popularSearches: [...DEFAULT_PRODUCTS_PAGE.popularSearches!] })}
+                      className="text-xs font-bold text-amber-900 underline hover:no-underline shrink-0 cursor-pointer"
+                    >
+                      Restore Defaults
+                    </button>
+                  </div>
+                ) : (
+                  (productsPageContent.popularSearches || []).map((term) => (
+                    <span
+                      key={term}
+                      className="inline-flex items-center gap-1.5 bg-white border border-gray-300 text-navy px-3 py-1 rounded-full text-xs font-semibold shadow-2xs"
+                    >
+                      <span>{term}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeProductPopularSearchTag(term)}
+                        className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Remove term"
+                      >
+                        <span className="material-symbols-outlined text-sm! leading-none">close</span>
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 max-w-md">
+                <input
+                  type="text"
+                  value={newProductTagInput}
+                  onChange={(e) => setNewProductTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addProductPopularSearchTag();
+                    }
+                  }}
+                  placeholder="Add catalogue search term, e.g. Defibrillator"
+                  className="flex-1 px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-navy"
+                />
+                <button
+                  type="button"
+                  onClick={addProductPopularSearchTag}
+                  className="bg-navy hover:bg-navy-light text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shrink-0"
+                >
+                  Add Tag
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => handleSaveSection('products_page')}
+                disabled={isSaving}
+                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base!">save</span>
+                <span>{isSaving ? 'Saving...' : 'Save Catalogue Settings'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Live Catalogue Banner Preview Card */}
+          <div className="bg-navy rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-navy-light/40">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-gold flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm!">visibility</span>
+                Live Preview (Product Catalogue Banner)
+              </span>
+              <span className="text-[10px] text-gray-400">Previewing /products banner</span>
+            </div>
+
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-1.5 tracking-tight text-white">
+                  {productsPageContent.title || 'Browse the Catalogue'}
+                </h1>
+                <p className="text-gray-300 text-xs sm:text-sm max-w-xl">
+                  {productsPageContent.subtitle || 'Explore our range of medical products from trusted global manufacturers.'}
+                </p>
+              </div>
+
+              {/* Preview Search Bar */}
+              <div className="w-full max-w-md">
+                <div className="bg-white rounded-full p-1.5 flex items-center shadow-lg border border-gray-200">
+                  <span className="material-symbols-outlined text-gray-400 ml-3 mr-2 text-base!">search</span>
+                  <input
+                    type="text"
+                    disabled
+                    placeholder={productsPageContent.searchPlaceholder || 'Search by product, model number, manufacturer...'}
+                    className="flex-1 bg-transparent text-navy text-xs outline-none cursor-not-allowed"
+                  />
+                  <span className="bg-gold text-navy font-bold px-4 py-1.5 rounded-full text-xs shrink-0 flex items-center gap-1">
+                    <span>Search</span>
+                    <span className="material-symbols-outlined text-xs!">arrow_forward</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Popular Searches Pills */}
+            {(productsPageContent.popularSearches || []).filter((t) => t && t.trim().length > 0).length > 0 ? (
+              <div className="mt-5 flex flex-wrap items-center gap-2 text-xs pt-4 border-t border-white/10">
+                <span className="text-gray-300 font-semibold mr-1">Popular searches:</span>
+                {(productsPageContent.popularSearches || [])
+                  .filter((t) => t && t.trim().length > 0)
+                  .map((keyword) => (
+                    <span
+                      key={keyword}
+                      className="px-3 py-1 rounded-full border bg-navy-light/60 text-gray-200 border-white/20 text-xs font-medium"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+              </div>
+            ) : (
+              <div className="mt-4 pt-3 border-t border-white/10 text-xs text-gray-400 italic">
+                (No popular search tags configured &mdash; the &ldquo;Popular searches:&rdquo; row is hidden on the live page)
+              </div>
+            )}
           </div>
         </div>
       )}

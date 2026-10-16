@@ -9,6 +9,8 @@ export default function SignupForm() {
   const { register } = useAuth();
 
   const [fullName, setFullName] = useState('');
+  const [organization, setOrganization] = useState('');
+  const [phone, setPhone] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,6 +68,8 @@ export default function SignupForm() {
         username: username.trim(),
         password,
         full_name: fullName.trim() || undefined,
+        organization: organization.trim() || undefined,
+        phone: phone.trim() || undefined,
       });
 
       setRegisteredEmail(email.trim().toLowerCase());
@@ -180,6 +184,55 @@ export default function SignupForm() {
                 />
                 <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-xl pointer-events-none">
                   badge
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="organization"
+                className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1"
+              >
+                Organisation / Facility <span className="text-gray-400 font-normal lowercase">(optional)</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="organization"
+                  name="organization"
+                  type="text"
+                  value={organization}
+                  onChange={(e) => setOrganization(e.target.value)}
+                  disabled={isLoading}
+                  className="appearance-none relative block w-full px-3 py-2.5 pl-10 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy focus:border-navy text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  placeholder="e.g. Netcare / Mediclinic / Cape Health"
+                />
+                <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-xl pointer-events-none">
+                  corporate_fare
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="phone"
+                className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1"
+              >
+                Telephone / Mobile <span className="text-gray-400 font-normal lowercase">(optional)</span>
+              </label>
+              <div className="relative">
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={isLoading}
+                  className="appearance-none relative block w-full px-3 py-2.5 pl-10 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy focus:border-navy text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  placeholder="e.g. +27 21 555 0100"
+                />
+                <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-xl pointer-events-none">
+                  call
                 </span>
               </div>
             </div>
