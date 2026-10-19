@@ -806,7 +806,49 @@ export interface ProductFilterOptionsResponse {
   availability: AvailabilityFilterOption;
 }
 
+export interface SearchSuggestionProduct {
+  id: number;
+  name: string;
+  slug: string;
+  sku?: string | null;
+  brand_name?: string | null;
+  category_name?: string | null;
+  primary_image_url?: string | null;
+}
+
+export interface SearchSuggestionCategory {
+  id: number;
+  name: string;
+  slug: string;
+  product_count: number;
+}
+
+export interface SearchSuggestionBrand {
+  id: number;
+  name: string;
+  slug: string;
+  product_count: number;
+}
+
+export interface SearchSuggestionsResponse {
+  query: string;
+  products: SearchSuggestionProduct[];
+  categories: SearchSuggestionCategory[];
+  brands: SearchSuggestionBrand[];
+}
+
 export const productsApi = {
+  async getSuggestions(query: string, limit = 6): Promise<SearchSuggestionsResponse> {
+    if (!query || !query.trim()) {
+      return { query: '', products: [], categories: [], brands: [] };
+    }
+    const cleanQuery = encodeURIComponent(query.trim());
+    const response = await fetch(`${API_BASE_URL}/api/products/suggest?q=${cleanQuery}&limit=${limit}`, {
+      method: 'GET',
+    });
+    return handleResponse<SearchSuggestionsResponse>(response);
+  },
+
   async getFilterOptions(): Promise<ProductFilterOptionsResponse> {
     const response = await fetch(`${API_BASE_URL}/api/products/filters`, {
       method: 'GET',
@@ -1595,8 +1637,20 @@ export interface ResourceFilterParams {
   category?: string;
   brand?: string;
   type?: string;
+  page?: number;
+  pageSize?: number;
   skip?: number;
   limit?: number;
+  paginated?: boolean;
+}
+
+export interface PaginatedResourcesResult {
+  items: ResourceItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasMore: boolean;
 }
 
 export const resourcesApi = {
@@ -1606,6 +1660,8 @@ export const resourcesApi = {
     if (params.category && params.category !== 'all') query.append('category', params.category);
     if (params.brand && params.brand !== 'all') query.append('brand', params.brand);
     if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.page !== undefined) query.append('page', String(params.page));
+    if (params.pageSize !== undefined) query.append('page_size', String(params.pageSize));
     if (params.skip !== undefined) query.append('skip', String(params.skip));
     if (params.limit !== undefined) query.append('limit', String(params.limit));
 
@@ -1613,6 +1669,66 @@ export const resourcesApi = {
       method: 'GET',
     });
     return handleResponse<ResourceItem[]>(response);
+  },
+
+  async listResourcesPaginated(params: ResourceFilterParams = {}): Promise<PaginatedResourcesResult> {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'all') query.append('category', params.category);
+    if (params.brand && params.brand !== 'all') query.append('brand', params.brand);
+    if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.page !== undefined) query.append('page', String(params.page));
+    if (params.pageSize !== undefined) query.append('page_size', String(params.pageSize));
+    if (params.skip !== undefined) query.append('skip', String(params.skip));
+    if (params.limit !== undefined) query.append('limit', String(params.limit));
+    query.append('paginated', 'true');
+
+    const response = await fetch(`${API_BASE_URL}/api/resources?${query.toString()}`, {
+      method: 'GET',
+    });
+    const rawData = await handleResponse<
+      | {
+          items?: ResourceItem[];
+          total?: number;
+          page?: number;
+          page_size?: number;
+          total_pages?: number;
+          has_more?: boolean;
+        }
+      | ResourceItem[]
+    >(response);
+
+    if (Array.isArray(rawData)) {
+      const totalHeader = response.headers.get('X-Total-Count');
+      const hasMoreHeader = response.headers.get('X-Has-More');
+      const limit = params.pageSize ?? params.limit ?? 12;
+      const total = totalHeader ? parseInt(totalHeader, 10) : rawData.length;
+      const hasMore = hasMoreHeader !== null ? hasMoreHeader === 'true' : rawData.length === limit;
+      return {
+        items: rawData,
+        total,
+        page: params.page ?? 1,
+        pageSize: limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+        hasMore,
+      };
+    }
+
+    const items = Array.isArray(rawData?.items) ? rawData.items : [];
+    const total = typeof rawData?.total === 'number' ? rawData.total : items.length;
+    const page = typeof rawData?.page === 'number' ? rawData.page : (params.page ?? 1);
+    const pageSize = typeof rawData?.page_size === 'number' ? rawData.page_size : 12;
+    const totalPages = typeof rawData?.total_pages === 'number' ? rawData.total_pages : Math.max(1, Math.ceil(total / pageSize));
+    const hasMore = typeof rawData?.has_more === 'boolean' ? rawData.has_more : (items.length === pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      hasMore,
+    };
   },
 
   getDownloadUrl(fileUrl: string, token?: string | null): string {

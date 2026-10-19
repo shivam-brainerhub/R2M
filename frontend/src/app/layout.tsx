@@ -3,7 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import ClientProviders from "../components/ClientProviders";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sahealthcare.co.za";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:8000";
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;

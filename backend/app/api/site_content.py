@@ -121,8 +121,9 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["subheading"] = result.get("subheading") or "Speak to our team for expert guidance and tailored solutions for your facility."
         bt = result.get("buttonText") or result.get("button_text") or "Request a Quote"
         result["buttonText"] = bt
-        result["button_text"] = bt
-        bl = result.get("buttonLink") or result.get("button_link") or "/contact"
+        bl = result.get("buttonLink") or result.get("button_link") or "/quote"
+        if bl == "/contact":
+            bl = "/quote"
         result["buttonLink"] = bl
         result["button_link"] = bl
         result["phone"] = result.get("phone") or "+27 11 555 0100"

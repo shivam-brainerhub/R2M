@@ -116,6 +116,13 @@ export default function AdminDashboardPage() {
               <span className="material-symbols-outlined text-lg!">receipt_long</span>
               View Quotes ({stats[1].value})
             </Link>
+            <Link
+              href="/admin/guide"
+              className="bg-white/10 text-white font-medium px-4 py-2.5 rounded-xl hover:bg-white/20 transition-all border border-white/15 text-xs sm:text-sm flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-lg!">menu_book</span>
+              Admin Guide
+            </Link>
           </div>
         </div>
 

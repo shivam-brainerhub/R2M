@@ -68,6 +68,9 @@ export default function AdminInquiriesPage() {
     try {
       const data = await inquiriesApi.getInquiriesStats(token);
       setStats(data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('admin:refresh-stats'));
+      }
     } catch (err) {
       console.error('Failed to fetch inquiries stats:', err);
     }

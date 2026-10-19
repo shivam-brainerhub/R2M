@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { contentApi, CompanyContent } from '@/lib/api';
 import { DEFAULT_COMPANY } from '@/lib/constants';
 
@@ -37,12 +38,16 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Column 1: Company Profile & Location */}
         <div className="flex flex-col space-y-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="text-gold font-bold text-3xl italic tracking-tighter">SAH</div>
-            <div className="text-xs font-semibold leading-tight uppercase tracking-wider">
-              {company.companyName ? company.companyName.replace(/\s+/g, '\n') : 'SA\nHEALTHCARE'}
-            </div>
-          </div>
+          <Link href="/home" className="inline-flex items-center transition-opacity hover:opacity-90 shrink-0">
+            <Image
+              src="/logo.png"
+              alt={company.companyName || 'SA Healthcare Logo'}
+              width={140}
+              height={48}
+              className="object-contain h-10 sm:h-11 w-auto max-w-44"
+              style={{ width: 'auto', height: 'auto' }}
+            />
+          </Link>
 
           <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
             Supplying reliable, innovative, and cost-effective medical equipment and healthcare solutions across Southern Africa.

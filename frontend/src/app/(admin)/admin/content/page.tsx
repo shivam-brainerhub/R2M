@@ -95,7 +95,12 @@ export default function AdminContentPage() {
             heading: data.cta.heading || DEFAULT_CTA.heading,
             subheading: data.cta.subheading || DEFAULT_CTA.subheading,
             buttonText: data.cta.buttonText || data.cta.button_text || DEFAULT_CTA.buttonText,
-            buttonLink: data.cta.buttonLink || data.cta.button_link || DEFAULT_CTA.buttonLink,
+            buttonLink:
+              data.cta.buttonLink && data.cta.buttonLink !== '/contact'
+                ? data.cta.buttonLink
+                : data.cta.button_link && data.cta.button_link !== '/contact'
+                ? data.cta.button_link
+                : DEFAULT_CTA.buttonLink,
             phone: data.cta.phone || DEFAULT_CTA.phone,
             email: data.cta.email || DEFAULT_CTA.email,
           });

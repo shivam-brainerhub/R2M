@@ -96,7 +96,7 @@ class CTAContentSchema(BaseModel):
         default="Speak to our team for expert guidance and tailored solutions for your facility."
     )
     button_text: Optional[str] = Field(default="Request a Quote", validation_alias="buttonText")
-    button_link: Optional[str] = Field(default="/contact", validation_alias="buttonLink")
+    button_link: Optional[str] = Field(default="/quote", validation_alias="buttonLink")
     phone: Optional[str] = Field(default="+27 11 555 0100")
     email: Optional[str] = Field(default="info@sahealthcare.com")
 

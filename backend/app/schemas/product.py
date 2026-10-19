@@ -65,6 +65,17 @@ class ResourceItemResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PaginatedResourcesResponse(BaseModel):
+    items: List[ResourceItemResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_more: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProductPropertyInput(BaseModel):
     property_id: Optional[int] = None
     name: str = Field(..., description="Property name e.g. 'Display Size'")
@@ -222,4 +233,42 @@ class ProductFilterOptionsResponse(BaseModel):
     sectors: List[SectorFilterOption] = []
     properties: List[PropertyGroupFilterOption] = []
     availability: AvailabilityFilterOption
+
+
+class SearchSuggestionProduct(BaseModel):
+    id: int
+    name: str
+    slug: str
+    sku: Optional[str] = None
+    brand_name: Optional[str] = None
+    category_name: Optional[str] = None
+    primary_image_url: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SearchSuggestionCategory(BaseModel):
+    id: int
+    name: str
+    slug: str
+    product_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SearchSuggestionBrand(BaseModel):
+    id: int
+    name: str
+    slug: str
+    product_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SearchSuggestionsResponse(BaseModel):
+    query: str
+    products: List[SearchSuggestionProduct] = []
+    categories: List[SearchSuggestionCategory] = []
+    brands: List[SearchSuggestionBrand] = []
+
 

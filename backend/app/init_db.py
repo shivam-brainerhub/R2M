@@ -120,7 +120,7 @@ DEFAULT_SITE_CONTENTS = {
             "heading": "Need a quotation or product advice?",
             "subheading": "Speak to our team for expert guidance and tailored solutions for your facility.",
             "button_text": "Request a Quote",
-            "button_link": "/contact",
+            "button_link": "/quote",
             "phone": "+27 11 555 0100",
             "email": "info@sahealthcare.com",
         },

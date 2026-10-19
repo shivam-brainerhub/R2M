@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sahealthcare.co.za';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost:8000';
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   const staticRoutes: MetadataRoute.Sitemap = [

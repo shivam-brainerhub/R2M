@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import BrandSlider from '@/components/BrandSlider';
+import PredictiveSearchBar from '@/components/PredictiveSearchBar';
 import {
   contentApi,
   categoriesApi,
@@ -90,7 +91,12 @@ export default function HomeContent() {
             heading: ctaData.heading || prev.heading,
             subheading: ctaData.subheading || prev.subheading,
             buttonText: ctaData.buttonText || ctaData.button_text || prev.buttonText,
-            buttonLink: ctaData.buttonLink || ctaData.button_link || prev.buttonLink,
+            buttonLink:
+              ctaData.buttonLink && ctaData.buttonLink !== '/contact'
+                ? ctaData.buttonLink
+                : ctaData.button_link && ctaData.button_link !== '/contact'
+                ? ctaData.button_link
+                : '/quote',
             phone: ctaData.phone || prev.phone,
             email: ctaData.email || prev.email,
           }));
@@ -138,9 +144,9 @@ export default function HomeContent() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative flex flex-col lg:flex-row min-h-162.5 bg-navy overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0 w-full">
+      <section className="relative flex flex-col lg:flex-row min-h-162.5 bg-navy overflow-hidden z-20">
+        {/* Background Image (Pinned & Clipped) */}
+        <div className="absolute inset-0 z-0 w-full pointer-events-none">
           <Image
             src="/hero.jpg"
             alt="Hospital Background"
@@ -153,7 +159,7 @@ export default function HomeContent() {
         </div>
 
         {/* LEFT SIDE CONTENT */}
-        <div className="relative z-20 w-full lg:w-2/3 flex items-center py-12 md:py-24 px-6 lg:px-12 xl:px-24">
+        <div className="relative z-30 w-full lg:w-2/3 flex items-center py-12 md:py-24 px-6 lg:px-12 xl:px-24">
           <div className="w-full max-w-2xl text-white">
             <h1 className="text-5xl md:text-[5.5rem] font-bold mb-4 md:mb-6 leading-tight md:leading-none drop-shadow-lg tracking-tight">
               {hero.headlinePart1} <br />
@@ -164,37 +170,26 @@ export default function HomeContent() {
               {hero.subheading}
             </p>
 
-            {/* Dynamic Search Bar */}
+            {/* Dynamic Predictive Search Bar */}
             {hero.showSearchBar && (
-              <form
-                onSubmit={handleSearchSubmit}
-                className="bg-white rounded-full p-1 md:p-1.5 flex items-center shadow-2xl w-full max-w-3xl mb-8"
-              >
-                <span className="material-symbols-outlined text-navy ml-2 md:ml-4 mr-1 md:mr-2 text-xl md:text-2xl!">
-                  search
-                </span>
-
-                <input
-                  type="text"
+              <div className="w-full max-w-3xl mb-8 relative z-50">
+                <PredictiveSearchBar
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={setSearchQuery}
+                  onSubmit={(query) => {
+                    if (query && query.trim()) {
+                      router.push(`/products?search=${encodeURIComponent(query.trim())}`);
+                    } else {
+                      router.push('/products');
+                    }
+                  }}
                   placeholder={
                     hero.searchPlaceholder ||
                     'Search by product, model number, manufacturer, brochure or technical specification...'
                   }
-                  className="flex-1 min-w-0 bg-transparent border-none outline-none text-navy px-2 text-sm placeholder-gray-400 text-ellipsis"
+                  size="lg"
                 />
-
-                <button
-                  type="submit"
-                  className="bg-gold text-navy font-bold rounded-full px-4 md:px-8 py-2 md:py-3.5 flex items-center hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 text-sm shrink-0 shadow-md hover:shadow-lg group cursor-pointer"
-                >
-                  Search
-                  <span className="material-symbols-outlined ml-1 text-sm! font-bold transition-transform duration-300 group-hover:translate-x-1">
-                    arrow_forward
-                  </span>
-                </button>
-              </form>
+              </div>
             )}
 
             {/* Popular Searches */}
@@ -379,7 +374,7 @@ export default function HomeContent() {
       {/* Our Manufacturers */}
       <section className="py-20 px-6 bg-slate-50/70 border-t border-slate-200/70">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
             <div>
               <div className="flex items-center space-x-3 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-gold"></span>
@@ -391,7 +386,7 @@ export default function HomeContent() {
                 World-leading medical brands
               </h3>
             </div>
-            <p className="text-gray-500 text-sm md:text-base max-w-md leading-relaxed">
+            <p className="text-gray-500 text-sm md:text-base max-w-xl leading-relaxed">
               Direct authorized distribution, certified clinical equipment, and factory warranties from globally accredited manufacturers.
             </p>
           </div>
@@ -410,15 +405,15 @@ export default function HomeContent() {
             <div className="h-px bg-gold w-12"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
             {whyUs.items.map((item, idx) => (
-              <div key={idx} className="flex items-start md:px-8 pt-8 md:pt-0 first:md:pl-0">
+              <div key={idx} className="flex items-start lg:px-8 py-8 first:pt-0 last:pb-0 lg:py-0 first:lg:pl-0">
                 <span className="material-symbols-outlined text-5xl! text-navy mr-6 shrink-0">
                   {item.icon}
                 </span>
                 <div>
                   <h4 className="text-navy font-bold text-xl mb-3">{item.title}</h4>
-                  <p className="text-gray-500 text-sm leading-relaxed">{item.description}</p>
+                  <p className="text-gray-500 text-sm md:text-base lg:text-sm leading-relaxed">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -468,7 +463,7 @@ export default function HomeContent() {
 
           <div className="flex flex-wrap justify-center lg:justify-end items-center gap-6 md:gap-8 mt-4 lg:mt-0">
             <Link
-              href={cta.buttonLink || '/contact'}
+              href={cta.buttonLink && cta.buttonLink !== '/contact' ? cta.buttonLink : '/quote'}
               className="bg-gold text-navy font-bold px-8 md:px-10 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg shadow-gold/20 hover:shadow-gold/40 group"
             >
               {cta.buttonText || 'Request a Quote'}{' '}

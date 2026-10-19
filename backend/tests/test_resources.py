@@ -55,6 +55,19 @@ def test_list_resources(client: TestClient, db_session):
     search_data = search_resp.json()
     assert any(d["title"] == "Test Clinical Manual" for d in search_data)
 
+    # 4. Backend Pagination (paginated=True envelope and headers)
+    paged_resp = client.get("/api/resources?paginated=true&page=1&page_size=1")
+    assert paged_resp.status_code == 200
+    paged_data = paged_resp.json()
+    assert "items" in paged_data
+    assert len(paged_data["items"]) == 1
+    assert paged_data["total"] >= 2
+    assert paged_data["page"] == 1
+    assert paged_data["page_size"] == 1
+    assert paged_data["has_more"] is True
+    assert paged_resp.headers["X-Total-Count"] == str(paged_data["total"])
+    assert paged_resp.headers["X-Has-More"] == "true"
+
 
 def test_download_document_unauthenticated(client: TestClient):
     # Attempting to download without token or authorization header fails with 401

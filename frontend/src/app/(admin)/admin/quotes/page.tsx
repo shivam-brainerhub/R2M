@@ -38,7 +38,12 @@ export default function AdminQuotesPage() {
 
   const refreshData = useCallback(() => {
     if (!token) return;
-    quotesApi.getQuoteStats(token).then(setStats).catch(() => {});
+    quotesApi.getQuoteStats(token).then((data) => {
+      setStats(data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('admin:refresh-stats'));
+      }
+    }).catch(() => {});
     quotesApi
       .listQuotes(token, {
         status: activeTab !== 'All' ? activeTab : undefined,

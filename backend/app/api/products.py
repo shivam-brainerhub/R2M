@@ -31,6 +31,10 @@ from app.schemas.product import (
     ProductResponse,
     ProductStatsResponse,
     ProductUpdate,
+    SearchSuggestionBrand,
+    SearchSuggestionCategory,
+    SearchSuggestionProduct,
+    SearchSuggestionsResponse,
     SectorResponse,
 )
 from app.services.filter_cache import filter_cache_service
@@ -340,6 +344,142 @@ def get_product_filters(db: Session = Depends(get_db)):
     Served directly from in-memory cache for ultra-low latency.
     """
     return filter_cache_service.get_filter_options(db)
+
+
+# ---------------------------------------------------------------------------
+# Predictive Search Suggestions / Autocomplete Endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/suggest", response_model=SearchSuggestionsResponse)
+def get_search_suggestions(
+    q: str = Query(..., min_length=1, description="Search term for predictive autocomplete"),
+    limit: int = Query(6, ge=1, le=20, description="Max product suggestions to return"),
+    db: Session = Depends(get_db),
+):
+    """
+    Predictive search suggestions across product names, SKUs, model numbers,
+    categories, and brands. Optimized for fast real-time typing / autocomplete.
+    """
+    clean_q = q.strip()
+    if not clean_q:
+        return SearchSuggestionsResponse(query="")
+
+    search_pattern = f"%{clean_q}%"
+
+    # 1. Matching Active Products
+    products_query = (
+        db.query(Product)
+        .options(
+            joinedload(Product.brand),
+            joinedload(Product.category),
+            joinedload(Product.images),
+        )
+        .filter(
+            Product.status == "Active",
+            or_(
+                Product.name.ilike(search_pattern),
+                Product.sku.ilike(search_pattern),
+                Product.short_description.ilike(search_pattern),
+                Product.description.ilike(search_pattern),
+            ),
+        )
+        .order_by(
+            case(
+                (Product.name.ilike(f"{clean_q}%"), 1),
+                (Product.sku.ilike(f"{clean_q}%"), 2),
+                else_=3,
+            ),
+            asc(Product.name),
+        )
+        .limit(limit)
+        .all()
+    )
+
+    suggested_products = []
+    for p in products_query:
+        primary_img = None
+        for img in p.images:
+            if img.is_primary:
+                primary_img = img.image_url
+                break
+        if not primary_img and p.images:
+            primary_img = p.images[0].image_url
+
+        suggested_products.append(
+            SearchSuggestionProduct(
+                id=p.id,
+                name=p.name,
+                slug=p.slug,
+                sku=p.sku,
+                brand_name=p.brand.name if p.brand else None,
+                category_name=p.category.name if p.category else None,
+                primary_image_url=primary_img,
+            )
+        )
+
+    # 2. Matching Categories
+    categories_query = (
+        db.query(Category)
+        .filter(Category.name.ilike(search_pattern))
+        .order_by(asc(Category.name))
+        .limit(4)
+        .all()
+    )
+    suggested_categories = []
+    for c in categories_query:
+        active_count = (
+            db.query(func.count(Product.id))
+            .filter(
+                Product.category_id == c.id,
+                Product.status == "Active",
+            )
+            .scalar()
+            or 0
+        )
+        suggested_categories.append(
+            SearchSuggestionCategory(
+                id=c.id,
+                name=c.name,
+                slug=c.slug,
+                product_count=active_count,
+            )
+        )
+
+    # 3. Matching Brands / Manufacturers
+    brands_query = (
+        db.query(Brand)
+        .filter(Brand.name.ilike(search_pattern))
+        .order_by(asc(Brand.name))
+        .limit(4)
+        .all()
+    )
+    suggested_brands = []
+    for b in brands_query:
+        active_count = (
+            db.query(func.count(Product.id))
+            .filter(
+                Product.brand_id == b.id,
+                Product.status == "Active",
+            )
+            .scalar()
+            or 0
+        )
+        suggested_brands.append(
+            SearchSuggestionBrand(
+                id=b.id,
+                name=b.name,
+                slug=b.slug or b.name.lower().replace(" ", "-"),
+                product_count=active_count,
+            )
+        )
+
+    return SearchSuggestionsResponse(
+        query=clean_q,
+        products=suggested_products,
+        categories=suggested_categories,
+        brands=suggested_brands,
+    )
 
 
 # ---------------------------------------------------------------------------

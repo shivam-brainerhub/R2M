@@ -43,3 +43,7 @@ To stop the running containers:
 ```bash
 docker-compose down
 ```
+
+## Documentation
+
+- **[Administrator & CMS User Guide](ADMIN_GUIDE.md):** Complete guide for SA Healthcare & R2M administrators covering product inventory management, multi-document uploads, dynamic specifications, homepage & legal CMS editing, quote processing, and user administration.

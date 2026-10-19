@@ -31,6 +31,13 @@ function ResourceCentreContent() {
   const [brands, setBrands] = useState<BrandItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
   // Filters state initialized from URL search params
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedType, setSelectedType] = useState(searchParams.get('type') || 'all');
@@ -43,28 +50,43 @@ function ResourceCentreContent() {
     brandsApi.listBrands().then(setBrands).catch(() => {});
   }, []);
 
-  // Fetch Resources from API
+  // Fetch initial Resources from API
   useEffect(() => {
     let active = true;
     setIsLoading(true);
+    setPage(1);
 
-    const params: { search?: string; type?: string; category?: string; brand?: string } = {};
+    const params: {
+      search?: string;
+      type?: string;
+      category?: string;
+      brand?: string;
+      page: number;
+      pageSize: number;
+    } = {
+      page: 1,
+      pageSize,
+    };
     if (search.trim()) params.search = search.trim();
     if (selectedType !== 'all') params.type = selectedType;
     if (selectedCategory !== 'all') params.category = selectedCategory;
     if (selectedBrand !== 'all') params.brand = selectedBrand;
 
     resourcesApi
-      .listResources(params)
+      .listResourcesPaginated(params)
       .then((data) => {
         if (!active) return;
-        setResources(data);
+        setResources(Array.isArray(data?.items) ? data.items : []);
+        setTotalCount(data?.total ?? 0);
+        setHasMore(Boolean(data?.hasMore));
         setIsLoading(false);
       })
       .catch((err) => {
         if (!active) return;
         console.error('Failed to load resources', err);
         setResources([]);
+        setTotalCount(0);
+        setHasMore(false);
         setIsLoading(false);
       });
 
@@ -72,6 +94,41 @@ function ResourceCentreContent() {
       active = false;
     };
   }, [search, selectedType, selectedCategory, selectedBrand]);
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+
+    const nextPage = page + 1;
+    const params: {
+      search?: string;
+      type?: string;
+      category?: string;
+      brand?: string;
+      page: number;
+      pageSize: number;
+    } = {
+      page: nextPage,
+      pageSize,
+    };
+    if (search.trim()) params.search = search.trim();
+    if (selectedType !== 'all') params.type = selectedType;
+    if (selectedCategory !== 'all') params.category = selectedCategory;
+    if (selectedBrand !== 'all') params.brand = selectedBrand;
+
+    try {
+      const data = await resourcesApi.listResourcesPaginated(params);
+      const newItems = Array.isArray(data?.items) ? data.items : [];
+      setResources((prev) => [...(prev || []), ...newItems]);
+      setPage(nextPage);
+      setTotalCount(data?.total ?? 0);
+      setHasMore(Boolean(data?.hasMore));
+    } catch (err) {
+      console.error('Failed to load more resources', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const handleClearFilters = () => {
     setSearch('');
@@ -200,7 +257,13 @@ function ResourceCentreContent() {
             </div>
 
             <div className="text-xs font-semibold text-gray-500">
-              Showing <span className="font-bold text-navy">{resources.length}</span> documents
+              Showing <span className="font-bold text-navy">{(resources || []).length}</span>
+              {totalCount > 0 && (
+                <>
+                  {' '}of <span className="font-bold text-navy">{totalCount}</span>
+                </>
+              )}{' '}
+              documents
             </div>
           </div>
         </div>
@@ -213,7 +276,7 @@ function ResourceCentreContent() {
             </span>
             <p className="text-xs text-gray-500 font-semibold">Accessing verified document repository...</p>
           </div>
-        ) : resources.length === 0 ? (
+        ) : !resources || resources.length === 0 ? (
           <div className="bg-white rounded-3xl p-12 text-center border border-gray-200/80 shadow-xs max-w-lg mx-auto space-y-4">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-gray-400">
               <span className="material-symbols-outlined text-3xl">folder_off</span>
@@ -233,8 +296,9 @@ function ResourceCentreContent() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {resources.map((item) => {
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {(resources || []).map((item) => {
               const isManual = item.type.toLowerCase().includes('manual');
               const isCert = item.type.toLowerCase().includes('cert');
               const isSpec = item.type.toLowerCase().includes('spec');
@@ -306,6 +370,46 @@ function ResourceCentreContent() {
               );
             })}
           </div>
+
+          {/* Pagination: Load More at Bottom */}
+          {hasMore && (
+            <div className="mt-12 flex flex-col items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                className="inline-flex items-center gap-2.5 bg-navy hover:bg-navy-light text-white font-bold text-sm px-8 py-3.5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer group"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <span className="material-symbols-outlined text-lg! animate-spin text-gold">
+                      progress_activity
+                    </span>
+                    <span>Loading more documents...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg! text-gold group-hover:translate-y-0.5 transition-transform">
+                      expand_more
+                    </span>
+                    <span>Load More Documents</span>
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-gray-500 font-medium">
+                Showing {(resources || []).length} of {totalCount} total documents
+              </p>
+            </div>
+          )}
+
+          {!hasMore && (resources || []).length > 0 && totalCount > pageSize && (
+            <div className="mt-12 py-4 text-center border-t border-gray-200/80">
+              <p className="text-xs text-gray-400 font-medium">
+                All {totalCount} verified documents loaded
+              </p>
+            </div>
+          )}
+        </>
         )}
       </div>
     </div>

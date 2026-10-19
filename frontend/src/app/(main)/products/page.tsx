@@ -19,6 +19,7 @@ import { DEFAULT_PRODUCTS_PAGE } from '@/lib/constants';
 import { useQuoteCart } from '@/context/QuoteCartContext';
 import BrochureDownloadButton from '@/components/BrochureDownloadButton';
 import CustomSelect from '@/components/CustomSelect';
+import PredictiveSearchBar from '@/components/PredictiveSearchBar';
 
 const CATEGORY_ICON_MAP: Record<string, string> = {
   'diagnostic-and-measure': 'monitor_heart',
@@ -511,41 +512,15 @@ function ProductsContent() {
             </p>
           </div>
 
-          {/* Search Bar */}
+          {/* Predictive Search Bar with Live Autocomplete */}
           <div className="w-full max-w-md">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleExecuteSearch(searchInput);
-              }}
-              className="bg-white rounded-full p-1.5 flex items-center shadow-lg overflow-hidden border border-gray-200"
-            >
-              <span className="material-symbols-outlined text-gray-400 ml-3 shrink-0">search</span>
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={catalogueContent.searchPlaceholder || 'Search by product, model number, manufacturer...'}
-                className="flex-1 bg-transparent border-none outline-none text-navy px-3 min-w-0 w-full text-xs sm:text-sm placeholder:text-gray-400"
-              />
-              {searchInput ? (
-                <button
-                  type="button"
-                  onClick={() => handleExecuteSearch('')}
-                  className="text-gray-400 hover:text-navy mr-2 p-1 cursor-pointer"
-                  aria-label="Clear search"
-                >
-                  <span className="material-symbols-outlined text-sm! block">close</span>
-                </button>
-              ) : null}
-              <button
-                type="submit"
-                className="bg-gold text-navy font-bold px-4 py-2 rounded-full hover:bg-gold-bright transition-all text-xs shrink-0 flex items-center gap-1 shadow-xs cursor-pointer"
-              >
-                <span>Search</span>
-                <span className="material-symbols-outlined text-xs!">arrow_forward</span>
-              </button>
-            </form>
+            <PredictiveSearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onSubmit={(val) => handleExecuteSearch(val)}
+              placeholder={catalogueContent.searchPlaceholder || 'Search by product, model number, manufacturer...'}
+              size="md"
+            />
           </div>
         </div>
 
@@ -1202,10 +1177,10 @@ function ProductsContent() {
               <CustomSelect
                 value={selectedSort}
                 onChange={(val) => setSelectedSort(val)}
-                options={['A-Z', 'Z-A', 'Newest', 'Oldest', 'Most Popular']}
+                options={['A-Z', 'Z-A', 'Newest', 'Oldest']}
                 size="sm"
                 align="right"
-                dropdownClassName="w-44"
+                dropdownClassName="w-36"
               />
             </div>
           </div>
@@ -1242,8 +1217,8 @@ function ProductsContent() {
             <div
               className={`relative z-10 ${
                 viewMode === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'
-                  : 'flex flex-col gap-4'
+                  ? 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5'
+                  : 'flex flex-col gap-3 sm:gap-4'
               }`}
             >
               {paginatedProducts.map((p) => {
@@ -1254,15 +1229,23 @@ function ProductsContent() {
                 return (
                   <div
                     key={p.id}
-                    className={`bg-white border border-gray-100 rounded-2xl shadow-xs hover:shadow-md transition-shadow p-4 md:p-5 flex flex-col group relative ${
-                      viewMode === 'list' ? 'sm:flex-row sm:items-stretch sm:gap-6' : 'h-full justify-between'
+                    className={`bg-white border border-gray-100 rounded-2xl shadow-xs hover:shadow-md transition-shadow p-3 sm:p-4 md:p-5 group relative ${
+                      viewMode === 'list'
+                        ? 'flex flex-row items-stretch gap-3 sm:gap-5 md:gap-6'
+                        : 'flex flex-col h-full justify-between'
                     }`}
                   >
                     {/* Product Photo Box (With Brand header if in Grid View) */}
-                    <div className={viewMode === 'list' ? 'w-full sm:w-48 md:w-52 shrink-0 flex flex-col justify-center' : 'w-full'}>
+                    <div
+                      className={
+                        viewMode === 'list'
+                          ? 'w-24 sm:w-36 md:w-48 shrink-0 flex flex-col justify-center'
+                          : 'w-full'
+                      }
+                    >
                       {viewMode === 'grid' && (
-                        <div className="w-full flex items-center mb-2">
-                          <span className="text-xs font-extrabold uppercase tracking-wider text-red-600">
+                        <div className="w-full flex items-center mb-1.5 sm:mb-2">
+                          <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-red-600 truncate">
                             {p.brand_name || 'Generic'}
                           </span>
                         </div>
@@ -1272,49 +1255,49 @@ function ProductsContent() {
                         href={`/products/${p.slug}`}
                         className={
                           viewMode === 'list'
-                            ? 'w-full aspect-square bg-slate-50/50 rounded-xl flex items-center justify-center p-2 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors'
-                            : 'w-full aspect-square bg-white rounded-xl flex items-center justify-center mb-3 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors'
+                            ? 'w-full aspect-square bg-slate-50/50 rounded-xl flex items-center justify-center p-1.5 sm:p-2 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors'
+                            : 'w-full aspect-square bg-white rounded-xl flex items-center justify-center mb-2 sm:mb-3 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors'
                         }
                       >
                         <Image
                           src={getMediaUrl(img)}
                           alt={p.name}
                           fill
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                          className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          className="object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-500"
                         />
                       </Link>
                     </div>
 
                     {/* Info Block */}
-                    <div className="flex-1 flex flex-col justify-between mt-3 sm:mt-0">
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
                         {viewMode === 'list' && (
-                          <div className="w-full flex items-center mb-1.5">
-                            <span className="text-xs font-extrabold uppercase tracking-wider text-red-600">
+                          <div className="w-full flex items-center mb-1">
+                            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-red-600 truncate">
                               {p.brand_name || 'Generic'}
                             </span>
                           </div>
                         )}
 
                         <Link href={`/products/${p.slug}`}>
-                          <h3 className="font-bold text-navy text-sm md:text-base leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
+                          <h3 className="font-bold text-navy text-xs sm:text-sm md:text-base leading-snug line-clamp-2 group-hover:text-blue-700 transition-colors">
                             {p.name}
                           </h3>
                         </Link>
                         {p.short_description && (
-                          <p className="text-gray-500 text-xs mt-1.5 line-clamp-2 leading-relaxed">
+                          <p className={`text-gray-500 text-[11px] sm:text-xs mt-1 sm:mt-1.5 line-clamp-2 leading-relaxed ${viewMode === 'grid' ? 'hidden sm:block' : ''}`}>
                             {p.short_description}
                           </p>
                         )}
 
                         {/* Specs & Brochure Links */}
-                        <div className="mt-3 mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
+                        <div className={`mt-2 sm:mt-3 mb-2 sm:mb-4 flex flex-wrap items-center ${viewMode === 'grid' ? 'gap-x-2 gap-y-1' : 'gap-x-3 sm:gap-x-4 gap-y-1'} text-[11px] sm:text-xs`}>
                           <Link
                             href={`/products/${p.slug}`}
                             className="inline-flex items-center gap-1 text-blue-600 hover:underline font-semibold"
                           >
-                            <span className="material-symbols-outlined text-base!">description</span>
+                            <span className="material-symbols-outlined text-sm! sm:text-base!">description</span>
                             <span>View Specs</span>
                           </Link>
 
@@ -1323,19 +1306,20 @@ function ProductsContent() {
                               brochureUrl={p.brochure_url}
                               className="inline-flex items-center gap-1 text-blue-600 hover:underline font-semibold cursor-pointer"
                             >
-                              <span className="material-symbols-outlined text-base!">download</span>
-                              <span>Download Brochure</span>
+                              <span className="material-symbols-outlined text-sm! sm:text-base!">download</span>
+                              <span className={viewMode === 'grid' ? 'hidden sm:inline' : ''}>Download Brochure</span>
+                              {viewMode === 'grid' && <span className="sm:hidden">Brochure</span>}
                             </BrochureDownloadButton>
                           )}
                         </div>
                       </div>
 
                       {/* Bottom Action Bar: Compare & Request a Quote button */}
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between w-full gap-2">
-                        <label className="flex items-center space-x-1.5 text-gray-600 cursor-pointer hover:text-navy select-none text-xs">
+                      <div className="pt-2 sm:pt-3 border-t border-gray-100 flex items-center justify-between w-full gap-1.5 sm:gap-2">
+                        <label className="flex items-center space-x-1 sm:space-x-1.5 text-gray-600 cursor-pointer hover:text-navy select-none text-[11px] sm:text-xs shrink-0">
                           <input
                             type="checkbox"
-                            className="rounded border-gray-300 text-gold focus:ring-gold w-4 h-4 cursor-pointer"
+                            className="rounded border-gray-300 text-gold focus:ring-gold w-3.5 h-3.5 sm:w-4 sm:h-4 cursor-pointer"
                             checked={isSelected}
                             onChange={() => handleSelectCompare(p.slug)}
                           />
@@ -1344,9 +1328,9 @@ function ProductsContent() {
 
                         <button
                           onClick={() => handleAddToQuote(p)}
-                          className="bg-gold text-navy font-bold px-4 py-1.5 rounded-full hover:bg-gold-bright transition-all text-xs active:scale-95 shadow-xs flex items-center gap-1 shrink-0 cursor-pointer"
+                          className="bg-gold text-navy font-bold px-2.5 sm:px-4 py-1.5 rounded-full hover:bg-gold-bright transition-all text-[11px] sm:text-xs active:scale-95 shadow-xs flex items-center gap-0.5 sm:gap-1 shrink-0 cursor-pointer"
                         >
-                          <span>Get a Quote</span>
+                          <span>{viewMode === 'grid' ? 'Quote' : 'Get a Quote'}</span>
                           <span className="material-symbols-outlined text-xs!">arrow_forward</span>
                         </button>
                       </div>
