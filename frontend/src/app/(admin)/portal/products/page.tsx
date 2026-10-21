@@ -32,7 +32,8 @@ const ATTACHED_DOC_TYPES = [
 ];
 
 export default function AdminProductsPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  const canWriteProducts = hasPermission('products', 'write');
 
   // Primary Data State
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -172,6 +173,17 @@ export default function AdminProductsPage() {
       active = false;
     };
   }, []);
+
+  // Lock background screen scroll when product modal is open
+  useEffect(() => {
+    if (isProductModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isProductModalOpen]);
 
   // Filtered Products
   const filteredProducts = products.filter((p) => {
@@ -819,20 +831,30 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => setIsPropsModalOpen(true)}
-            className="bg-white border border-gray-200 text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-all text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! text-blue-600">tune</span>
-            Manage Properties ({availableProperties.length})
-          </button>
-          <button
-            onClick={handleOpenCreateModal}
-            className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-2 shadow-md shrink-0 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg!">add_box</span>
-            Add New Product
-          </button>
+          {!canWriteProducts && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-semibold">
+              <span className="material-symbols-outlined text-sm!">visibility</span>
+              Read-Only Mode
+            </span>
+          )}
+          {canWriteProducts && (
+            <button
+              onClick={() => setIsPropsModalOpen(true)}
+              className="bg-white border border-gray-200 text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-all text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! text-blue-600">tune</span>
+              Manage Properties ({availableProperties.length})
+            </button>
+          )}
+          {canWriteProducts && (
+            <button
+              onClick={handleOpenCreateModal}
+              className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-2 shadow-md shrink-0 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg!">add_box</span>
+              Add New Product
+            </button>
+          )}
         </div>
       </div>
 
@@ -1078,22 +1100,39 @@ export default function AdminProductsPage() {
 
                       {/* Status Toggle */}
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => handleToggleStatus(p)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all ${
-                            p.status === 'Active'
-                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                          title="Click to toggle status"
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              p.status === 'Active' ? 'bg-emerald-600' : 'bg-gray-500'
+                        {canWriteProducts ? (
+                          <button
+                            onClick={() => handleToggleStatus(p)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-all ${
+                              p.status === 'Active'
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
-                          ></span>
-                          {p.status}
-                        </button>
+                            title="Click to toggle status"
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                p.status === 'Active' ? 'bg-emerald-600' : 'bg-gray-500'
+                              }`}
+                            ></span>
+                            {p.status}
+                          </button>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              p.status === 'Active'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                p.status === 'Active' ? 'bg-emerald-600' : 'bg-gray-500'
+                              }`}
+                            ></span>
+                            {p.status}
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -1102,17 +1141,21 @@ export default function AdminProductsPage() {
                           <button
                             onClick={() => handleOpenEditModal(p)}
                             className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            title="Edit Product"
+                            title={canWriteProducts ? "Edit Product" : "View Product Details"}
                           >
-                            <span className="material-symbols-outlined text-lg!">edit</span>
+                            <span className="material-symbols-outlined text-lg!">
+                              {canWriteProducts ? 'edit' : 'visibility'}
+                            </span>
                           </button>
-                          <button
-                            onClick={() => handleDeleteProduct(p)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            title="Delete Product"
-                          >
-                            <span className="material-symbols-outlined text-lg!">delete</span>
-                          </button>
+                          {canWriteProducts && (
+                            <button
+                              onClick={() => handleDeleteProduct(p)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              title="Delete Product"
+                            >
+                              <span className="material-symbols-outlined text-lg!">delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1126,16 +1169,28 @@ export default function AdminProductsPage() {
 
       {/* Add / Edit Product Modal */}
       {isProductModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-gray-100 h-[92vh] max-h-[92vh] flex flex-col overflow-hidden animate-scale-in">
             {/* Fixed Header */}
             <div className="px-6 sm:px-8 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white">
               <div>
-                <h2 className="text-xl font-bold text-navy">
-                  {editingProduct ? `Edit: ${editingProduct.name}` : 'Add New Medical Product'}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-navy">
+                    {canWriteProducts
+                      ? (editingProduct ? `Edit: ${editingProduct.name}` : 'Add New Medical Product')
+                      : `Product Details: ${editingProduct?.name || ''}`}
+                  </h2>
+                  {!canWriteProducts && (
+                    <span className="text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-xs!">visibility</span>
+                      Read-Only
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Specify product catalogue metadata, images, specifications and brochure.
+                  {canWriteProducts
+                    ? 'Specify product catalogue metadata, images, specifications and brochure.'
+                    : 'View clinical specifications, brochures, and catalogue metadata.'}
                 </p>
               </div>
               <button
@@ -1147,14 +1202,27 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} noValidate className="flex flex-col flex-1 min-h-0">
+            <form onSubmit={handleSaveProduct} noValidate className="flex flex-col flex-1 min-h-0 overflow-hidden">
               {/* Scrollable Form Body */}
-              <div className="overflow-y-auto flex-1 px-6 sm:px-8 py-6 space-y-6">
-              {/* Section 1: Basic Information */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-lg inline-block mb-3">
-                  1. Product Identity
-                </h3>
+              <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain px-6 sm:px-8 py-6 space-y-6">
+                {!canWriteProducts && (
+                  <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-start gap-3 text-xs leading-relaxed">
+                    <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+                    <div>
+                      <p className="font-bold text-amber-950">Read-Only View Mode</p>
+                      <p className="text-amber-800/90 mt-0.5">
+                        Your account has read-only access to products.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <fieldset disabled={!canWriteProducts} className="space-y-6 border-0 p-0 m-0 min-w-0">
+                  {/* Section 1: Basic Information */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-lg inline-block mb-3">
+                      1. Product Identity
+                    </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1467,21 +1535,25 @@ export default function AdminProductsPage() {
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
                         Product Photo Gallery ({images.length} images)
                       </label>
-                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold cursor-pointer transition-colors">
-                        <span className="material-symbols-outlined text-base!">add_photo_alternate</span>
-                        <span>Add Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleSelectImageFile}
-                          className="hidden"
-                        />
-                      </label>
+                      {canWriteProducts && (
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold cursor-pointer transition-colors">
+                          <span className="material-symbols-outlined text-base!">add_photo_alternate</span>
+                          <span>Add Photo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSelectImageFile}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
                     </div>
 
                     {images.length === 0 ? (
-                      <div className="border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400">
-                        No product images yet. Click &quot;Add Photo&quot; to stage photos (uploaded on Save).
+                      <div className="border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 bg-slate-50">
+                        {canWriteProducts
+                          ? 'No product images yet. Click "Add Photo" to stage photos (uploaded on Save).'
+                          : 'No product images uploaded for this catalogue item.'}
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1508,25 +1580,35 @@ export default function AdminProductsPage() {
                               />
                             </div>
                             <div className="w-full flex items-center justify-between text-[11px] gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleSetPrimaryImage(idx)}
-                                className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase cursor-pointer ${
-                                  img.is_primary
-                                    ? 'bg-gold text-navy'
-                                    : 'bg-white text-gray-500 hover:text-navy border border-gray-200'
-                                }`}
-                              >
-                                {img.is_primary ? 'Primary' : 'Set Primary'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveImage(idx)}
-                                className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
-                                title="Remove photo"
-                              >
-                                <span className="material-symbols-outlined text-sm!">delete</span>
-                              </button>
+                              {canWriteProducts ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetPrimaryImage(idx)}
+                                    className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase cursor-pointer ${
+                                      img.is_primary
+                                        ? 'bg-gold text-navy'
+                                        : 'bg-white text-gray-500 hover:text-navy border border-gray-200'
+                                    }`}
+                                  >
+                                    {img.is_primary ? 'Primary' : 'Set Primary'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveImage(idx)}
+                                    className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                                    title="Remove photo"
+                                  >
+                                    <span className="material-symbols-outlined text-sm!">delete</span>
+                                  </button>
+                                </>
+                              ) : (
+                                img.is_primary && (
+                                  <span className="bg-gold text-navy px-2 py-0.5 rounded font-bold text-[10px] uppercase mx-auto">
+                                    Primary Photo
+                                  </span>
+                                )
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1605,45 +1687,53 @@ export default function AdminProductsPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <label className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm!">refresh</span>
-                            <span>Replace</span>
-                            <input
-                              type="file"
-                              accept=".pdf,.doc,.docx"
-                              onChange={handleSelectBrochureFile}
-                              className="hidden"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={handleRemoveBrochure}
-                            className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
-                            title="Remove attached brochure"
-                          >
-                            <span className="material-symbols-outlined text-base!">delete</span>
-                          </button>
-                        </div>
+                        {canWriteProducts && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <label className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-2xs flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm!">refresh</span>
+                              <span>Replace</span>
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={handleSelectBrochureFile}
+                                className="hidden"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleRemoveBrochure}
+                              className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                              title="Remove attached brochure"
+                            >
+                              <span className="material-symbols-outlined text-base!">delete</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-2xl p-6 bg-slate-50 hover:bg-blue-50/20 cursor-pointer transition-all group">
-                        <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-blue-600 mb-2 transition-colors">
-                          upload_file
-                        </span>
-                        <span className="text-xs font-bold text-navy group-hover:text-blue-700">
-                          Click to Select Brochure PDF
-                        </span>
-                        <span className="text-[11px] text-gray-400 mt-1">
-                          Accepts PDF, DOC, DOCX up to 30MB (Uploaded only when saving product)
-                        </span>
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleSelectBrochureFile}
-                          className="hidden"
-                        />
-                      </label>
+                      canWriteProducts ? (
+                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-2xl p-6 bg-slate-50 hover:bg-blue-50/20 cursor-pointer transition-all group">
+                          <span className="material-symbols-outlined text-3xl text-gray-400 group-hover:text-blue-600 mb-2 transition-colors">
+                            upload_file
+                          </span>
+                          <span className="text-xs font-bold text-navy group-hover:text-blue-700">
+                            Click to Select Brochure PDF
+                          </span>
+                          <span className="text-[11px] text-gray-400 mt-1">
+                            Accepts PDF, DOC, DOCX up to 30MB (Uploaded only when saving product)
+                          </span>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={handleSelectBrochureFile}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="border border-dashed border-gray-200 rounded-2xl p-6 text-center text-xs text-gray-400 bg-slate-50">
+                          No brochure or datasheet attached to this product.
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -1658,16 +1748,18 @@ export default function AdminProductsPage() {
                           Attach supplementary documentation, clinical user guides, and regulatory certificates.
                         </p>
                       </div>
-                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl cursor-pointer transition-colors shadow-2xs">
-                        <span className="material-symbols-outlined text-sm!">add</span>
-                        <span>Add Document</span>
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={(e) => handleAddAttachedDocFile(e, 'Specifications')}
-                          className="hidden"
-                        />
-                      </label>
+                      {canWriteProducts && (
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl cursor-pointer transition-colors shadow-2xs">
+                          <span className="material-symbols-outlined text-sm!">add</span>
+                          <span>Add Document</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={(e) => handleAddAttachedDocFile(e, 'Specifications')}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
                     </div>
 
                     {attachedDocs.length === 0 ? (
@@ -1726,14 +1818,16 @@ export default function AdminProductsPage() {
                                 </span>
                               )}
 
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveAttachedDoc(idx)}
-                                className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
-                                title="Remove document"
-                              >
-                                <span className="material-symbols-outlined text-base!">delete</span>
-                              </button>
+                              {canWriteProducts && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAttachedDoc(idx)}
+                                  className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                                  title="Remove document"
+                                >
+                                  <span className="material-symbols-outlined text-base!">delete</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1749,14 +1843,16 @@ export default function AdminProductsPage() {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-lg inline-block">
                     4. Product Specifications &amp; Comparison Properties
                   </h3>
-                  <button
-                    type="button"
-                    onClick={handleAddPropertyRow}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-base!">add</span>
-                    Add Specification
-                  </button>
+                  {canWriteProducts && (
+                    <button
+                      type="button"
+                      onClick={handleAddPropertyRow}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base!">add</span>
+                      Add Specification
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-xs text-gray-500 mb-3">
@@ -1805,26 +1901,31 @@ export default function AdminProductsPage() {
                             placeholder="e.g. 12.1&quot; Touchscreen, Yes, 4.5 kg"
                             className="w-full px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg outline-none text-navy"
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePropertyRow(row.id)}
-                            className="text-gray-400 hover:text-red-500 p-1"
-                            title="Remove row"
-                          >
-                            <span className="material-symbols-outlined text-base!">delete</span>
-                          </button>
+                          {canWriteProducts && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePropertyRow(row.id)}
+                              className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
+                              title="Remove row"
+                            >
+                              <span className="material-symbols-outlined text-base!">delete</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+              </fieldset>
               </div>
 
               {/* Fixed Modal Footer */}
               <div className="px-6 sm:px-8 py-4 border-t border-gray-100 bg-slate-50/90 flex items-center justify-between shrink-0 rounded-b-3xl">
                 <div className="text-xs text-gray-500">
-                  {editingProduct ? 'Editing existing product' : 'Fill all required fields to register product'}
+                  {canWriteProducts
+                    ? (editingProduct ? 'Editing existing product' : 'Fill all required fields to register product')
+                    : 'View-only mode • Product catalogue modifications disabled'}
                 </div>
                 <div className="flex items-center gap-3">
                   <button
@@ -1832,26 +1933,28 @@ export default function AdminProductsPage() {
                     onClick={handleCloseProductModal}
                     className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer"
                   >
-                    Cancel
+                    {canWriteProducts ? 'Cancel' : 'Close'}
                   </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-navy text-white font-semibold px-6 py-2 rounded-xl hover:bg-navy-light transition-all text-xs shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>
-                          {selectedBrochureFile || images.some((i) => i.file)
-                            ? 'Uploading & Saving...'
-                            : 'Saving...'}
-                        </span>
-                      </>
-                    ) : (
-                      editingProduct ? 'Save Changes' : 'Create Product'
-                    )}
-                  </button>
+                  {canWriteProducts && (
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-navy text-white font-semibold px-6 py-2 rounded-xl hover:bg-navy-light transition-all text-xs shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>
+                            {selectedBrochureFile || images.some((i) => i.file)
+                              ? 'Uploading & Saving...'
+                              : 'Saving...'}
+                          </span>
+                        </>
+                      ) : (
+                        editingProduct ? 'Save Changes' : 'Create Product'
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </form>

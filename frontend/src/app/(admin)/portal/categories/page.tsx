@@ -35,7 +35,8 @@ const POPULAR_CATEGORY_ICONS = [
 ];
 
 export default function AdminCategoriesBrandsPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  const canWriteCategories = hasPermission('categories', 'write');
 
   const [viewSection, setViewSection] = useState<'categories' | 'brands'>('categories');
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -256,6 +257,23 @@ export default function AdminCategoriesBrandsPage() {
       isMounted = false;
     };
   }, []);
+
+  // Lock background screen scroll when any modal is open
+  const isAnyCategoryModalOpen =
+    isCategoryModalOpen ||
+    isBrandModalOpen ||
+    deleteModal !== null ||
+    managingSubcatCategory !== null;
+
+  useEffect(() => {
+    if (isAnyCategoryModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyCategoryModalOpen]);
 
   // Filtered lists
   const filteredCategories = categories.filter((c) => {
@@ -539,21 +557,35 @@ export default function AdminCategoriesBrandsPage() {
             </button>
           </div>
 
-          <button
-            onClick={() => {
-              if (viewSection === 'categories') {
-                handleOpenCategoryModal();
-              } else {
-                handleOpenBrandModal();
-              }
-            }}
-            className="inline-flex items-center gap-1.5 bg-navy text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-base!">add</span>
-            {viewSection === 'categories' ? 'Add Category' : 'Add Manufacturer'}
-          </button>
+          {canWriteCategories && (
+            <button
+              onClick={() => {
+                if (viewSection === 'categories') {
+                  handleOpenCategoryModal();
+                } else {
+                  handleOpenBrandModal();
+                }
+              }}
+              className="inline-flex items-center gap-1.5 bg-navy text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base!">add</span>
+              {viewSection === 'categories' ? 'Add Category' : 'Add Manufacturer'}
+            </button>
+          )}
         </div>
       </div>
+
+      {!canWriteCategories && (
+        <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <div>
+            <p className="font-bold text-amber-950">Read-Only Taxonomy View</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Your account has read-only access to categories and manufacturers.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -755,8 +787,10 @@ export default function AdminCategoriesBrandsPage() {
                             }}
                             className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-0.5 cursor-pointer"
                           >
-                            <span className="material-symbols-outlined text-xs!">edit_note</span>
-                            Manage
+                            <span className="material-symbols-outlined text-xs!">
+                              {canWriteCategories ? 'edit_note' : 'visibility'}
+                            </span>
+                            {canWriteCategories ? 'Manage' : 'View'}
                           </button>
                         </div>
                         {cat.subcategories && cat.subcategories.length > 0 ? (
@@ -785,19 +819,23 @@ export default function AdminCategoriesBrandsPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleOpenCategoryModal(cat)}
-                            title="Edit Category"
+                            title={canWriteCategories ? 'Edit Category' : 'View Category Details'}
                             className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-medium"
                           >
-                            <span className="material-symbols-outlined text-base!">edit</span>
-                            <span className="text-xs">Edit</span>
+                            <span className="material-symbols-outlined text-base!">
+                              {canWriteCategories ? 'edit' : 'visibility'}
+                            </span>
+                            <span className="text-xs">{canWriteCategories ? 'Edit' : 'View Details'}</span>
                           </button>
-                          <button
-                            onClick={() => setConfirmingDeleteCategoryId(cat.id)}
-                            title="Delete Category"
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-base!">delete</span>
-                          </button>
+                          {canWriteCategories && (
+                            <button
+                              onClick={() => setConfirmingDeleteCategoryId(cat.id)}
+                              title="Delete Category"
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-base!">delete</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -817,13 +855,15 @@ export default function AdminCategoriesBrandsPage() {
                     Configure manufacturer profiles, country origins and live inclusion in homepage BrandSlider.
                   </p>
                 </div>
-                <button
-                  onClick={() => handleOpenBrandModal()}
-                  className="bg-navy text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl hover:bg-navy-light transition-all cursor-pointer inline-flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-sm!">add</span>
-                  Add Manufacturer
-                </button>
+                {canWriteCategories && (
+                  <button
+                    onClick={() => handleOpenBrandModal()}
+                    className="bg-navy text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl hover:bg-navy-light transition-all cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm!">add</span>
+                    Add Manufacturer
+                  </button>
+                )}
               </div>
 
               {filteredBrands.length === 0 ? (
@@ -893,45 +933,66 @@ export default function AdminCategoriesBrandsPage() {
                             {b.description || 'Global healthcare device manufacturer.'}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <button
-                              onClick={() => handleToggleBrandSlider(b)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                                b.featured_in_slider
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
-                              }`}
-                              title="Click to toggle homepage slider display"
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  b.featured_in_slider ? 'bg-emerald-600 animate-pulse' : 'bg-gray-400'
+                            {canWriteCategories ? (
+                              <button
+                                onClick={() => handleToggleBrandSlider(b)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                  b.featured_in_slider
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
                                 }`}
-                              />
-                              {b.featured_in_slider ? 'Featured on Slider' : 'Hidden from Slider'}
-                            </button>
+                                title="Click to toggle homepage slider display"
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    b.featured_in_slider ? 'bg-emerald-600 animate-pulse' : 'bg-gray-400'
+                                  }`}
+                                />
+                                {b.featured_in_slider ? 'Featured on Slider' : 'Hidden from Slider'}
+                              </button>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none ${
+                                  b.featured_in_slider
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    b.featured_in_slider ? 'bg-emerald-600' : 'bg-gray-400'
+                                  }`}
+                                />
+                                {b.featured_in_slider ? 'Featured on Slider' : 'Hidden from Slider'}
+                              </span>
+                            )}
                           </td>
                           <td className="px-5 py-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleOpenBrandModal(b)}
-                                title="Edit Brand Details"
+                                title={canWriteCategories ? 'Edit Brand Details' : 'View Brand Details'}
                                 className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                               >
-                                <span className="material-symbols-outlined text-lg!">edit</span>
+                                <span className="material-symbols-outlined text-lg!">
+                                  {canWriteCategories ? 'edit' : 'visibility'}
+                                </span>
                               </button>
-                              <button
-                                onClick={() =>
-                                  setDeleteModal({
-                                    type: 'brand',
-                                    id: b.id,
-                                    name: b.name,
-                                  })
-                                }
-                                title="Delete Brand"
-                                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <span className="material-symbols-outlined text-lg!">delete</span>
-                              </button>
+                              {canWriteCategories && (
+                                <button
+                                  onClick={() =>
+                                    setDeleteModal({
+                                      type: 'brand',
+                                      id: b.id,
+                                      name: b.name,
+                                    })
+                                  }
+                                  title="Delete Brand"
+                                  className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-lg!">delete</span>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -950,9 +1011,20 @@ export default function AdminCategoriesBrandsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 animate-scale-up">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="font-bold text-lg text-navy">
-                {editingCategory ? 'Edit Product Category' : 'Add New Category'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-lg text-navy">
+                  {editingCategory
+                    ? canWriteCategories
+                      ? 'Edit Product Category'
+                      : `Category Details: ${editingCategory.name}`
+                    : 'Add New Category'}
+                </h3>
+                {!canWriteCategories && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                    Read-Only
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setIsCategoryModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
@@ -969,85 +1041,89 @@ export default function AdminCategoriesBrandsPage() {
             )}
 
             <form onSubmit={handleCategorySubmit} className="space-y-4 mt-4 text-xs sm:text-sm">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 space-y-1.5">
-                  <label className="block font-bold text-gray-700">Category Title / Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={categoryFormData.name}
-                    onChange={(e) =>
-                      setCategoryFormData({ ...categoryFormData, name: e.target.value })
-                    }
-                    placeholder="e.g. Diagnostic and Measure"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Code</label>
-                  <input
-                    type="text"
-                    value={categoryFormData.code || ''}
-                    onChange={(e) =>
-                      setCategoryFormData({ ...categoryFormData, code: e.target.value })
-                    }
-                    placeholder="e.g. 01"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block font-bold text-gray-700">Icon (Material Symbol)</label>
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-2xl!">
-                      {categoryFormData.icon || 'category'}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    value={categoryFormData.icon || ''}
-                    onChange={(e) =>
-                      setCategoryFormData({ ...categoryFormData, icon: e.target.value })
-                    }
-                    placeholder="e.g. monitor_heart, bed, science"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {POPULAR_CATEGORY_ICONS.slice(0, 10).map((iconName) => (
-                    <button
-                      key={iconName}
-                      type="button"
-                      onClick={() =>
-                        setCategoryFormData({ ...categoryFormData, icon: iconName })
+              <fieldset disabled={!canWriteCategories} className="space-y-4 disabled:opacity-90">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="block font-bold text-gray-700">Category Title / Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={categoryFormData.name}
+                      onChange={(e) =>
+                        setCategoryFormData({ ...categoryFormData, name: e.target.value })
                       }
-                      className={`p-1 rounded-md text-xs border transition-colors cursor-pointer ${
-                        categoryFormData.icon === iconName
-                          ? 'bg-navy text-white border-navy'
-                          : 'bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100'
-                      }`}
-                      title={iconName}
-                    >
-                      <span className="material-symbols-outlined text-base!">{iconName}</span>
-                    </button>
-                  ))}
+                      placeholder="e.g. Diagnostic and Measure"
+                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block font-bold text-gray-700">Code</label>
+                    <input
+                      type="text"
+                      value={categoryFormData.code || ''}
+                      onChange={(e) =>
+                        setCategoryFormData({ ...categoryFormData, code: e.target.value })
+                      }
+                      placeholder="e.g. 01"
+                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm font-mono disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="block font-bold text-gray-700">Description / Scope</label>
-                <textarea
-                  rows={3}
-                  value={categoryFormData.description || ''}
-                  onChange={(e) =>
-                    setCategoryFormData({ ...categoryFormData, description: e.target.value })
-                  }
-                  placeholder="Outline the medical devices or surgical supplies categorized under this group..."
-                  className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm leading-relaxed"
-                />
-              </div>
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-gray-700">Icon (Material Symbol)</label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-2xl!">
+                        {categoryFormData.icon || 'category'}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={categoryFormData.icon || ''}
+                      onChange={(e) =>
+                        setCategoryFormData({ ...categoryFormData, icon: e.target.value })
+                      }
+                      placeholder="e.g. monitor_heart, bed, science"
+                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  {canWriteCategories && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {POPULAR_CATEGORY_ICONS.slice(0, 10).map((iconName) => (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() =>
+                            setCategoryFormData({ ...categoryFormData, icon: iconName })
+                          }
+                          className={`p-1 rounded-md text-xs border transition-colors cursor-pointer ${
+                            categoryFormData.icon === iconName
+                              ? 'bg-navy text-white border-navy'
+                              : 'bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100'
+                          }`}
+                          title={iconName}
+                        >
+                          <span className="material-symbols-outlined text-base!">{iconName}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-gray-700">Description / Scope</label>
+                  <textarea
+                    rows={3}
+                    value={categoryFormData.description || ''}
+                    onChange={(e) =>
+                      setCategoryFormData({ ...categoryFormData, description: e.target.value })
+                    }
+                    placeholder="Outline the medical devices or surgical supplies categorized under this group..."
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm leading-relaxed disabled:bg-slate-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </fieldset>
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
                 <button
@@ -1055,15 +1131,17 @@ export default function AdminCategoriesBrandsPage() {
                   onClick={() => setIsCategoryModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold cursor-pointer"
                 >
-                  Cancel
+                  {canWriteCategories ? 'Cancel' : 'Close'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={isCategorySubmitting}
-                  className="px-5 py-2 bg-navy text-white rounded-xl font-bold hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
-                >
-                  {isCategorySubmitting ? 'Saving...' : editingCategory ? 'Save Changes' : 'Create Category'}
-                </button>
+                {canWriteCategories && (
+                  <button
+                    type="submit"
+                    disabled={isCategorySubmitting}
+                    className="px-5 py-2 bg-navy text-white rounded-xl font-bold hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {isCategorySubmitting ? 'Saving...' : editingCategory ? 'Save Changes' : 'Create Category'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -1075,9 +1153,20 @@ export default function AdminCategoriesBrandsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 animate-scale-up">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="font-bold text-lg text-navy">
-                {editingBrand ? 'Edit Medical Brand' : 'Register Manufacturer'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-lg text-navy">
+                  {editingBrand
+                    ? canWriteCategories
+                      ? 'Edit Medical Brand'
+                      : `Manufacturer Details: ${editingBrand.name}`
+                    : 'Register Manufacturer'}
+                </h3>
+                {!canWriteCategories && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                    Read-Only
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setIsBrandModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
@@ -1094,138 +1183,146 @@ export default function AdminCategoriesBrandsPage() {
             )}
 
             <form onSubmit={handleBrandSubmit} className="space-y-4 mt-4 text-xs sm:text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Brand / Manufacturer *</label>
-                  <input
-                    type="text"
-                    required
-                    value={brandFormData.name}
-                    onChange={(e) =>
-                      setBrandFormData({ ...brandFormData, name: e.target.value })
-                    }
-                    placeholder="e.g. Mindray"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Country / Origin</label>
-                  <input
-                    type="text"
-                    value={brandFormData.country || ''}
-                    onChange={(e) =>
-                      setBrandFormData({ ...brandFormData, country: e.target.value })
-                    }
-                    placeholder="e.g. Germany, Netherlands"
-                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block font-bold text-gray-700">Brand Logo Image (Upload from PC)</label>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
-                  {logoPreview ? (
-                    <div className="w-14 h-14 rounded-lg bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={logoPreview}
-                        alt="Logo preview"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-14 h-14 rounded-lg bg-slate-200 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 shrink-0">
-                      <span className="material-symbols-outlined text-2xl!">image</span>
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
+              <fieldset disabled={!canWriteCategories} className="space-y-4 disabled:opacity-90">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="block font-bold text-gray-700">Brand / Manufacturer *</label>
                     <input
-                      type="file"
-                      id="brand-logo-upload"
-                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setSelectedLogoFile(file);
-                          const objectUrl = URL.createObjectURL(file);
-                          setLogoPreview(objectUrl);
-                        }
-                      }}
-                      className="hidden"
+                      type="text"
+                      required
+                      value={brandFormData.name}
+                      onChange={(e) =>
+                        setBrandFormData({ ...brandFormData, name: e.target.value })
+                      }
+                      placeholder="e.g. Mindray"
+                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
                     />
-                    <label
-                      htmlFor="brand-logo-upload"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-navy text-navy font-semibold rounded-lg text-xs cursor-pointer shadow-xs transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-base!">upload</span>
-                      <span>{logoPreview ? 'Change Logo Image' : 'Choose Logo Image'}</span>
-                    </label>
-                    <p className="text-[11px] text-gray-500 mt-1 truncate">
-                      {selectedLogoFile ? selectedLogoFile.name : (brandFormData.logo_url || 'PNG, JPG, WebP, SVG (saved to /media/brands)')}
-                    </p>
                   </div>
-
-                  {logoPreview && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedLogoFile(null);
-                        setLogoPreview(null);
-                        setBrandFormData({ ...brandFormData, logo_url: '' });
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      title="Remove image"
-                    >
-                      <span className="material-symbols-outlined text-lg!">close</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block font-bold text-gray-700">Official Website URL</label>
-                <input
-                  type="url"
-                  value={brandFormData.website_url || ''}
-                  onChange={(e) =>
-                    setBrandFormData({ ...brandFormData, website_url: e.target.value })
-                  }
-                  placeholder="https://www.example.com"
-                  className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block font-bold text-gray-700">Speciality / Profile Summary</label>
-                <textarea
-                  rows={3}
-                  value={brandFormData.description || ''}
-                  onChange={(e) =>
-                    setBrandFormData({ ...brandFormData, description: e.target.value })
-                  }
-                  placeholder="Clinical domain, diagnostic equipment focus, medical device specialties..."
-                  className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm leading-relaxed"
-                />
-              </div>
-
-              <div className="p-3 bg-slate-50 border border-gray-200 rounded-xl flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-navy text-xs">Featured on Homepage Slider</div>
-                  <div className="text-[11px] text-gray-500">
-                    Include this manufacturer in the live carousel on the customer homepage.
+                  <div className="space-y-1.5">
+                    <label className="block font-bold text-gray-700">Country / Origin</label>
+                    <input
+                      type="text"
+                      value={brandFormData.country || ''}
+                      onChange={(e) =>
+                        setBrandFormData({ ...brandFormData, country: e.target.value })
+                      }
+                      placeholder="e.g. Germany, Netherlands"
+                      className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
+                    />
                   </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={brandFormData.featured_in_slider}
-                  onChange={(e) =>
-                    setBrandFormData({ ...brandFormData, featured_in_slider: e.target.checked })
-                  }
-                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                />
-              </div>
+
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-gray-700">Brand Logo Image</label>
+                  <div className="flex items-center gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
+                    {logoPreview ? (
+                      <div className="w-14 h-14 rounded-lg bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-slate-200 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 shrink-0">
+                        <span className="material-symbols-outlined text-2xl!">image</span>
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      {canWriteCategories && (
+                        <>
+                          <input
+                            type="file"
+                            id="brand-logo-upload"
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setSelectedLogoFile(file);
+                                const objectUrl = URL.createObjectURL(file);
+                                setLogoPreview(objectUrl);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="brand-logo-upload"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-navy text-navy font-semibold rounded-lg text-xs cursor-pointer shadow-xs transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-base!">upload</span>
+                            <span>{logoPreview ? 'Change Logo Image' : 'Choose Logo Image'}</span>
+                          </label>
+                        </>
+                      )}
+                      <p className="text-[11px] text-gray-500 mt-1 truncate">
+                        {selectedLogoFile
+                          ? selectedLogoFile.name
+                          : (brandFormData.logo_url || (canWriteCategories ? 'PNG, JPG, WebP, SVG (saved to /media/brands)' : 'No logo uploaded'))}
+                      </p>
+                    </div>
+
+                    {canWriteCategories && logoPreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedLogoFile(null);
+                          setLogoPreview(null);
+                          setBrandFormData({ ...brandFormData, logo_url: '' });
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Remove image"
+                      >
+                        <span className="material-symbols-outlined text-lg!">close</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-gray-700">Official Website URL</label>
+                  <input
+                    type="url"
+                    value={brandFormData.website_url || ''}
+                    onChange={(e) =>
+                      setBrandFormData({ ...brandFormData, website_url: e.target.value })
+                    }
+                    placeholder="https://www.example.com"
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block font-bold text-gray-700">Speciality / Profile Summary</label>
+                  <textarea
+                    rows={3}
+                    value={brandFormData.description || ''}
+                    onChange={(e) =>
+                      setBrandFormData({ ...brandFormData, description: e.target.value })
+                    }
+                    placeholder="Clinical domain, diagnostic equipment focus, medical device specialties..."
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm leading-relaxed disabled:bg-slate-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-gray-200 rounded-xl flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-navy text-xs">Featured on Homepage Slider</div>
+                    <div className="text-[11px] text-gray-500">
+                      Include this manufacturer in the live carousel on the customer homepage.
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={brandFormData.featured_in_slider}
+                    onChange={(e) =>
+                      setBrandFormData({ ...brandFormData, featured_in_slider: e.target.checked })
+                    }
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                </div>
+              </fieldset>
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
                 <button
@@ -1233,15 +1330,17 @@ export default function AdminCategoriesBrandsPage() {
                   onClick={() => setIsBrandModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold cursor-pointer"
                 >
-                  Cancel
+                  {canWriteCategories ? 'Cancel' : 'Close'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={isBrandSubmitting}
-                  className="px-5 py-2 bg-navy text-white rounded-xl font-bold hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
-                >
-                  {isBrandSubmitting ? 'Saving...' : editingBrand ? 'Save Changes' : 'Register Brand'}
-                </button>
+                {canWriteCategories && (
+                  <button
+                    type="submit"
+                    disabled={isBrandSubmitting}
+                    className="px-5 py-2 bg-navy text-white rounded-xl font-bold hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {isBrandSubmitting ? 'Saving...' : editingBrand ? 'Save Changes' : 'Register Brand'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -1259,7 +1358,16 @@ export default function AdminCategoriesBrandsPage() {
                   <span className="material-symbols-outlined text-xl!">account_tree</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-navy">Manage Subcategories</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-navy">
+                      {canWriteCategories ? 'Manage Subcategories' : 'View Subcategories'}
+                    </h3>
+                    {!canWriteCategories && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                        Read-Only
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500">
                     Category: <strong className="text-navy">{managingSubcatCategory.name}</strong>
                   </p>
@@ -1282,47 +1390,49 @@ export default function AdminCategoriesBrandsPage() {
             )}
 
             {/* Quick Add Subcategory Form */}
-            <form onSubmit={handleCreateSubcategory} className="mt-4 p-4 bg-slate-50 border border-gray-200 rounded-xl shrink-0">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-navy mb-2.5 flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base! text-blue-600">add_circle</span>
-                Add New Subcategory
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                <div className="sm:col-span-3">
-                  <input
-                    type="text"
-                    required
-                    value={newSubcatName}
-                    onChange={(e) => setNewSubcatName(e.target.value)}
-                    placeholder="Subcategory name (e.g. ECG Machines)"
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-navy text-navy font-medium"
-                  />
+            {canWriteCategories && (
+              <form onSubmit={handleCreateSubcategory} className="mt-4 p-4 bg-slate-50 border border-gray-200 rounded-xl shrink-0">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-navy mb-2.5 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-base! text-blue-600">add_circle</span>
+                  Add New Subcategory
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                  <div className="sm:col-span-3">
+                    <input
+                      type="text"
+                      required
+                      value={newSubcatName}
+                      onChange={(e) => setNewSubcatName(e.target.value)}
+                      placeholder="Subcategory name (e.g. ECG Machines)"
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs focus:outline-none focus:border-navy text-navy font-medium"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 flex gap-1.5">
+                    <input
+                      type="text"
+                      value={newSubcatSlug}
+                      onChange={(e) => setNewSubcatSlug(e.target.value)}
+                      placeholder="Slug (optional)"
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:border-navy text-navy"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubcatSubmitting || !newSubcatName.trim()}
+                      className="bg-navy hover:bg-navy-light text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all shrink-0 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                    >
+                      {isSubcatSubmitting ? (
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm!">add</span>
+                          <span>Add</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="sm:col-span-2 flex gap-1.5">
-                  <input
-                    type="text"
-                    value={newSubcatSlug}
-                    onChange={(e) => setNewSubcatSlug(e.target.value)}
-                    placeholder="Slug (optional)"
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:border-navy text-navy"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubcatSubmitting || !newSubcatName.trim()}
-                    className="bg-navy hover:bg-navy-light text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all shrink-0 disabled:opacity-50 cursor-pointer flex items-center gap-1"
-                  >
-                    {isSubcatSubmitting ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-sm!">add</span>
-                        <span>Add</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </form>
+              </form>
+            )}
 
             {/* Existing Subcategories List */}
             <div className="mt-4 flex-1 overflow-y-auto pr-1 space-y-2">
@@ -1430,32 +1540,34 @@ export default function AdminCategoriesBrandsPage() {
                             {sub.product_count} product{sub.product_count === 1 ? '' : 's'}
                           </span>
 
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingSubcatId(sub.id);
-                                setEditingSubcatName(sub.name);
-                                setEditingSubcatSlug(sub.slug);
-                                setConfirmDeleteSubcatId(null);
-                              }}
-                              className="p-1 text-gray-400 hover:text-navy hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-                              title="Edit subcategory"
-                            >
-                              <span className="material-symbols-outlined text-base!">edit</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setConfirmDeleteSubcatId(sub.id);
-                                setEditingSubcatId(null);
-                              }}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                              title="Delete subcategory"
-                            >
-                              <span className="material-symbols-outlined text-base!">delete</span>
-                            </button>
-                          </div>
+                          {canWriteCategories && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingSubcatId(sub.id);
+                                  setEditingSubcatName(sub.name);
+                                  setEditingSubcatSlug(sub.slug);
+                                  setConfirmDeleteSubcatId(null);
+                                }}
+                                className="p-1 text-gray-400 hover:text-navy hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                                title="Edit subcategory"
+                              >
+                                <span className="material-symbols-outlined text-base!">edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmDeleteSubcatId(sub.id);
+                                  setEditingSubcatId(null);
+                                }}
+                                className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+                                title="Delete subcategory"
+                              >
+                                <span className="material-symbols-outlined text-base!">delete</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

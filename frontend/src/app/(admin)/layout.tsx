@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { productsApi, inquiriesApi, quotesApi } from '@/lib/api';
+import { getUserInitials } from '@/lib/utils';
 
 const sidebarListeners = new Set<() => void>();
 let manualSidebarPreference: boolean | null = null;
@@ -55,7 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isCollapsed = useSyncExternalStore(subscribeSidebar, getSidebarSnapshot, getServerSidebarSnapshot);
-  const { user, token, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, token, isAuthenticated, isLoading, isAdmin, hasPermission, logout } = useAuth();
   const [productCount, setProductCount] = useState<number | null>(null);
   const [inquiriesCount, setInquiriesCount] = useState<number | null>(null);
   const [quoteCount, setQuoteCount] = useState<number | null>(null);
@@ -79,35 +80,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     name: string;
     href: string;
     icon: string;
+    section?: string;
+    adminOnly?: boolean;
     badge?: string;
     badgeColor?: string;
     showCollapsedBadge?: boolean;
   }
 
   useEffect(() => {
+    if (isLoading || !token) return;
+
     let isMounted = true;
 
+    const canReadProducts = isAdmin || hasPermission('products', 'read');
+    const canReadInquiries = isAdmin || hasPermission('inquiries', 'read');
+    const canReadQuotes = isAdmin || hasPermission('quotes', 'read');
+
     const fetchAllStats = () => {
-      productsApi
-        .getStats()
-        .then((data) => {
-          if (isMounted && data) {
-            setProductCount(data.total_products);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to load product count:', err);
-        });
+      if (canReadProducts) {
+        productsApi
+          .getStats()
+          .then((data) => {
+            if (isMounted && data) {
+              setProductCount(data.total_products);
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to load product count:', err);
+          });
+      }
 
-      const activeToken =
-        token ||
-        (typeof window !== 'undefined'
-          ? localStorage.getItem('r2m_access_token') || sessionStorage.getItem('r2m_access_token')
-          : null);
-
-      if (activeToken) {
+      if (canReadInquiries) {
         inquiriesApi
-          .getInquiriesStats(activeToken)
+          .getInquiriesStats(token)
           .then((data) => {
             if (isMounted && data) {
               setInquiriesCount(data.total_new);
@@ -116,9 +121,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .catch((err) => {
             console.error('Failed to load inquiries count:', err);
           });
+      }
 
+      if (canReadQuotes) {
         quotesApi
-          .getQuoteStats(activeToken)
+          .getQuoteStats(token)
           .then((data) => {
             if (isMounted && data) {
               setQuoteCount(data.new_quotes);
@@ -135,48 +142,73 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const handleRefresh = () => fetchAllStats();
     if (typeof window !== 'undefined') {
       window.addEventListener('admin:refresh-stats', handleRefresh);
-      window.addEventListener('focus', handleRefresh);
     }
 
     return () => {
       isMounted = false;
       if (typeof window !== 'undefined') {
         window.removeEventListener('admin:refresh-stats', handleRefresh);
-        window.removeEventListener('focus', handleRefresh);
       }
     };
-  }, [token, pathname]);
+  }, [isLoading, token, isAdmin, hasPermission]);
 
   const navItems: AdminNavItem[] = [
-    { name: 'Dashboard', href: '/admin', icon: 'dashboard' },
-    { name: 'Users', href: '/admin/users', icon: 'group' },
-    { name: 'Categories & Brands', href: '/admin/categories', icon: 'category' },
-    {
-      name: 'Products',
-      href: '/admin/products',
-      icon: 'inventory_2',
-      badge: productCount !== null ? String(productCount) : undefined,
-      showCollapsedBadge: false, // No badge when sidebar is collapsed
-    },
+    { name: 'Dashboard', href: '/portal', icon: 'dashboard' },
     {
       name: 'Quote Requests',
-      href: '/admin/quotes',
+      href: '/portal/quotes',
       icon: 'receipt_long',
+      section: 'quotes',
       badge: quoteCount !== null && quoteCount > 0 ? String(quoteCount) : undefined,
       badgeColor: 'bg-amber-500',
       showCollapsedBadge: true, // Only shown when there are new quote requests
     },
     {
+      name: 'Products',
+      href: '/portal/products',
+      icon: 'inventory_2',
+      section: 'products',
+      badge: productCount !== null ? String(productCount) : undefined,
+      showCollapsedBadge: false, // No badge when sidebar is collapsed
+    },
+    { name: 'Categories & Brands', href: '/portal/categories', icon: 'category', section: 'categories' },
+    {
       name: 'Inquiries & Leads',
-      href: '/admin/inquiries',
+      href: '/portal/inquiries',
       icon: 'contact_mail',
+      section: 'inquiries',
       badge: inquiriesCount !== null && inquiriesCount > 0 ? String(inquiriesCount) : undefined,
       badgeColor: 'bg-emerald-500',
       showCollapsedBadge: true,
     },
-    { name: 'Site Content', href: '/admin/content', icon: 'edit_note' },
-    { name: 'Admin Guide', href: '/admin/guide', icon: 'menu_book' },
+    { name: 'Site Content', href: '/portal/content', icon: 'edit_note', section: 'content' },
+    { name: 'Users', href: '/portal/users', icon: 'group', section: 'users' },
+    { name: 'Roles & Permissions', href: '/portal/roles', icon: 'admin_panel_settings', section: 'roles', adminOnly: true },
+    { name: isAdmin ? 'Admin Guide' : 'Staff Guide', href: '/portal/guide', icon: 'menu_book' },
   ];
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (isAdmin) return true;
+    if (item.adminOnly) return false;
+    if (!item.section) return true;
+    return hasPermission(item.section, 'read');
+  });
+
+  const getRequiredSectionForPath = (path: string): { section: string; level: 'read' | 'write'; adminOnly?: boolean } | null => {
+    if (path.startsWith('/portal/roles') || path.startsWith('/admin/roles')) return { section: 'roles', level: 'read', adminOnly: true };
+    if (path.startsWith('/portal/users') || path.startsWith('/admin/users')) return { section: 'users', level: 'read' };
+    if (path.startsWith('/portal/products') || path.startsWith('/admin/products')) return { section: 'products', level: 'read' };
+    if (path.startsWith('/portal/categories') || path.startsWith('/admin/categories')) return { section: 'categories', level: 'read' };
+    if (path.startsWith('/portal/quotes') || path.startsWith('/admin/quotes')) return { section: 'quotes', level: 'read' };
+    if (path.startsWith('/portal/inquiries') || path.startsWith('/admin/inquiries')) return { section: 'inquiries', level: 'read' };
+    if (path.startsWith('/portal/content') || path.startsWith('/admin/content')) return { section: 'content', level: 'read' };
+    return null;
+  };
+
+  const reqCheck = getRequiredSectionForPath(pathname);
+  const isAccessDenied = reqCheck
+    ? (reqCheck.adminOnly && !isAdmin) || !hasPermission(reqCheck.section, reqCheck.level)
+    : false;
 
 
   if (isLoading) {
@@ -207,15 +239,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <span className="material-symbols-outlined text-2xl!">menu</span>
           </button>
-          <Link href="/admin" className="flex items-center gap-2">
+          <Link href="/portal" className="flex items-center gap-2">
             <span className="font-bold tracking-tight text-lg text-white">SA Healthcare</span>
-            <span className="text-[10px] bg-gold text-navy font-bold px-1.5 py-0.5 rounded tracking-wider uppercase">Admin</span>
+            <span className="text-[10px] bg-gold text-navy font-bold px-1.5 py-0.5 rounded tracking-wider uppercase">{user?.role_name || (isAdmin ? 'Admin' : 'Staff')}</span>
           </Link>
         </div>
-        <Link href="/home" className="text-xs text-gray-300 hover:text-white flex items-center gap-1">
-          <span>Live Site</span>
-          <span className="material-symbols-outlined text-sm!">open_in_new</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/portal/profile"
+            className="w-7 h-7 rounded-full bg-gold text-navy font-bold text-xs flex items-center justify-center uppercase shrink-0"
+            title="My Profile"
+          >
+            {getUserInitials(user?.full_name, user?.username)}
+          </Link>
+          <Link href="/home" className="text-xs text-gray-300 hover:text-white flex items-center gap-1">
+            <span>Live Site</span>
+            <span className="material-symbols-outlined text-sm!">open_in_new</span>
+          </Link>
+        </div>
       </header>
 
       {/* Mobile Drawer Overlay */}
@@ -240,14 +281,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             isCollapsed ? 'justify-between md:justify-center' : 'justify-between'
           }`}
         >
-          <Link href="/admin" className="flex items-center gap-2.5 min-w-0" title="SA Healthcare Administration">
+          <Link href="/portal" className="flex items-center gap-2.5 min-w-0" title={isAdmin ? "SA Healthcare Administration" : "SA Healthcare Staff Portal"}>
             <div className="w-8 h-8 rounded-lg bg-gold text-navy flex items-center justify-center font-black text-sm shrink-0 shadow-sm">
               SA
             </div>
             {!isCollapsed && (
               <div className="min-w-0 truncate">
                 <div className="font-bold text-sm tracking-wide leading-tight truncate">SA Healthcare</div>
-                <div className="text-[11px] text-gray-400 font-medium truncate">Administration Portal</div>
+                <div className="text-[11px] text-gray-400 font-medium truncate">
+                  {user?.role_name ? `${user.role_name} Portal` : (isAdmin ? 'Administration Portal' : 'Staff Portal')}
+                </div>
               </div>
             )}
           </Link>
@@ -270,8 +313,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ) : (
             <div className="h-2" />
           )}
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+          {visibleNavItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/portal' && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.name}
@@ -383,20 +426,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             isCollapsed ? 'md:flex-col md:items-center md:gap-2 justify-between' : 'items-center justify-between'
           } shrink-0`}
         >
-          <div className={`flex items-center ${isCollapsed ? 'md:justify-center' : 'gap-3'} min-w-0`}>
+          <Link
+            href="/portal/profile"
+            onClick={() => setIsSidebarOpen(false)}
+            className={`flex items-center ${isCollapsed ? 'md:justify-center p-1' : 'gap-3 p-1.5'} min-w-0 rounded-xl transition-all ${
+              pathname === '/portal/profile'
+                ? 'bg-blue-600/30 ring-1 ring-gold/50 shadow-xs'
+                : 'hover:bg-white/5'
+            }`}
+            title="Manage My Profile & Password"
+          >
             <div
-              className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shrink-0 uppercase shadow-xs"
-              title={user?.full_name || user?.username || 'Administrator'}
+              className={`w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xs shrink-0 uppercase shadow-xs transition-all ${
+                pathname === '/portal/profile' ? 'ring-2 ring-gold' : 'group-hover:ring-2 group-hover:ring-gold'
+              }`}
             >
-              {user?.full_name ? user.full_name.substring(0, 2) : (user?.username ? user.username.substring(0, 2) : 'AD')}
+              {getUserInitials(user?.full_name, user?.username)}
             </div>
             {(!isCollapsed || isSidebarOpen) && (
-              <div className={`${isCollapsed ? 'md:hidden' : ''} truncate min-w-0`}>
-                <div className="text-xs font-semibold text-white truncate">{user?.full_name || user?.username || 'Administrator'}</div>
-                <div className="text-[10px] text-gray-400 truncate">{user?.email || 'admin@sahealthcare.com'}</div>
+              <div className={`${isCollapsed ? 'md:hidden' : ''} truncate min-w-0 text-left`}>
+                <div
+                  className={`text-xs font-semibold truncate transition-colors ${
+                    pathname === '/portal/profile' ? 'text-gold' : 'text-white'
+                  }`}
+                >
+                  {user?.full_name || user?.username || 'Staff User'}
+                </div>
+                <div className="text-[10px] text-gray-400 truncate">
+                  <span className="truncate">{user?.role_name || (isAdmin ? 'Administrator' : 'Staff')}</span>
+                </div>
               </div>
             )}
-          </div>
+          </Link>
           <button
             onClick={handleLogout}
             title="Log Out"
@@ -422,22 +483,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {isCollapsed ? 'menu' : 'menu_open'}
               </span>
             </button>
-            <span className="material-symbols-outlined text-base! text-gray-400">admin_panel_settings</span>
-            <span>Administration</span>
+            <span className="material-symbols-outlined text-base! text-gray-400">
+              {isAdmin ? 'admin_panel_settings' : 'shield_person'}
+            </span>
+            <span>{isAdmin ? 'Administration' : 'Portal'}</span>
             <span>/</span>
             <span className="text-navy font-semibold capitalize">
-              {pathname === '/admin' ? 'Dashboard' : pathname.replace('/admin/', '').replace('-', ' ')}
+              {pathname === '/portal' ? 'Dashboard' : pathname.replace('/portal/', '').replace('/admin/', '').replace('-', ' ')}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/admin/products?action=new"
-              className="inline-flex items-center gap-1.5 bg-navy text-white text-xs font-semibold px-3.5 py-1.5 rounded-full hover:bg-navy-light transition-all shadow-xs"
-            >
-              <span className="material-symbols-outlined text-sm!">add</span>
-              Add Product
-            </Link>
+            {hasPermission('products', 'write') && (
+              <Link
+                href="/portal/products?action=new"
+                className="inline-flex items-center gap-1.5 bg-navy text-white text-xs font-semibold px-3.5 py-1.5 rounded-full hover:bg-navy-light transition-all shadow-xs"
+              >
+                <span className="material-symbols-outlined text-sm!">add</span>
+                Add Product
+              </Link>
+            )}
 
             <Link
               href="/home"
@@ -452,7 +517,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          {children}
+          {isAccessDenied ? (
+            <div className="max-w-xl mx-auto my-12 bg-white rounded-2xl border border-rose-100 shadow-sm p-8 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-3xl!">lock</span>
+              </div>
+              <h2 className="text-lg font-bold text-navy mb-2">Access Restricted</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Your staff account (<span className="font-semibold text-gray-700">{user?.role_name || user?.role}</span>) does not have permission to view or manage this module. If you require access, please contact your platform administrator.
+              </p>
+              <Link
+                href="/portal"
+                className="inline-flex items-center gap-2 bg-navy text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-navy-light transition-all shadow-xs"
+              >
+                <span className="material-symbols-outlined text-base!">arrow_back</span>
+                Return to Dashboard
+              </Link>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
 

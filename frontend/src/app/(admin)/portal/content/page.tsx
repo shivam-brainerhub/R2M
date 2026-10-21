@@ -28,7 +28,8 @@ import RichTextEditor from '@/components/admin/RichTextEditor';
 type ContentTab = 'hero' | 'products_page' | 'company' | 'why_us' | 'cta' | 'privacy_policy' | 'terms_of_use';
 
 export default function AdminContentPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  const canWriteContent = hasPermission('content', 'write');
   const [activeTab, setActiveTab] = useState<ContentTab>('hero');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -381,18 +382,32 @@ export default function AdminContentPage() {
             <span className="material-symbols-outlined text-sm!">open_in_new</span>
           </Link>
 
-          <button
-            onClick={() => handleSaveSection(activeTab)}
-            disabled={isSaving}
-            className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-lg!">
-              {isSaving ? 'sync' : 'save'}
-            </span>
-            <span>{isSaving ? 'Saving...' : 'Save Current Section'}</span>
-          </button>
+          {canWriteContent && (
+            <button
+              onClick={() => handleSaveSection(activeTab)}
+              disabled={isSaving}
+              className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg!">
+                {isSaving ? 'sync' : 'save'}
+              </span>
+              <span>{isSaving ? 'Saving...' : 'Save Current Section'}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {!canWriteContent && (
+        <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <div>
+            <p className="font-bold text-amber-950">Read-Only CMS View</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Your account has read-only access to site content.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Section Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-2">
@@ -482,14 +497,16 @@ export default function AdminContentPage() {
           </button>
         </div>
 
-        <button
-          onClick={handleSaveAll}
-          disabled={isSaving}
-          className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-base!">save</span>
-          <span>Save All Sections</span>
-        </button>
+        {canWriteContent && (
+          <button
+            onClick={handleSaveAll}
+            disabled={isSaving}
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-base!">save</span>
+            <span>Save All Sections</span>
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Hero Section */}
@@ -501,16 +518,19 @@ export default function AdminContentPage() {
                 <h2 className="text-base font-bold text-navy">Homepage Hero Typography &amp; Search Configuration</h2>
                 <p className="text-xs text-gray-500">Configure the primary hero headline, slogan, search bar visibility, and quick search tags on /home.</p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleResetSection('hero')}
-                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm!">restart_alt</span>
-                Reset to Default
-              </button>
+              {canWriteContent && (
+                <button
+                  type="button"
+                  onClick={() => handleResetSection('hero')}
+                  className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                  Reset to Default
+                </button>
+              )}
             </div>
 
+            <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
             {/* Headline fields */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -618,40 +638,44 @@ export default function AdminContentPage() {
                     className="inline-flex items-center gap-1.5 bg-white border border-gray-300 text-navy px-3 py-1 rounded-full text-xs font-semibold shadow-2xs"
                   >
                     <span>{term}</span>
-                    <button
-                      type="button"
-                      onClick={() => removePopularSearchTag(term)}
-                      className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
-                      title="Remove term"
-                    >
-                      <span className="material-symbols-outlined text-sm! leading-none">close</span>
-                    </button>
+                    {canWriteContent && (
+                      <button
+                        type="button"
+                        onClick={() => removePopularSearchTag(term)}
+                        className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Remove term"
+                      >
+                        <span className="material-symbols-outlined text-sm! leading-none">close</span>
+                      </button>
+                    )}
                   </span>
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 pt-2 max-w-md">
-                <input
-                  type="text"
-                  value={newTagInput}
-                  onChange={(e) => setNewTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addPopularSearchTag();
-                    }
-                  }}
-                  placeholder="Add search term, e.g. Defibrillator"
-                  className="flex-1 px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-navy"
-                />
-                <button
-                  type="button"
-                  onClick={addPopularSearchTag}
-                  className="bg-navy hover:bg-navy-light text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                >
-                  Add Tag
-                </button>
-              </div>
+              {canWriteContent && (
+                <div className="flex items-center gap-2 pt-2 max-w-md">
+                  <input
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addPopularSearchTag();
+                      }
+                    }}
+                    placeholder="Add search term, e.g. Defibrillator"
+                    className="flex-1 px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-navy"
+                  />
+                  <button
+                    type="button"
+                    onClick={addPopularSearchTag}
+                    className="bg-navy hover:bg-navy-light text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right Banner Badge Typography */}
@@ -683,16 +707,19 @@ export default function AdminContentPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => handleSaveSection('hero')}
-                disabled={isSaving}
-                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base!">save</span>
-                <span>{isSaving ? 'Saving...' : 'Save Hero Changes'}</span>
-              </button>
-            </div>
+            {canWriteContent && (
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  onClick={() => handleSaveSection('hero')}
+                  disabled={isSaving}
+                  className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base!">save</span>
+                  <span>{isSaving ? 'Saving...' : 'Save Hero Changes'}</span>
+                </button>
+              </div>
+            )}
+            </fieldset>
           </div>
 
           {/* Live Hero Preview Card */}
@@ -760,16 +787,19 @@ export default function AdminContentPage() {
                   Manage the header copy, search placeholder, and distinct quick popular search chips displayed on the Product Catalogue page (/products).
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleResetSection('products_page')}
-                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm!">restart_alt</span>
-                Reset to Default
-              </button>
+              {canWriteContent && (
+                <button
+                  type="button"
+                  onClick={() => handleResetSection('products_page')}
+                  className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                  Reset to Default
+                </button>
+              )}
             </div>
 
+            <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
             {/* Banner Copy Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -823,7 +853,7 @@ export default function AdminContentPage() {
                     These keywords appear underneath the search bar on /products. Clicking a chip executes instant filtering.
                   </p>
                 </div>
-                {(productsPageContent.popularSearches || []).length > 0 && (
+                {canWriteContent && (productsPageContent.popularSearches || []).length > 0 && (
                   <button
                     type="button"
                     onClick={() => setProductsPageContent({ ...productsPageContent, popularSearches: [] })}
@@ -841,13 +871,15 @@ export default function AdminContentPage() {
                       <span className="material-symbols-outlined text-amber-600 text-base!">info</span>
                       <span>No search tags configured. The &ldquo;Popular searches:&rdquo; line will be completely hidden on the catalogue page.</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setProductsPageContent({ ...productsPageContent, popularSearches: [...DEFAULT_PRODUCTS_PAGE.popularSearches!] })}
-                      className="text-xs font-bold text-amber-900 underline hover:no-underline shrink-0 cursor-pointer"
-                    >
-                      Restore Defaults
-                    </button>
+                    {canWriteContent && (
+                      <button
+                        type="button"
+                        onClick={() => setProductsPageContent({ ...productsPageContent, popularSearches: [...DEFAULT_PRODUCTS_PAGE.popularSearches!] })}
+                        className="text-xs font-bold text-amber-900 underline hover:no-underline shrink-0 cursor-pointer"
+                      >
+                        Restore Defaults
+                      </button>
+                    )}
                   </div>
                 ) : (
                   (productsPageContent.popularSearches || []).map((term) => (
@@ -856,53 +888,60 @@ export default function AdminContentPage() {
                       className="inline-flex items-center gap-1.5 bg-white border border-gray-300 text-navy px-3 py-1 rounded-full text-xs font-semibold shadow-2xs"
                     >
                       <span>{term}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeProductPopularSearchTag(term)}
-                        className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
-                        title="Remove term"
-                      >
-                        <span className="material-symbols-outlined text-sm! leading-none">close</span>
-                      </button>
+                      {canWriteContent && (
+                        <button
+                          type="button"
+                          onClick={() => removeProductPopularSearchTag(term)}
+                          className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Remove term"
+                        >
+                          <span className="material-symbols-outlined text-sm! leading-none">close</span>
+                        </button>
+                      )}
                     </span>
                   ))
                 )}
               </div>
 
-              <div className="flex items-center gap-2 pt-2 max-w-md">
-                <input
-                  type="text"
-                  value={newProductTagInput}
-                  onChange={(e) => setNewProductTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addProductPopularSearchTag();
-                    }
-                  }}
-                  placeholder="Add catalogue search term, e.g. Defibrillator"
-                  className="flex-1 px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-navy"
-                />
-                <button
-                  type="button"
-                  onClick={addProductPopularSearchTag}
-                  className="bg-navy hover:bg-navy-light text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shrink-0"
-                >
-                  Add Tag
-                </button>
-              </div>
+              {canWriteContent && (
+                <div className="flex items-center gap-2 pt-2 max-w-md">
+                  <input
+                    type="text"
+                    value={newProductTagInput}
+                    onChange={(e) => setNewProductTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addProductPopularSearchTag();
+                      }
+                    }}
+                    placeholder="Add catalogue search term, e.g. Defibrillator"
+                    className="flex-1 px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-navy"
+                  />
+                  <button
+                    type="button"
+                    onClick={addProductPopularSearchTag}
+                    className="bg-navy hover:bg-navy-light text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer shrink-0"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => handleSaveSection('products_page')}
-                disabled={isSaving}
-                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base!">save</span>
-                <span>{isSaving ? 'Saving...' : 'Save Catalogue Settings'}</span>
-              </button>
-            </div>
+            {canWriteContent && (
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  onClick={() => handleSaveSection('products_page')}
+                  disabled={isSaving}
+                  className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base!">save</span>
+                  <span>{isSaving ? 'Saving...' : 'Save Catalogue Settings'}</span>
+                </button>
+              </div>
+            )}
+            </fieldset>
           </div>
 
           {/* Live Catalogue Banner Preview Card */}
@@ -975,16 +1014,19 @@ export default function AdminContentPage() {
               <h2 className="text-base font-bold text-navy">Corporate &amp; Contact Details</h2>
               <p className="text-xs text-gray-500">Contact information displayed across the site header, footer, quotation modal, and contact page.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleResetSection('company')}
-              className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm!">restart_alt</span>
-              Reset to Default
-            </button>
+            {canWriteContent && (
+              <button
+                type="button"
+                onClick={() => handleResetSection('company')}
+                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                Reset to Default
+              </button>
+            )}
           </div>
 
+          <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1067,16 +1109,19 @@ export default function AdminContentPage() {
             />
           </div>
 
-          <div className="pt-4 border-t border-gray-100 flex justify-end">
-            <button
-              onClick={() => handleSaveSection('company')}
-              disabled={isSaving}
-              className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-base!">save</span>
-              <span>{isSaving ? 'Saving...' : 'Save Company Info'}</span>
-            </button>
-          </div>
+          {canWriteContent && (
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => handleSaveSection('company')}
+                disabled={isSaving}
+                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base!">save</span>
+                <span>{isSaving ? 'Saving...' : 'Save Company Info'}</span>
+              </button>
+            </div>
+          )}
+          </fieldset>
         </div>
       )}
 
@@ -1088,16 +1133,19 @@ export default function AdminContentPage() {
               <h2 className="text-base font-bold text-navy">Value Propositions &amp; Why SA Healthcare</h2>
               <p className="text-xs text-gray-500">Edit the three core value pillars displayed prominently on the homepage.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleResetSection('why_us')}
-              className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm!">restart_alt</span>
-              Reset to Default
-            </button>
+            {canWriteContent && (
+              <button
+                type="button"
+                onClick={() => handleResetSection('why_us')}
+                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                Reset to Default
+              </button>
+            )}
           </div>
 
+          <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1169,23 +1217,26 @@ export default function AdminContentPage() {
                       newItems[idx].description = e.target.value;
                       setWhyUsContent({ ...whyUsContent, items: newItems });
                     }}
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg outline-none text-navy"
+                    className="w-full px-3.5 py-1.5 text-xs bg-white border border-gray-300 rounded-lg outline-none text-navy"
                   />
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="pt-4 border-t border-gray-100 flex justify-end">
-            <button
-              onClick={() => handleSaveSection('why_us')}
-              disabled={isSaving}
-              className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-base!">save</span>
-              <span>{isSaving ? 'Saving...' : 'Save Why SA Healthcare'}</span>
-            </button>
-          </div>
+          {canWriteContent && (
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => handleSaveSection('why_us')}
+                disabled={isSaving}
+                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base!">save</span>
+                <span>{isSaving ? 'Saving...' : 'Save Why SA Healthcare'}</span>
+              </button>
+            </div>
+          )}
+          </fieldset>
         </div>
       )}
 
@@ -1197,16 +1248,19 @@ export default function AdminContentPage() {
               <h2 className="text-base font-bold text-navy">Quotation Call to Action Banner</h2>
               <p className="text-xs text-gray-500">Configure the quotation banner at the bottom of the homepage.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleResetSection('cta')}
-              className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm!">restart_alt</span>
-              Reset to Default
-            </button>
+            {canWriteContent && (
+              <button
+                type="button"
+                onClick={() => handleResetSection('cta')}
+                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                Reset to Default
+              </button>
+            )}
           </div>
 
+          <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1280,16 +1334,19 @@ export default function AdminContentPage() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-100 flex justify-end">
-            <button
-              onClick={() => handleSaveSection('cta')}
-              disabled={isSaving}
-              className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-base!">save</span>
-              <span>{isSaving ? 'Saving...' : 'Save CTA Changes'}</span>
-            </button>
-          </div>
+          {canWriteContent && (
+            <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => handleSaveSection('cta')}
+                disabled={isSaving}
+                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base!">save</span>
+                <span>{isSaving ? 'Saving...' : 'Save CTA Changes'}</span>
+              </button>
+            </div>
+          )}
+          </fieldset>
         </div>
       )}
 
@@ -1304,16 +1361,19 @@ export default function AdminContentPage() {
                   Manage the document title, subtitle, effective date, and full rich text policy content displayed on /privacy.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleResetSection('privacy_policy')}
-                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm!">restart_alt</span>
-                Reset to Default
-              </button>
+              {canWriteContent && (
+                <button
+                  type="button"
+                  onClick={() => handleResetSection('privacy_policy')}
+                  className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                  Reset to Default
+                </button>
+              )}
             </div>
 
+            <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1363,19 +1423,23 @@ export default function AdminContentPage() {
                 value={privacyPolicy.content}
                 onChange={(content) => setPrivacyPolicy({ ...privacyPolicy, content })}
                 placeholder="Compose or paste full privacy policy content..."
+                readOnly={!canWriteContent}
               />
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => handleSaveSection('privacy_policy')}
-                disabled={isSaving}
-                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base!">save</span>
-                <span>{isSaving ? 'Saving...' : 'Save Privacy Policy'}</span>
-              </button>
-            </div>
+            {canWriteContent && (
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  onClick={() => handleSaveSection('privacy_policy')}
+                  disabled={isSaving}
+                  className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base!">save</span>
+                  <span>{isSaving ? 'Saving...' : 'Save Privacy Policy'}</span>
+                </button>
+              </div>
+            )}
+            </fieldset>
           </div>
         </div>
       )}
@@ -1391,16 +1455,19 @@ export default function AdminContentPage() {
                   Manage the document title, subtitle, effective date, and full rich text terms displayed on /terms.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleResetSection('terms_of_use')}
-                className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm!">restart_alt</span>
-                Reset to Default
-              </button>
+              {canWriteContent && (
+                <button
+                  type="button"
+                  onClick={() => handleResetSection('terms_of_use')}
+                  className="text-xs text-gray-400 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm!">restart_alt</span>
+                  Reset to Default
+                </button>
+              )}
             </div>
 
+            <fieldset disabled={!canWriteContent} className="space-y-6 disabled:opacity-90">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -1450,19 +1517,23 @@ export default function AdminContentPage() {
                 value={termsOfUse.content}
                 onChange={(content) => setTermsOfUse({ ...termsOfUse, content })}
                 placeholder="Compose or paste full terms of use content..."
+                readOnly={!canWriteContent}
               />
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => handleSaveSection('terms_of_use')}
-                disabled={isSaving}
-                className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-base!">save</span>
-                <span>{isSaving ? 'Saving...' : 'Save Terms of Use'}</span>
-              </button>
-            </div>
+            {canWriteContent && (
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  onClick={() => handleSaveSection('terms_of_use')}
+                  disabled={isSaving}
+                  className="bg-navy text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-navy-light text-xs transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-base!">save</span>
+                  <span>{isSaving ? 'Saving...' : 'Save Terms of Use'}</span>
+                </button>
+              </div>
+            )}
+            </fieldset>
           </div>
         </div>
       )}

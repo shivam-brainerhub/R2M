@@ -58,8 +58,12 @@ export default function LoginForm() {
       setTimeout(() => {
         if (redirectUrl) {
           router.push(redirectUrl);
-        } else if (user.role === 'admin') {
-          router.push('/admin');
+        } else if (
+          user.is_admin ||
+          user.role?.toLowerCase() === 'admin' ||
+          (user.permissions && Object.values(user.permissions).some((l) => l !== 'none'))
+        ) {
+          router.push('/portal');
         } else {
           router.push('/home');
         }

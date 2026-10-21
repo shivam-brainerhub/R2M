@@ -1,3 +1,39 @@
+export type PermissionLevel = 'none' | 'read' | 'read_write';
+
+export type PermissionSection =
+  | 'quotes'
+  | 'products'
+  | 'categories'
+  | 'inquiries'
+  | 'content'
+  | 'users'
+  | 'roles';
+
+export type UserPermissions = Record<PermissionSection | string, PermissionLevel>;
+
+export interface Role {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  is_system: boolean;
+  permissions: UserPermissions;
+  user_count?: number;
+  created_at?: string;
+}
+
+export interface RoleCreatePayload {
+  name: string;
+  description?: string;
+  permissions?: Partial<Record<PermissionSection, PermissionLevel>>;
+}
+
+export interface RoleUpdatePayload {
+  name?: string;
+  description?: string;
+  permissions?: Partial<Record<PermissionSection, PermissionLevel>>;
+}
+
 export interface UserProfile {
   id: number;
   email: string;
@@ -5,7 +41,13 @@ export interface UserProfile {
   full_name?: string | null;
   phone?: string | null;
   organization?: string | null;
-  role: 'admin' | 'user';
+  role: string;
+  role_id?: number | null;
+  role_name?: string | null;
+  is_admin?: boolean;
+  has_custom_permissions?: boolean;
+  custom_permissions?: Partial<Record<PermissionSection, PermissionLevel>> | null;
+  permissions?: UserPermissions;
   is_active: boolean;
   is_email_verified: boolean;
   created_at?: string;
@@ -192,11 +234,23 @@ export const authApi = {
     });
     return handleResponse<MessageResponse>(response);
   },
+
+  async changePassword(token: string, payload: { current_password: string; new_password: string }): Promise<MessageResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<MessageResponse>(response);
+  },
 };
 
 export interface AdminUserFilterParams {
   search?: string;
-  role?: 'admin' | 'user' | '';
+  role?: string;
   is_active?: boolean | null;
   is_email_verified?: boolean | null;
   sort_by?: 'id' | 'username' | 'email' | 'created_at' | 'last_login_at';
@@ -212,7 +266,9 @@ export interface AdminCreateUserPayload {
   full_name?: string;
   phone?: string;
   organization?: string;
-  role?: 'admin' | 'user';
+  role?: string;
+  role_id?: number | null;
+  custom_permissions?: Partial<Record<PermissionSection, PermissionLevel>> | null;
   is_active?: boolean;
 }
 
@@ -222,7 +278,9 @@ export interface AdminUpdateUserPayload {
   full_name?: string;
   phone?: string;
   organization?: string;
-  role?: 'admin' | 'user';
+  role?: string;
+  role_id?: number | null;
+  custom_permissions?: Partial<Record<PermissionSection, PermissionLevel>> | null;
   is_active?: boolean;
 }
 
@@ -315,6 +373,62 @@ export const adminUsersApi = {
       },
     });
     return handleResponse<{ message: string; email: string }>(response);
+  },
+};
+
+export const adminRolesApi = {
+  async listRoles(token: string): Promise<Role[]> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/roles`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Role[]>(response);
+  },
+
+  async getRole(token: string, roleId: number): Promise<Role> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/roles/${roleId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<Role>(response);
+  },
+
+  async createRole(token: string, payload: RoleCreatePayload): Promise<Role> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/roles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Role>(response);
+  },
+
+  async updateRole(token: string, roleId: number, payload: RoleUpdatePayload): Promise<Role> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/roles/${roleId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Role>(response);
+  },
+
+  async deleteRole(token: string, roleId: number): Promise<MessageResponse> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/roles/${roleId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    return handleResponse<MessageResponse>(response);
   },
 };
 

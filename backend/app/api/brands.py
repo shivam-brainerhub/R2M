@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import asc, desc, or_
 from sqlalchemy.orm import Session
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_permission
 from app.database import get_db
 from app.models import Brand, Product, User
 from app.schemas.brand import (
@@ -49,7 +49,7 @@ ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"}
 @router.post("/upload-logo")
 def upload_brand_logo(
     file: UploadFile = File(...),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Upload a brand manufacturer logo file using the active storage service.
@@ -154,7 +154,7 @@ def create_brand(
     payload: BrandCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Register a new manufacturer / brand. Requires Admin role.
@@ -205,7 +205,7 @@ def update_brand(
     payload: BrandUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Update brand profile details. Requires Admin role.
@@ -287,7 +287,7 @@ def update_brand(
 def toggle_brand_slider(
     brand_id: int,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Toggle brand inclusion in homepage BrandSlider. Requires Admin role.
@@ -317,7 +317,7 @@ def delete_brand(
     brand_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Delete a brand and clean up its logo from media storage. Requires Admin role.

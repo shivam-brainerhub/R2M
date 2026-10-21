@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Qu
 from sqlalchemy import asc, case, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_permission
 from app.database import get_db
 from app.models import (
     Brand,
@@ -205,7 +205,7 @@ def build_product_response(product: Product) -> ProductResponse:
 @router.post("/upload-brochure")
 def upload_product_brochure(
     file: UploadFile = File(...),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Upload a product brochure or datasheet document (PDF, DOC, DOCX).
@@ -225,7 +225,7 @@ def upload_product_brochure(
 @router.post("/upload-image")
 def upload_product_image(
     file: UploadFile = File(...),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Upload a product photography/illustration image.
@@ -247,7 +247,7 @@ def delete_media_file(
     file_url: str = Query(..., description="Public URL or path of the media file to delete"),
     force: bool = Query(False, description="Force delete even if referenced in catalogue"),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Explicitly delete an uploaded media file (image, brochure, or document).
@@ -789,7 +789,7 @@ def create_product(
     payload: ProductCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Create a new medical product with images, SEO slug, and dynamic properties.
@@ -942,7 +942,7 @@ def update_product(
     payload: ProductUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Update product details, SEO slug, images, and property specifications.
@@ -1164,7 +1164,7 @@ def toggle_product_status(
     product_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Toggle product catalogue status between 'Active' and 'Draft'. Requires Admin.
@@ -1190,7 +1190,7 @@ def delete_product(
     product_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("products", "write")),
 ):
     """
     Delete a product from the catalogue and clean up associated media files. Requires Admin.

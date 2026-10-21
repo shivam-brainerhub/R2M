@@ -173,6 +173,39 @@ class Sector(TimestampMixin, Base):
     )
 
 
+ALL_PERMISSIONS_SECTIONS = [
+    "quotes",
+    "products",
+    "categories",
+    "inquiries",
+    "content",
+    "users",
+    "roles",
+]
+
+PERMISSION_LEVEL_NONE = "none"
+PERMISSION_LEVEL_READ = "read"
+PERMISSION_LEVEL_READ_WRITE = "read_write"
+VALID_PERMISSION_LEVELS = [
+    PERMISSION_LEVEL_NONE,
+    PERMISSION_LEVEL_READ,
+    PERMISSION_LEVEL_READ_WRITE,
+]
+
+
+class Role(TimestampMixin, Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    description = Column(String, nullable=True)
+    is_system = Column(Boolean, default=False, nullable=False)
+    permissions = Column(JSON, nullable=False, default=dict)
+
+    users = relationship("User", back_populates="role_rel")
+
+
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     USER = "user"
@@ -188,14 +221,50 @@ class User(TimestampMixin, Base):
     full_name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     organization = Column(String, nullable=True)
-    role = Column(
-        Enum(UserRole, name="user_role_enum", native_enum=False),
-        default=UserRole.USER,
-        nullable=False,
-    )
+    role = Column(String(64), default="user", nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="SET NULL"), nullable=True, index=True)
+    custom_permissions = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_email_verified = Column(Boolean, default=False, nullable=False)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
+
+    role_rel = relationship("Role", back_populates="users")
+
+    @property
+    def is_admin(self) -> bool:
+        role_str = str(self.role.value if hasattr(self.role, "value") else self.role).lower() if self.role else ""
+        if role_str == "admin":
+            return True
+        if self.role_rel and self.role_rel.slug.lower() == "admin":
+            return True
+        return False
+
+    @property
+    def effective_permissions(self) -> dict:
+        if self.is_admin:
+            return {sec: "read_write" for sec in ALL_PERMISSIONS_SECTIONS}
+        perms = {}
+        if self.role_rel and self.role_rel.permissions:
+            perms.update(self.role_rel.permissions)
+        if self.custom_permissions:
+            perms.update(self.custom_permissions)
+        return {sec: perms.get(sec, "none") for sec in ALL_PERMISSIONS_SECTIONS}
+
+    @property
+    def permissions(self) -> dict:
+        return self.effective_permissions
+
+    @property
+    def role_name(self) -> str:
+        if self.role_rel:
+            return self.role_rel.name
+        if self.is_admin:
+            return "Administrator"
+        return "Customer"
+
+    @property
+    def has_custom_permissions(self) -> bool:
+        return bool(self.custom_permissions)
 
 
 class SiteContent(TimestampMixin, Base):

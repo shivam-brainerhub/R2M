@@ -13,7 +13,8 @@ import QuoteDetailsModal, { getStatusBadge, getUrgencyBadge } from '@/components
 type TabStatus = 'All' | 'New' | 'In Review' | 'Quoted' | 'Approved' | 'Declined';
 
 export default function AdminQuotesPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  const canWriteQuotes = hasPermission('quotes', 'write');
 
   const [quotes, setQuotes] = useState<QuoteRequestData[]>([]);
   const [stats, setStats] = useState<QuoteStatsData | null>(null);
@@ -146,6 +147,18 @@ export default function AdminQuotesPage() {
           </span>
         </div>
       </div>
+
+      {!canWriteQuotes && (
+        <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <div>
+            <p className="font-bold text-amber-950">Read-Only Quotes View</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Your account has read-only access to quotation requests. Modifying request status, updating quoted amounts, adding internal notes, or deleting requests is disabled.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Filter Tabs & Search Bar */}
       <div className="bg-white p-4 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
@@ -327,14 +340,16 @@ export default function AdminQuotesPage() {
                             <span>Review</span>
                             <span className="material-symbols-outlined text-xs!">visibility</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setQuoteToDelete(q)}
-                            className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
-                            title="Delete Quote"
-                          >
-                            <span className="material-symbols-outlined text-sm!">delete</span>
-                          </button>
+                          {canWriteQuotes && (
+                            <button
+                              type="button"
+                              onClick={() => setQuoteToDelete(q)}
+                              className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
+                              title="Delete Quote"
+                            >
+                              <span className="material-symbols-outlined text-sm!">delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
 

@@ -7,6 +7,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   minHeight?: string;
+  readOnly?: boolean;
 }
 
 export default function RichTextEditor({
@@ -14,6 +15,7 @@ export default function RichTextEditor({
   onChange,
   placeholder = 'Compose content here...',
   minHeight = 'min-h-96',
+  readOnly = false,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isFocusedRef = useRef(false);
@@ -246,8 +248,26 @@ export default function RichTextEditor({
   return (
     <div className="relative border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-xs focus-within:border-blue-500 transition-colors">
       {/* Formatting Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-1 p-2.5 bg-slate-50 border-b border-gray-200">
-        <div className="flex flex-wrap items-center gap-1">
+      {readOnly ? (
+        <div className="flex items-center justify-between p-2.5 bg-slate-50 border-b border-gray-200 text-xs font-semibold text-gray-500">
+          <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/80">
+            <span className="material-symbols-outlined text-sm!">lock</span>
+            <span>Read-Only Preview Mode</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsCodeView(!isCodeView)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-navy hover:bg-slate-200 transition-colors cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-base! leading-none">
+              {isCodeView ? 'visibility' : 'code'}
+            </span>
+            <span>{isCodeView ? 'Visual Mode' : 'HTML Code'}</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-1 p-2.5 bg-slate-50 border-b border-gray-200">
+          <div className="flex flex-wrap items-center gap-1">
           {/* Paragraph / Headings */}
           <button
             type="button"
@@ -469,40 +489,54 @@ export default function RichTextEditor({
             </span>
             <span>{isCodeView ? 'Visual Mode' : 'HTML Code'}</span>
           </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Editor Body */}
       {isCodeView ? (
         <textarea
           rows={16}
           value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
+          readOnly={readOnly}
+          onChange={(e) => {
+            if (!readOnly) onChange(e.target.value);
+          }}
           placeholder="Enter or paste raw HTML markup..."
-          className={`w-full p-4 font-mono text-xs bg-slate-900 text-emerald-400 focus:outline-none resize-y ${minHeight}`}
+          className={`w-full p-4 font-mono text-xs bg-slate-900 text-emerald-400 focus:outline-none resize-y ${minHeight} ${
+            readOnly ? 'cursor-not-allowed opacity-90' : ''
+          }`}
         />
       ) : (
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable={!readOnly}
           suppressContentEditableWarning
           onFocus={() => {
-            isFocusedRef.current = true;
+            if (!readOnly) isFocusedRef.current = true;
           }}
           onBlur={() => {
-            isFocusedRef.current = false;
-            handleInput();
+            if (!readOnly) {
+              isFocusedRef.current = false;
+              handleInput();
+            }
           }}
-          onInput={handleInput}
+          onInput={() => {
+            if (!readOnly) handleInput();
+          }}
           data-placeholder={placeholder}
-          className={`w-full p-5 focus:outline-none text-slate-800 text-sm leading-relaxed overflow-y-auto ${minHeight} max-h-160 prose prose-slate max-w-none prose-headings:text-navy prose-h2:text-lg prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-base prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:list-disc prose-ul:ml-6 prose-ol:list-decimal prose-ol:ml-6 prose-a:text-blue-600 prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic`}
+          className={`w-full p-5 focus:outline-none text-slate-800 text-sm leading-relaxed overflow-y-auto ${minHeight} max-h-160 prose prose-slate max-w-none prose-headings:text-navy prose-h2:text-lg prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-base prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:list-disc prose-ul:ml-6 prose-ol:list-decimal prose-ol:ml-6 prose-a:text-blue-600 prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic ${
+            readOnly ? 'bg-slate-50/50 cursor-default select-text' : ''
+          }`}
         />
       )}
 
       {/* Bottom Status / Stats Bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-t border-gray-100 text-[11px] text-gray-400 font-medium">
         <div>
-          {isCodeView ? (
+          {readOnly ? (
+            <span className="text-amber-800 font-semibold">View-only mode • Content edits disabled</span>
+          ) : isCodeView ? (
             <span>Editing raw HTML markup directly</span>
           ) : (
             <span>Rich Text Mode &bull; Toolbar formats apply directly</span>

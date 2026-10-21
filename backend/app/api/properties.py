@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_permission
 from app.database import get_db
 from app.models import Category, ProductPropertyValue, Property, User
 from app.schemas.property import PropertyCreate, PropertyResponse, PropertyUpdate
@@ -105,7 +105,7 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
 def create_property(
     payload: PropertyCreate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Create a new product property / attribute definition. Requires Admin.
@@ -154,7 +154,7 @@ def update_property(
     property_id: int,
     payload: PropertyUpdate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Update a property definition. Requires Admin.
@@ -228,7 +228,7 @@ def update_property(
 def delete_property(
     property_id: int,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Delete a property. Requires Admin.

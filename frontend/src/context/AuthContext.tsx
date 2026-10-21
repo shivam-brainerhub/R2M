@@ -1,18 +1,23 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authApi, UserProfile, LoginPayload, RegisterPayload, UpdateProfilePayload } from '../lib/api';
+import { authApi, UserProfile, LoginPayload, RegisterPayload, UpdateProfilePayload, PermissionSection } from '../lib/api';
 
 interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  canAccessAdmin: boolean;
+  canAccessPortal: boolean;
+  hasPermission: (section: PermissionSection | string, level?: 'read' | 'write') => boolean;
   login: (credentials: LoginPayload, rememberMe?: boolean) => Promise<UserProfile>;
   register: (payload: RegisterPayload) => Promise<UserProfile>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   updateProfile: (payload: UpdateProfilePayload) => Promise<UserProfile>;
+  changePassword: (payload: { current_password: string; new_password: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -127,6 +132,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return updated;
   };
 
+  const isAdmin = Boolean(
+    user?.is_admin ||
+    user?.role?.toLowerCase() === 'admin' ||
+    user?.role_name?.toLowerCase() === 'administrator'
+  );
+
+  const canAccessAdmin = Boolean(
+    isAdmin ||
+    (user?.permissions &&
+      Object.values(user.permissions).some(
+        (lvl) => lvl === 'read' || lvl === 'read_write'
+      ))
+  );
+
+  const hasPermission = useCallback(
+    (section: PermissionSection | string, level: 'read' | 'write' = 'read'): boolean => {
+      if (!user) return false;
+      if (
+        user.is_admin ||
+        user.role?.toLowerCase() === 'admin' ||
+        user.role_name?.toLowerCase() === 'administrator'
+      ) {
+        return true;
+      }
+      const userLevel = user.permissions?.[section] || 'none';
+      if (level === 'read') {
+        return userLevel === 'read' || userLevel === 'read_write';
+      }
+      if (level === 'write') {
+        return userLevel === 'read_write';
+      }
+      return false;
+    },
+    [user]
+  );
+
+  const changePassword = async (payload: { current_password: string; new_password: string }): Promise<void> => {
+    if (!token) throw new Error('Not authenticated');
+    await authApi.changePassword(token, payload);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -134,11 +180,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin,
+        canAccessAdmin,
+        canAccessPortal: canAccessAdmin,
+        hasPermission,
         login,
         register,
         logout,
         refreshUser,
         updateProfile,
+        changePassword,
       }}
     >
       {children}

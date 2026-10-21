@@ -51,7 +51,8 @@ export default function QuoteDetailsModal({
   onQuoteUpdated,
   onToast,
 }: QuoteDetailsModalProps) {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  const canWriteQuotes = hasPermission('quotes', 'write');
   const [localQuote, setLocalQuote] = useState<QuoteRequestData | null>(quote);
   const [internalNoteInput, setInternalNoteInput] = useState('');
   const [quotedAmountInput, setQuotedAmountInput] = useState('');
@@ -77,6 +78,16 @@ export default function QuoteDetailsModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [quote, onClose]);
+
+  // Lock background screen scroll when modal is open
+  useEffect(() => {
+    if (!quote) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [quote]);
 
   if (!quote || !localQuote) return null;
 
@@ -157,7 +168,7 @@ export default function QuoteDetailsModal({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1 py-4 space-y-6">
+        <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain py-4 space-y-6">
           {/* Requester Details */}
           <div className="bg-slate-50 rounded-2xl p-4 border border-gray-200/80">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
@@ -271,10 +282,13 @@ export default function QuoteDetailsModal({
                 </label>
                 <input
                   type="text"
+                  readOnly={!canWriteQuotes}
                   value={quotedAmountInput}
                   onChange={(e) => setQuotedAmountInput(e.target.value)}
                   placeholder="e.g. R 145,000.00 incl. VAT"
-                  className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy font-bold"
+                  className={`w-full px-3 py-2 text-xs border border-gray-200 rounded-xl outline-none font-bold text-navy ${
+                    canWriteQuotes ? 'bg-white focus:border-blue-500' : 'bg-gray-100 cursor-not-allowed text-gray-600'
+                  }`}
                 />
               </div>
 
@@ -284,49 +298,65 @@ export default function QuoteDetailsModal({
                 </label>
                 <textarea
                   rows={2}
+                  readOnly={!canWriteQuotes}
                   value={internalNoteInput}
                   onChange={(e) => setInternalNoteInput(e.target.value)}
                   placeholder="Record supplier lead times, delivery coordination, warranty terms..."
-                  className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy"
+                  className={`w-full px-3 py-2 text-xs border border-gray-200 rounded-xl outline-none text-navy ${
+                    canWriteQuotes ? 'bg-white focus:border-blue-500' : 'bg-gray-100 cursor-not-allowed text-gray-600'
+                  }`}
                 />
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleSaveDetails}
-                disabled={isSaving}
-                className="bg-navy text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-sm!">save</span>
-                <span>{isSaving ? 'Saving...' : 'Save Internal Record'}</span>
-              </button>
-            </div>
+            {canWriteQuotes && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveDetails}
+                  disabled={isSaving}
+                  className="bg-navy text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-sm!">save</span>
+                  <span>{isSaving ? 'Saving...' : 'Save Internal Record'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Update Status Bar */}
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
             <span className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-              Change Request Status
+              Request Status
             </span>
-            <div className="flex flex-wrap gap-2">
-              {(['New', 'In Review', 'Quoted', 'Approved', 'Declined'] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  disabled={isUpdatingStatus}
-                  onClick={() => handleUpdateStatus(s)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    localQuote.status === s
-                      ? 'bg-navy text-white shadow-xs'
-                      : 'bg-white text-gray-600 hover:bg-slate-200 border border-gray-200'
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+            {canWriteQuotes ? (
+              <div className="flex flex-wrap gap-2">
+                {(['New', 'In Review', 'Quoted', 'Approved', 'Declined'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleUpdateStatus(s)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      localQuote.status === s
+                        ? 'bg-navy text-white shadow-xs'
+                        : 'bg-white text-gray-600 hover:bg-slate-200 border border-gray-200'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusBadge(localQuote.status)}`}>
+                  {localQuote.status}
+                </span>
+                <span className="text-xs text-gray-400 italic">
+                  (Read-only: write permission required to modify status)
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

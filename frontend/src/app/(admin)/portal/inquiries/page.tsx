@@ -14,7 +14,8 @@ import CustomSelect from '@/components/CustomSelect';
 type InquiryTab = 'contact' | 'supplier';
 
 export default function AdminInquiriesPage() {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
+  const canWriteInquiries = hasPermission('inquiries', 'write');
 
   // Tab State
   const [activeTab, setActiveTab] = useState<InquiryTab>('contact');
@@ -172,6 +173,18 @@ export default function AdminInquiriesPage() {
     };
   }, [token, activeTab, contactStatusFilter, contactSearch, supplierStatusFilter, supplierSearch]);
 
+  // Lock background screen scroll when any inquiry modal is open
+  const isAnyInquiryModalOpen = Boolean(selectedContact || selectedSupplier || itemToDelete);
+
+  useEffect(() => {
+    if (isAnyInquiryModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyInquiryModalOpen]);
 
   // ---------------------------------------------------------------------------
   // Action Handlers
@@ -362,6 +375,18 @@ export default function AdminInquiriesPage() {
           <span>Refresh</span>
         </button>
       </div>
+
+      {!canWriteInquiries && (
+        <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <div>
+            <p className="font-bold text-amber-950">Read-Only Inquiries View</p>
+            <p className="text-amber-800/90 mt-0.5">
+              Your account has read-only access to customer inquiries and supplier applications.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Top Stats Overview Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -580,19 +605,21 @@ export default function AdminInquiriesPage() {
                           >
                             View
                           </button>
-                          <button
-                            onClick={() =>
-                              setItemToDelete({
-                                id: msg.id,
-                                type: 'contact',
-                                name: `${msg.first_name} ${msg.last_name}`,
-                              })
-                            }
-                            className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                            title="Delete"
-                          >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                          </button>
+                          {canWriteInquiries && (
+                            <button
+                              onClick={() =>
+                                setItemToDelete({
+                                  id: msg.id,
+                                  type: 'contact',
+                                  name: `${msg.first_name} ${msg.last_name}`,
+                                })
+                              }
+                              className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                              title="Delete"
+                            >
+                              <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -695,19 +722,21 @@ export default function AdminInquiriesPage() {
                           >
                             View
                           </button>
-                          <button
-                            onClick={() =>
-                              setItemToDelete({
-                                id: app.id,
-                                type: 'supplier',
-                                name: app.company_name,
-                              })
-                            }
-                            className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                            title="Delete"
-                          >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                          </button>
+                          {canWriteInquiries && (
+                            <button
+                              onClick={() =>
+                                setItemToDelete({
+                                  id: app.id,
+                                  type: 'supplier',
+                                  name: app.company_name,
+                                })
+                              }
+                              className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                              title="Delete"
+                            >
+                              <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -727,9 +756,16 @@ export default function AdminInquiriesPage() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 space-y-5 my-8">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  Contact Message Details
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Contact Message Details
+                  </span>
+                  {!canWriteInquiries && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                      Read-Only
+                    </span>
+                  )}
+                </div>
                 <h3 className="text-xl font-bold text-navy">
                   {selectedContact.first_name} {selectedContact.last_name}
                 </h3>
@@ -769,7 +805,7 @@ export default function AdminInquiriesPage() {
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
                 <span className="text-gray-500 font-medium block mb-1">Status</span>
                 <CustomSelect
-                  disabled={isUpdatingStatus}
+                  disabled={isUpdatingStatus || !canWriteInquiries}
                   value={selectedContact.status}
                   onChange={(val) => handleUpdateContactStatus(val)}
                   options={['New', 'In Progress', 'Responded', 'Archived']}
@@ -796,20 +832,31 @@ export default function AdminInquiriesPage() {
               </span>
               <textarea
                 rows={3}
-                placeholder="Add notes about call outcomes, assigned sales rep, follow-up dates..."
+                readOnly={!canWriteInquiries}
+                placeholder={
+                  canWriteInquiries
+                    ? "Add notes about call outcomes, assigned sales rep, follow-up dates..."
+                    : "No internal administrative notes recorded."
+                }
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-gray-200 rounded-lg outline-none focus:border-navy focus:ring-1 focus:ring-navy/20"
+                className={`w-full p-3 text-xs border border-gray-200 rounded-lg outline-none ${
+                  canWriteInquiries
+                    ? "bg-white focus:border-navy focus:ring-1 focus:ring-navy/20"
+                    : "bg-slate-50 text-gray-600 cursor-default"
+                }`}
               />
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveContactNotes}
-                  disabled={isSavingNotes}
-                  className="px-3 py-1.5 text-xs font-semibold bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {isSavingNotes ? 'Saving...' : 'Save Notes'}
-                </button>
-              </div>
+              {canWriteInquiries && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSaveContactNotes}
+                    disabled={isSavingNotes}
+                    className="px-3 py-1.5 text-xs font-semibold bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
@@ -839,9 +886,16 @@ export default function AdminInquiriesPage() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 space-y-5 my-8">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  Supplier Application Details
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    Supplier Application Details
+                  </span>
+                  {!canWriteInquiries && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
+                      Read-Only
+                    </span>
+                  )}
+                </div>
                 <h3 className="text-xl font-bold text-navy">{selectedSupplier.company_name}</h3>
               </div>
               <button
@@ -908,7 +962,7 @@ export default function AdminInquiriesPage() {
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
                 <span className="text-gray-500 font-medium block mb-1">Status</span>
                 <CustomSelect
-                  disabled={isUpdatingStatus}
+                  disabled={isUpdatingStatus || !canWriteInquiries}
                   value={selectedSupplier.status}
                   onChange={(val) => handleUpdateSupplierStatus(val)}
                   options={['New', 'Under Review', 'Approved', 'Declined']}
@@ -935,20 +989,31 @@ export default function AdminInquiriesPage() {
               </span>
               <textarea
                 rows={3}
-                placeholder="Add notes about catalogue review, ISO certifications, pricing review..."
+                readOnly={!canWriteInquiries}
+                placeholder={
+                  canWriteInquiries
+                    ? "Add notes about catalogue review, ISO certifications, pricing review..."
+                    : "No internal administrative notes recorded."
+                }
                 value={notesInput}
                 onChange={(e) => setNotesInput(e.target.value)}
-                className="w-full p-3 text-xs bg-white border border-gray-200 rounded-lg outline-none focus:border-navy focus:ring-1 focus:ring-navy/20"
+                className={`w-full p-3 text-xs border border-gray-200 rounded-lg outline-none ${
+                  canWriteInquiries
+                    ? "bg-white focus:border-navy focus:ring-1 focus:ring-navy/20"
+                    : "bg-slate-50 text-gray-600 cursor-default"
+                }`}
               />
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveSupplierNotes}
-                  disabled={isSavingNotes}
-                  className="px-3 py-1.5 text-xs font-semibold bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  {isSavingNotes ? 'Saving...' : 'Save Notes'}
-                </button>
-              </div>
+              {canWriteInquiries && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSaveSupplierNotes}
+                    disabled={isSavingNotes}
+                    className="px-3 py-1.5 text-xs font-semibold bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">

@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_permission
 from app.database import get_db
 from app.init_db import DEFAULT_SITE_CONTENTS
 from app.models import SiteContent, User
@@ -272,7 +272,7 @@ def update_site_content_section(
     key: str,
     payload: SiteContentUpdate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("content", "write")),
 ):
     """
     Update a specific content section. Requires Admin privileges.
@@ -302,7 +302,7 @@ def update_site_content_section(
 def batch_update_site_content(
     payload: SiteContentBatchUpdate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("content", "write")),
 ):
     """
     Update multiple site content sections in a single request. Requires Admin privileges.
@@ -329,7 +329,7 @@ def batch_update_site_content(
 def reset_site_content(
     key: Optional[str] = Query(None, description="Optional key of section to reset, e.g. hero, company. If omitted, resets all sections."),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("content", "write")),
 ):
     """
     Reset one or all site content sections to default initial data. Requires Admin privileges.
@@ -354,7 +354,7 @@ def reset_site_content(
 @router.post("/upload-image")
 def upload_content_image(
     file: UploadFile = File(...),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("content", "write")),
 ):
     """
     Upload an image for site CMS (e.g., promotional banner, hero graphics). Requires Admin privileges.

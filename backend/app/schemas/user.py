@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr
+from typing import Dict, Optional
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 from app.models import UserRole
 
 
@@ -30,7 +30,9 @@ class UserRegister(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    role: Optional[UserRole] = UserRole.USER
+    role: Optional[str] = "user"
+    role_id: Optional[int] = None
+    custom_permissions: Optional[Dict[str, str]] = None
     is_active: Optional[bool] = True
 
 
@@ -40,7 +42,9 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     organization: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[str] = None
+    role_id: Optional[int] = None
+    custom_permissions: Optional[Dict[str, str]] = None
     is_active: Optional[bool] = None
 
 
@@ -82,10 +86,25 @@ class ResendVerificationRequest(BaseModel):
 
 class UserResponse(UserBase):
     id: int
-    role: UserRole
+    role: str
+    role_id: Optional[int] = None
+    role_name: Optional[str] = None
+    is_admin: bool = False
+    has_custom_permissions: bool = False
+    custom_permissions: Optional[Dict[str, str]] = None
+    permissions: Dict[str, str] = {}
     is_active: bool
     is_email_verified: bool
     created_at: Optional[datetime] = None
     last_login_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def normalize_role(cls, v):
+        if hasattr(v, "value"):
+            return str(v.value).lower()
+        if isinstance(v, str):
+            return v.lower()
+        return "user"

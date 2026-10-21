@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_permission
 from app.database import get_db
 from app.models import ContactMessage, SupplierApplication, User
 from app.schemas.inquiries import (
@@ -54,7 +54,7 @@ def list_contact_messages(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "read")),
 ):
     """
     Retrieve contact messages with filtering and search. Requires Admin privileges.
@@ -84,7 +84,7 @@ def update_contact_message(
     message_id: int,
     payload: ContactMessageUpdate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "write")),
 ):
     """
     Update status or internal notes on a contact message. Requires Admin privileges.
@@ -110,7 +110,7 @@ def update_contact_message(
 def delete_contact_message(
     message_id: int,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "write")),
 ):
     """
     Delete a contact message. Requires Admin privileges.
@@ -163,7 +163,7 @@ def list_supplier_applications(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "read")),
 ):
     """
     Retrieve supplier applications with filtering and search. Requires Admin privileges.
@@ -193,7 +193,7 @@ def update_supplier_application(
     app_id: int,
     payload: SupplierApplicationUpdate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "write")),
 ):
     """
     Update status or internal notes on a supplier application. Requires Admin privileges.
@@ -219,7 +219,7 @@ def update_supplier_application(
 def delete_supplier_application(
     app_id: int,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "write")),
 ):
     """
     Delete a supplier application. Requires Admin privileges.
@@ -239,7 +239,7 @@ def delete_supplier_application(
 @router.get("/stats", response_model=Dict[str, int])
 def get_inquiries_stats(
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("inquiries", "read")),
 ):
     """
     Retrieve quick inquiry counts for admin badge notifications and dashboard widgets.

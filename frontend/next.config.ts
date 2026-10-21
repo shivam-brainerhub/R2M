@@ -31,6 +31,16 @@ const nextConfig: NextConfig = {
         destination: '/home',
         permanent: true,
       },
+      {
+        source: '/admin',
+        destination: '/portal',
+        permanent: false,
+      },
+      {
+        source: '/admin/:path*',
+        destination: '/portal/:path*',
+        permanent: false,
+      },
     ];
   },
   async rewrites() {

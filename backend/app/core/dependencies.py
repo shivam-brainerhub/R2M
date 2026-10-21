@@ -123,12 +123,41 @@ def get_current_user_from_header_or_query(
 def require_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    if current_user.role != UserRole.ADMIN:
+    if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to access this resource",
         )
     return current_user
+
+
+def require_permission(section: str, level: str = "read"):
+    """
+    Enforces section-based permission on endpoints.
+    - level="read": Satisfied if effective permission is 'read' or 'read_write'
+    - level="write": Satisfied only if effective permission is 'read_write'
+    Administrators (is_admin=True) always bypass checks.
+    """
+    def permission_checker(
+        current_user: User = Depends(get_current_user),
+    ) -> User:
+        if current_user.is_admin:
+            return current_user
+
+        perms = current_user.effective_permissions
+        user_level = perms.get(section, "none")
+
+        if level == "read" and user_level in ["read", "read_write"]:
+            return current_user
+        if level in ["write", "read_write"] and user_level == "read_write":
+            return current_user
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You do not have permission to access {section} ({level} required)",
+        )
+
+    return permission_checker
 
 
 def require_roles(allowed_roles: List[UserRole]):

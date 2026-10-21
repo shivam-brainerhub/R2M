@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useQuoteCart } from '@/context/QuoteCartContext';
 import { quotesApi, QuoteRequestData, getMediaUrl, ApiError } from '@/lib/api';
+import { getUserInitials } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, token, isAuthenticated, isLoading, logout, updateProfile } = useAuth();
+  const { user, token, isAuthenticated, isLoading, logout, updateProfile, isAdmin, canAccessAdmin, hasPermission } = useAuth();
   const { itemCount, isLoaded } = useQuoteCart();
 
   const [myQuotes, setMyQuotes] = useState<QuoteRequestData[]>([]);
@@ -109,16 +110,14 @@ export default function ProfilePage() {
     return null;
   }
 
-  const initials = user.full_name
-    ? user.full_name
-        .split(' ')
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
-    : (user.username || 'AD').substring(0, 2).toUpperCase();
+  const initials = getUserInitials(user.full_name, user.username, 'AD');
 
-  const isAdmin = user.role === 'admin';
+  const hasAdminAccess = Boolean(
+    canAccessAdmin ||
+    isAdmin ||
+    user.is_admin ||
+    user.role?.toLowerCase() === 'admin'
+  );
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -182,13 +181,13 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {isAdmin && (
+            {hasAdminAccess && (
               <Link
-                href="/admin"
+                href="/portal"
                 className="bg-gold hover:bg-gold-bright text-navy font-bold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md shrink-0 hover:scale-105 active:scale-95"
               >
-                <span className="material-symbols-outlined text-base">admin_panel_settings</span>
-                Admin Portal
+                <span className="material-symbols-outlined text-base">{isAdmin ? 'admin_panel_settings' : 'shield_person'}</span>
+                {isAdmin ? 'Admin Portal' : 'Staff Portal'}
               </Link>
             )}
           </div>
@@ -439,9 +438,9 @@ export default function ProfilePage() {
                   <span className="material-symbols-outlined text-sm text-gray-400">chevron_right</span>
                 </Link>
 
-                {isAdmin && (
+                {(isAdmin || hasPermission('quotes', 'read')) && (
                   <Link
-                    href="/admin/quotes"
+                    href="/portal/quotes"
                     className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-navy transition-colors border border-gray-100"
                   >
                     <div className="flex items-center gap-2.5">

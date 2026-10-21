@@ -11,6 +11,7 @@ from app.api.brands import router as brands_router
 from app.api.categories import router as categories_router, subcategories_router
 from app.api.products import router as products_router
 from app.api.properties import router as properties_router
+from app.api.roles import router as roles_router
 from app.api.site_content import router as site_content_router
 from app.api.inquiries import router as inquiries_router
 from app.api.quotes import router as quotes_router
@@ -58,6 +59,7 @@ app.include_router(subcategories_router, prefix="/api")
 app.include_router(brands_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
 app.include_router(properties_router, prefix="/api")
+app.include_router(roles_router, prefix="/api")
 app.include_router(site_content_router, prefix="/api")
 app.include_router(inquiries_router, prefix="/api")
 app.include_router(quotes_router, prefix="/api")

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.dependencies import get_current_user, get_optional_current_user, require_admin
+from app.core.dependencies import get_current_user, get_optional_current_user, require_admin, require_permission
 from app.database import get_db
 from app.models import Product, QuoteRequest, QuoteRequestItem, User
 from app.schemas.quote import (
@@ -133,7 +133,7 @@ def get_my_quote_requests(
 @router.get("/stats", response_model=QuoteStatsResponse)
 def get_quote_stats(
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("quotes", "read")),
 ):
     """
     Summary counts of quote requests by status for admin badges and widgets.
@@ -163,7 +163,7 @@ def list_quote_requests(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("quotes", "read")),
 ):
     """
     Retrieve quote requests with filtering, search, and pagination. Requires Admin privileges.
@@ -245,7 +245,7 @@ def update_quote_request(
     quote_id: int,
     payload: QuoteRequestUpdate,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("quotes", "write")),
 ):
     """
     Update status, internal sales notes, or quoted amount. Requires Admin privileges.
@@ -282,7 +282,7 @@ def update_quote_request(
 def delete_quote_request(
     quote_id: int,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("quotes", "write")),
 ):
     """
     Delete a quote request. Requires Admin privileges.

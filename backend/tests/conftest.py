@@ -134,15 +134,17 @@ def test_regular_user(db_session):
 
 @pytest.fixture(scope="session")
 def admin_token_headers(test_admin_user):
+    role_str = test_admin_user.role.value if hasattr(test_admin_user.role, "value") else str(test_admin_user.role)
     token = create_access_token(
-        subject=test_admin_user.id, role=test_admin_user.role.value
+        subject=test_admin_user.id, role=role_str
     )
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(scope="session")
 def user_token_headers(test_regular_user):
+    role_str = test_regular_user.role.value if hasattr(test_regular_user.role, "value") else str(test_regular_user.role)
     token = create_access_token(
-        subject=test_regular_user.id, role=test_regular_user.role.value
+        subject=test_regular_user.id, role=role_str
     )
     return {"Authorization": f"Bearer {token}"}

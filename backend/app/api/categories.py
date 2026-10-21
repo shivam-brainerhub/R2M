@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_permission
 from app.database import get_db
 from app.models import Category, Product, Subcategory, User
 from app.schemas.category import (
@@ -148,7 +148,7 @@ def create_category(
     payload: CategoryCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Create a new product category. Requires Admin role.
@@ -195,7 +195,7 @@ def update_category(
     payload: CategoryUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Update an existing category. Requires Admin role.
@@ -249,7 +249,7 @@ def delete_category(
     category_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Delete a category. Requires Admin role.
@@ -294,7 +294,7 @@ def create_subcategory(
     payload: SubcategoryCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Create a new subcategory under the specified category. Requires Admin role.
@@ -355,7 +355,7 @@ def update_subcategory(
     payload: SubcategoryUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Update an existing subcategory. Requires Admin role.
@@ -429,7 +429,7 @@ def delete_subcategory(
     background_tasks: BackgroundTasks,
     force: bool = Query(False, description="If true, unassigns products instead of blocking deletion"),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     """
     Delete a subcategory. Requires Admin role.
@@ -475,7 +475,7 @@ def create_subcategory_direct(
     payload: SubcategoryCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     if not payload.category_id:
         raise HTTPException(
@@ -491,7 +491,7 @@ def update_subcategory_direct(
     payload: SubcategoryUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     return update_subcategory(subcategory_id, payload, background_tasks, db, current_admin)
 
@@ -502,7 +502,7 @@ def delete_subcategory_direct(
     background_tasks: BackgroundTasks,
     force: bool = Query(False),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(require_admin),
+    current_admin: User = Depends(require_permission("categories", "write")),
 ):
     return delete_subcategory(subcategory_id, background_tasks, force, db, current_admin)
 

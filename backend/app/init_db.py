@@ -9,6 +9,7 @@ from app.models import (
     ProductImage,
     ProductPropertyValue,
     Property,
+    Role,
     Sector,
     SiteContent,
     Subcategory,
@@ -52,6 +53,99 @@ SEED_SECTORS = [
     {"name": "Laboratories"},
     {"name": "Specialist Care"},
     {"name": "Veterinary Practices"},
+]
+
+SEED_ROLES = [
+    {
+        "name": "Administrator",
+        "slug": "admin",
+        "description": "Full platform master administrator with unrestricted access.",
+        "is_system": True,
+        "permissions": {
+            "quotes": "read_write",
+            "products": "read_write",
+            "categories": "read_write",
+            "inquiries": "read_write",
+            "content": "read_write",
+            "users": "read_write",
+            "roles": "read_write",
+        },
+    },
+    {
+        "name": "Sales Representative",
+        "slug": "sales_rep",
+        "description": "Handles quotation requests (RFQs), reviews catalogue products and inquiries.",
+        "is_system": True,
+        "permissions": {
+            "quotes": "read_write",
+            "products": "read",
+            "categories": "read",
+            "inquiries": "read",
+            "content": "none",
+            "users": "none",
+            "roles": "none",
+        },
+    },
+    {
+        "name": "Product Manager",
+        "slug": "product_manager",
+        "description": "Manages medical devices, categories, brands, specifications and brochures.",
+        "is_system": True,
+        "permissions": {
+            "quotes": "read",
+            "products": "read_write",
+            "categories": "read_write",
+            "inquiries": "none",
+            "content": "none",
+            "users": "none",
+            "roles": "none",
+        },
+    },
+    {
+        "name": "Content Editor",
+        "slug": "content_editor",
+        "description": "Manages CMS website content, hero sections, company info and legal terms.",
+        "is_system": True,
+        "permissions": {
+            "quotes": "none",
+            "products": "read",
+            "categories": "read",
+            "inquiries": "none",
+            "content": "read_write",
+            "users": "none",
+            "roles": "none",
+        },
+    },
+    {
+        "name": "Support Specialist",
+        "slug": "support",
+        "description": "Handles inbound customer messages and supplier distribution applications.",
+        "is_system": True,
+        "permissions": {
+            "quotes": "read",
+            "products": "read",
+            "categories": "read",
+            "inquiries": "read_write",
+            "content": "none",
+            "users": "none",
+            "roles": "none",
+        },
+    },
+    {
+        "name": "Customer",
+        "slug": "user",
+        "description": "Standard registered public user account with zero backend admin access.",
+        "is_system": True,
+        "permissions": {
+            "quotes": "none",
+            "products": "none",
+            "categories": "none",
+            "inquiries": "none",
+            "content": "none",
+            "users": "none",
+            "roles": "none",
+        },
+    },
 ]
 
 DEFAULT_SITE_CONTENTS = {
@@ -197,11 +291,39 @@ DEFAULT_SITE_CONTENTS = {
 
 
 def init_db(db: Session) -> None:
+    # Ensure users.role column is VARCHAR(64) to prevent StringDataRightTruncation
+    try:
+        from sqlalchemy import text
+        db.execute(text("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(64);"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # 0. Seed initial roles if not present
+    for role_data in SEED_ROLES:
+        existing_role = db.query(Role).filter(Role.slug == role_data["slug"]).first()
+        if not existing_role:
+            logger.info(f"Seeding role: {role_data['name']}...")
+            db.add(
+                Role(
+                    name=role_data["name"],
+                    slug=role_data["slug"],
+                    description=role_data["description"],
+                    is_system=role_data["is_system"],
+                    permissions=role_data["permissions"],
+                )
+            )
+    db.commit()
+
+    admin_role = db.query(Role).filter(Role.slug == "admin").first()
+    user_role = db.query(Role).filter(Role.slug == "user").first()
+
     # 1. Seed initial admin user if not present
     admin = (
         db.query(User)
         .filter(
             (User.email == settings.INITIAL_ADMIN_EMAIL)
+            | (User.role == "admin")
             | (User.role == UserRole.ADMIN)
         )
         .first()
@@ -214,7 +336,8 @@ def init_db(db: Session) -> None:
             username=settings.INITIAL_ADMIN_USERNAME,
             full_name="Platform Administrator",
             hashed_password=get_password_hash(settings.INITIAL_ADMIN_PASSWORD),
-            role=UserRole.ADMIN,
+            role="admin",
+            role_id=admin_role.id if admin_role else None,
             is_active=True,
             is_email_verified=True,
         )
@@ -225,7 +348,23 @@ def init_db(db: Session) -> None:
             f"Initial admin created successfully: {settings.INITIAL_ADMIN_EMAIL}"
         )
     else:
-        logger.info("Admin user already exists. Skipping user seed.")
+        logger.info("Admin user already exists. Checking role linkage.")
+        if admin_role and not admin.role_id:
+            admin.role_id = admin_role.id
+            db.commit()
+
+    # Link any unlinked users to default roles
+    if admin_role:
+        db.query(User).filter(
+            (User.role == "admin") | (User.role == UserRole.ADMIN),
+            User.role_id == None,
+        ).update({User.role_id: admin_role.id}, synchronize_session=False)
+    if user_role:
+        db.query(User).filter(
+            (User.role == "user") | (User.role == UserRole.USER),
+            User.role_id == None,
+        ).update({User.role_id: user_role.id}, synchronize_session=False)
+    db.commit()
 
     # 2. Seed initial categories if empty
     if db.query(Category).count() == 0:

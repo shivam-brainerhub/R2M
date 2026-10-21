@@ -14,7 +14,7 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_db
-from app.models import User, UserRole
+from app.models import Role, User, UserRole
 from app.schemas.token import Token, TokenRefreshRequest
 from app.schemas.user import (
     ForgotPasswordRequest,
@@ -29,6 +29,13 @@ from app.schemas.user import (
     VerifyEmailRequest,
 )
 from app.services.email import send_password_reset_email, send_verification_email
+
+
+def get_role_value(user: User) -> str:
+    if hasattr(user.role, "value"):
+        return user.role.value
+    return str(user.role or "user")
+
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -66,7 +73,8 @@ def register_public_user(user_in: UserRegister, db: Session = Depends(get_db)):
         phone=user_in.phone,
         organization=user_in.organization,
         hashed_password=get_password_hash(user_in.password),
-        role=UserRole.USER,
+        role="user",
+        role_id=(db.query(Role.id).filter(Role.slug == "user").scalar() or None),
         is_active=True,
         is_email_verified=False,
     )
@@ -171,8 +179,8 @@ def login_json(credentials: LoginRequest, db: Session = Depends(get_db)):
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
 
-    access_token = create_access_token(subject=user.id, role=user.role.value)
-    refresh_token = create_refresh_token(subject=user.id, role=user.role.value)
+    access_token = create_access_token(subject=user.id, role=get_role_value(user))
+    refresh_token = create_refresh_token(subject=user.id, role=get_role_value(user))
 
     return {
         "access_token": access_token,
@@ -220,8 +228,8 @@ def login_oauth2(
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
 
-    access_token = create_access_token(subject=user.id, role=user.role.value)
-    refresh_token = create_refresh_token(subject=user.id, role=user.role.value)
+    access_token = create_access_token(subject=user.id, role=get_role_value(user))
+    refresh_token = create_refresh_token(subject=user.id, role=get_role_value(user))
 
     return {
         "access_token": access_token,
@@ -270,8 +278,8 @@ def refresh_token(token_in: TokenRefreshRequest, db: Session = Depends(get_db)):
             detail="User no longer exists or is inactive",
         )
 
-    new_access_token = create_access_token(subject=user.id, role=user.role.value)
-    new_refresh_token = create_refresh_token(subject=user.id, role=user.role.value)
+    new_access_token = create_access_token(subject=user.id, role=get_role_value(user))
+    new_refresh_token = create_refresh_token(subject=user.id, role=get_role_value(user))
 
     return {
         "access_token": new_access_token,

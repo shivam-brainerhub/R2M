@@ -6,12 +6,23 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useQuoteCart } from '../context/QuoteCartContext';
 import { useAuth } from '../context/AuthContext';
+import { getUserInitials } from '@/lib/utils';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { itemCount, isLoaded } = useQuoteCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin, canAccessAdmin, canAccessPortal } = useAuth();
+  const showPortalLink = Boolean(
+    canAccessPortal ||
+    canAccessAdmin ||
+    isAdmin ||
+    user?.is_admin ||
+    user?.role?.toLowerCase() === 'admin'
+  );
+  const portalLabel = isAdmin ? 'Admin Portal' : 'Staff Portal';
+  const portalShortLabel = isAdmin ? 'Admin' : 'Portal';
+  const portalIcon = isAdmin ? 'admin_panel_settings' : 'shield_person';
 
   const navLinks = [
     { name: 'Home', href: '/home' },
@@ -68,13 +79,14 @@ export default function Navbar() {
 
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2.5">
-              {user.role === 'admin' && (
+              {showPortalLink && (
                 <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-1 bg-gold/15 hover:bg-gold/25 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all shrink-0"
+                  href="/portal"
+                  className="inline-flex items-center gap-1.5 bg-gold/15 hover:bg-gold/25 text-gold border border-gold/30 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all shrink-0"
+                  title={isAdmin ? "Open Administrator Portal" : `Open Staff Portal (${user.role_name || 'Staff'})`}
                 >
-                  <span className="material-symbols-outlined text-xs">admin_panel_settings</span>
-                  <span>Admin</span>
+                  <span className="material-symbols-outlined text-xs">{portalIcon}</span>
+                  <span>{portalShortLabel}</span>
                 </Link>
               )}
               
@@ -84,7 +96,7 @@ export default function Navbar() {
                 title="View Account Profile"
               >
                 <div className="w-5 h-5 rounded-full bg-gold text-navy font-black text-[10px] flex items-center justify-center shrink-0 uppercase">
-                  {user.full_name ? user.full_name.substring(0, 2) : (user.username ? user.username.substring(0, 2) : 'U')}
+                  {getUserInitials(user.full_name, user.username)}
                 </div>
                 <span className="max-w-32.5 truncate font-medium">{user.full_name || user.username}</span>
               </Link>
@@ -147,7 +159,7 @@ export default function Navbar() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-gold text-navy font-bold flex items-center justify-center text-xs uppercase">
-                    {user.full_name ? user.full_name.substring(0, 2) : (user.username ? user.username.substring(0, 2) : 'U')}
+                    {getUserInitials(user.full_name, user.username)}
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-white">{user.full_name || user.username}</div>
@@ -156,14 +168,14 @@ export default function Navbar() {
                 </div>
                 <span className="material-symbols-outlined text-sm text-gray-400">chevron_right</span>
               </Link>
-              {user.role === 'admin' && (
+              {showPortalLink && (
                 <Link
-                  href="/admin"
+                  href="/portal"
                   onClick={() => setTimeout(() => setIsMobileMenuOpen(false), 150)}
                   className="text-gold hover:bg-white/5 transition-all text-sm font-semibold flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gold/30"
                 >
-                  <span className="material-symbols-outlined text-base">admin_panel_settings</span>
-                  <span>Admin Portal</span>
+                  <span className="material-symbols-outlined text-base">{portalIcon}</span>
+                  <span>{portalLabel}</span>
                 </Link>
               )}
             </div>
