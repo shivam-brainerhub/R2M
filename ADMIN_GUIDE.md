@@ -1,7 +1,7 @@
 # SA Healthcare Digital Platform — Administrator & CMS User Guide
 
-**Target Audience:** Route 2 Market Solutions (R2M) & SA Healthcare (SAHC) Operational Staff, Content Managers, and Sales Teams  
-**Platform Version:** 1.0 (Phase 1 Compliant)  
+**Target Audience:** Route 2 Market Solutions (R2M) & SA Healthcare (SAHC) Operational Staff, Content Managers, and Sales Teams
+**Platform Version:** 1.0 (Phase 1 Compliant)
 **Access Portal:** `https://your-domain.co.za/admin` (Local: `http://localhost:3000/admin`)
 
 ---

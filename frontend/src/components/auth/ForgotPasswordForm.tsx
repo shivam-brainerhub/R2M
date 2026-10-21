@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { authApi, ApiError } from '@/lib/api';
+import { ApiError, authApi } from "@/lib/api";
+import Link from "next/link";
+import React, { useState } from "react";
 
 export default function ForgotPasswordForm() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -19,24 +19,33 @@ export default function ForgotPasswordForm() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
-      setEmailError('Please enter your email address.');
+      setEmailError("Please enter your email address.");
       return;
     } else if (!emailRegex.test(email.trim())) {
-      setEmailError('Please enter a valid email address (e.g. name@hospital.com).');
+      setEmailError(
+        "Please enter a valid email address (e.g. name@hospital.com).",
+      );
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await authApi.forgotPassword({ email: email.trim().toLowerCase() });
-      setSuccessMessage(response.message || 'If an account with that email exists, password reset instructions have been sent.');
+      const response = await authApi.forgotPassword({
+        email: email.trim().toLowerCase(),
+      });
+      setSuccessMessage(
+        response.message ||
+          "If an account with that email exists, password reset instructions have been sent.",
+      );
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Failed to send reset link. Please check your connection and try again.');
+        setErrorMessage(
+          "Failed to send reset link. Please check your connection and try again.",
+        );
       }
     } finally {
       setIsLoading(false);
@@ -51,7 +60,8 @@ export default function ForgotPasswordForm() {
             Reset your password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-500">
-            Enter your email and we&apos;ll send you instructions to reset your password.
+            Enter your email and we&apos;ll send you instructions to reset your
+            password.
           </p>
         </div>
 
@@ -101,14 +111,16 @@ export default function ForgotPasswordForm() {
                 disabled={isLoading}
                 className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                   emailError
-                    ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                    : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                    ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                    : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                 }`}
                 placeholder="name@hospital.com"
               />
-              <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                emailError ? 'text-red-400' : 'text-gray-400'
-              }`}>
+              <span
+                className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                  emailError ? "text-red-400" : "text-gray-400"
+                }`}
+              >
                 mail
               </span>
             </div>
@@ -132,12 +144,12 @@ export default function ForgotPasswordForm() {
                   <span>Sending reset link...</span>
                 </div>
               ) : (
-                'Send reset link'
+                "Send reset link"
               )}
             </button>
 
             <p className="text-center text-sm text-gray-600 pt-2 border-t border-gray-100">
-              Remember your password?{' '}
+              Remember your password?{" "}
               <Link
                 href="/login"
                 className="font-semibold text-navy underline decoration-2 underline-offset-2 hover:text-gold transition-colors"

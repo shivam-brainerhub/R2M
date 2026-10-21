@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { inquiriesApi, categoriesApi, CategoryItem, ApiError } from '@/lib/api';
-import CustomSelect from '@/components/CustomSelect';
+import CustomSelect from "@/components/CustomSelect";
+import { ApiError, categoriesApi, CategoryItem, inquiriesApi } from "@/lib/api";
+import React, { useEffect, useState } from "react";
 
 interface SupplierFormState {
   companyName: string;
@@ -27,14 +27,14 @@ interface SupplierFormErrors {
 
 export default function SupplierForm() {
   const [formData, setFormData] = useState<SupplierFormState>({
-    companyName: '',
-    website: '',
-    contactPerson: '',
-    jobTitle: '',
-    email: '',
-    phone: '',
-    category: '',
-    overview: '',
+    companyName: "",
+    website: "",
+    contactPerson: "",
+    jobTitle: "",
+    email: "",
+    phone: "",
+    category: "",
+    overview: "",
   });
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -53,7 +53,7 @@ export default function SupplierForm() {
         }
       })
       .catch((err) => {
-        console.error('Failed to load categories for supplier form:', err);
+        console.error("Failed to load categories for supplier form:", err);
       });
     return () => {
       isMounted = false;
@@ -64,46 +64,48 @@ export default function SupplierForm() {
     const newErrors: SupplierFormErrors = {};
 
     if (!formData.companyName.trim()) {
-      newErrors.companyName = 'Company name is required';
+      newErrors.companyName = "Company name is required";
     }
 
     if (!formData.contactPerson.trim()) {
-      newErrors.contactPerson = 'Contact person name is required';
+      newErrors.contactPerson = "Contact person name is required";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email address is required';
+      newErrors.email = "Email address is required";
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = 'Please enter a valid email address';
+        newErrors.email = "Please enter a valid email address";
       }
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (formData.phone.replace(/[^0-9]/g, '').length < 7) {
-      newErrors.phone = 'Please enter a valid phone number (at least 7 digits)';
+      newErrors.phone = "Phone number is required";
+    } else if (formData.phone.replace(/[^0-9]/g, "").length < 7) {
+      newErrors.phone = "Please enter a valid phone number (at least 7 digits)";
     }
 
     if (!formData.category) {
-      newErrors.category = 'Please select a primary product category';
+      newErrors.category = "Please select a primary product category";
     }
 
     if (!formData.overview.trim()) {
-      newErrors.overview = 'Please provide a brief company or product overview';
+      newErrors.overview = "Please provide a brief company or product overview";
     } else if (formData.overview.trim().length < 15) {
-      newErrors.overview = 'Overview must be at least 15 characters long';
+      newErrors.overview = "Overview must be at least 15 characters long";
     }
 
     if (formData.website.trim()) {
       try {
-        const urlToTest = formData.website.startsWith('http://') || formData.website.startsWith('https://')
-          ? formData.website
-          : `https://${formData.website}`;
+        const urlToTest =
+          formData.website.startsWith("http://") ||
+          formData.website.startsWith("https://")
+            ? formData.website
+            : `https://${formData.website}`;
         new URL(urlToTest);
       } catch {
-        newErrors.website = 'Please enter a valid website URL';
+        newErrors.website = "Please enter a valid website URL";
       }
     }
 
@@ -142,7 +144,7 @@ export default function SupplierForm() {
       } else if (err instanceof Error) {
         setSubmitError(err.message);
       } else {
-        setSubmitError('Failed to submit application. Please try again.');
+        setSubmitError("Failed to submit application. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -153,24 +155,36 @@ export default function SupplierForm() {
     return (
       <div className="bg-slate-50 p-8 md:p-12 rounded-2xl border border-gray-100 text-center animate-fadeIn space-y-4">
         <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center">
-          <span className="material-symbols-outlined text-4xl">check_circle</span>
+          <span className="material-symbols-outlined text-4xl">
+            check_circle
+          </span>
         </div>
         <h3 className="text-2xl font-bold text-navy">Application Received!</h3>
         <p className="text-gray-600 max-w-lg mx-auto text-sm leading-relaxed">
-          Thank you for applying to partner with SA Healthcare, <span className="font-semibold text-navy">{formData.contactPerson}</span> from <span className="font-semibold text-navy">{formData.companyName}</span>. Our procurement and compliance team will review your catalogue and contact you at <span className="font-semibold text-navy">{formData.email}</span>.
+          Thank you for applying to partner with SA Healthcare,{" "}
+          <span className="font-semibold text-navy">
+            {formData.contactPerson}
+          </span>{" "}
+          from{" "}
+          <span className="font-semibold text-navy">
+            {formData.companyName}
+          </span>
+          . Our procurement and compliance team will review your catalogue and
+          contact you at{" "}
+          <span className="font-semibold text-navy">{formData.email}</span>.
         </p>
         <button
           onClick={() => {
             setIsSubmitted(false);
             setFormData({
-              companyName: '',
-              website: '',
-              contactPerson: '',
-              jobTitle: '',
-              email: '',
-              phone: '',
-              category: '',
-              overview: '',
+              companyName: "",
+              website: "",
+              contactPerson: "",
+              jobTitle: "",
+              email: "",
+              phone: "",
+              category: "",
+              overview: "",
             });
             setErrors({});
           }}
@@ -193,11 +207,11 @@ export default function SupplierForm() {
             type="text"
             placeholder="Your Manufacturing Co."
             value={formData.companyName}
-            onChange={(e) => handleChange('companyName', e.target.value)}
+            onChange={(e) => handleChange("companyName", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors ${
               errors.companyName
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.companyName && (
@@ -214,11 +228,11 @@ export default function SupplierForm() {
             type="text"
             placeholder="https://www.example.com"
             value={formData.website}
-            onChange={(e) => handleChange('website', e.target.value)}
+            onChange={(e) => handleChange("website", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors ${
               errors.website
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.website && (
@@ -239,11 +253,11 @@ export default function SupplierForm() {
             type="text"
             placeholder="Jane Doe"
             value={formData.contactPerson}
-            onChange={(e) => handleChange('contactPerson', e.target.value)}
+            onChange={(e) => handleChange("contactPerson", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors ${
               errors.contactPerson
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.contactPerson && (
@@ -260,7 +274,7 @@ export default function SupplierForm() {
             type="text"
             placeholder="Sales Director"
             value={formData.jobTitle}
-            onChange={(e) => handleChange('jobTitle', e.target.value)}
+            onChange={(e) => handleChange("jobTitle", e.target.value)}
             className="p-3 bg-white border border-gray-200 rounded-lg shadow-xs outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-colors"
           />
         </div>
@@ -275,11 +289,11 @@ export default function SupplierForm() {
             type="email"
             placeholder="jane@example.com"
             value={formData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
+            onChange={(e) => handleChange("email", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors ${
               errors.email
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.email && (
@@ -298,11 +312,11 @@ export default function SupplierForm() {
             type="tel"
             placeholder="+1 234 567 8900"
             value={formData.phone}
-            onChange={(e) => handleChange('phone', e.target.value)}
+            onChange={(e) => handleChange("phone", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors ${
               errors.phone
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.phone && (
@@ -320,10 +334,10 @@ export default function SupplierForm() {
         </label>
         <CustomSelect
           value={formData.category}
-          onChange={(val) => handleChange('category', val)}
+          onChange={(val) => handleChange("category", val)}
           options={[
             ...categories.map((cat) => ({ value: cat.name, label: cat.name })),
-            { value: 'Other', label: 'Other' },
+            { value: "Other", label: "Other" },
           ]}
           placeholder="Select a category..."
           size="lg"
@@ -346,11 +360,11 @@ export default function SupplierForm() {
           placeholder="Briefly introduce your company and the range of products you manufacture."
           rows={5}
           value={formData.overview}
-          onChange={(e) => handleChange('overview', e.target.value)}
+          onChange={(e) => handleChange("overview", e.target.value)}
           className={`p-3 bg-white border rounded-lg shadow-xs outline-none transition-colors ${
             errors.overview
-              ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-              : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+              ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+              : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
           }`}
         />
         {errors.overview && (
@@ -373,7 +387,7 @@ export default function SupplierForm() {
         disabled={isSubmitting}
         className="bg-gold text-navy font-bold py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 mt-4 flex justify-center items-center text-lg cursor-pointer disabled:opacity-60 shadow-md"
       >
-        {isSubmitting ? 'Submitting...' : 'Submit Enquiry'}
+        {isSubmitting ? "Submitting..." : "Submit Enquiry"}
         <span className="material-symbols-outlined ml-2">send</span>
       </button>
     </form>

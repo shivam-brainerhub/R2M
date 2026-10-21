@@ -1,14 +1,14 @@
 import abc
+import logging
 import os
 import re
 import shutil
 import uuid
-import logging
-from typing import Dict, Any, Optional
-from fastapi import HTTPException, UploadFile, status
-from app.core.config import settings
+from typing import Any, Dict, Optional
+from urllib.parse import unquote, urlparse
 
-from urllib.parse import urlparse, unquote
+from app.core.config import settings
+from fastapi import HTTPException, UploadFile, status
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +32,12 @@ class BaseStorageService(abc.ABC):
         Saves an uploaded file and returns metadata including public URL,
         file name, and size.
         """
-        pass
 
     @abc.abstractmethod
     def delete_file(self, url_or_path: str) -> bool:
         """
         Deletes a file by its URL or relative media path.
         """
-        pass
 
 
 class LocalStorageService(BaseStorageService):
@@ -156,6 +154,7 @@ class S3StorageService(BaseStorageService):
     def _get_client(self):
         try:
             import boto3
+
             return boto3.client(
                 "s3",
                 aws_access_key_id=self.access_key,

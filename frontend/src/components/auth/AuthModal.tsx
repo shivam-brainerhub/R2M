@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
-import { ApiError } from '@/lib/api';
+import { useAuth } from "@/context/AuthContext";
+import { ApiError } from "@/lib/api";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialMode?: 'login' | 'signup';
+  initialMode?: "login" | "signup";
   customTitle?: string;
   customSubtitle?: string;
   submitButtonText?: string;
@@ -21,34 +21,36 @@ export default function AuthModal({
   isOpen,
   onClose,
   onSuccess,
-  initialMode = 'login',
+  initialMode = "login",
   customTitle,
   customSubtitle,
   submitButtonText,
   customFooterNote,
 }: AuthModalProps) {
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
 
   // Login form state
-  const [loginIdentifier, setLoginIdentifier] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [loginRemember, setLoginRemember] = useState(true);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Signup form state
-  const [signupFullName, setSignupFullName] = useState('');
-  const [signupUsername, setSignupUsername] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [signupFullName, setSignupFullName] = useState("");
+  const [signupUsername, setSignupUsername] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   // UI state
   const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [signupSuccessMessage, setSignupSuccessMessage] = useState<string | null>(null);
+  const [signupSuccessMessage, setSignupSuccessMessage] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     setMounted(true);
@@ -61,11 +63,11 @@ export default function AuthModal({
     setErrorMessage(null);
 
     if (!loginIdentifier.trim()) {
-      setErrorMessage('Please enter your email or username.');
+      setErrorMessage("Please enter your email or username.");
       return;
     }
     if (!loginPassword) {
-      setErrorMessage('Please enter your password.');
+      setErrorMessage("Please enter your password.");
       return;
     }
 
@@ -76,7 +78,7 @@ export default function AuthModal({
           username_or_email: loginIdentifier.trim(),
           password: loginPassword,
         },
-        loginRemember
+        loginRemember,
       );
 
       // Successfully authenticated
@@ -89,7 +91,9 @@ export default function AuthModal({
       } else if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {
-        setErrorMessage('Authentication failed. Please verify your credentials.');
+        setErrorMessage(
+          "Authentication failed. Please verify your credentials.",
+        );
       }
     }
   };
@@ -100,20 +104,20 @@ export default function AuthModal({
     setSignupSuccessMessage(null);
 
     if (!signupUsername.trim() || signupUsername.trim().length < 3) {
-      setErrorMessage('Username must be at least 3 characters long.');
+      setErrorMessage("Username must be at least 3 characters long.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!signupEmail.trim() || !emailRegex.test(signupEmail.trim())) {
-      setErrorMessage('Please enter a valid email address.');
+      setErrorMessage("Please enter a valid email address.");
       return;
     }
     if (!signupPassword || signupPassword.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
+      setErrorMessage("Password must be at least 6 characters long.");
       return;
     }
     if (signupPassword !== signupConfirmPassword) {
-      setErrorMessage('Passwords do not match.');
+      setErrorMessage("Passwords do not match.");
       return;
     }
 
@@ -128,10 +132,10 @@ export default function AuthModal({
 
       // Show success message and pre-fill login
       setSignupSuccessMessage(
-        'Account created successfully! Please confirm your email address via the link sent to your inbox, then sign in.'
+        "Account created successfully! Please confirm your email address via the link sent to your inbox, then sign in.",
       );
       setLoginIdentifier(signupEmail.trim());
-      setMode('login');
+      setMode("login");
       setIsLoading(false);
     } catch (err: unknown) {
       setIsLoading(false);
@@ -140,7 +144,7 @@ export default function AuthModal({
       } else if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {
-        setErrorMessage('Failed to create account. Please try again.');
+        setErrorMessage("Failed to create account. Please try again.");
       }
     }
   };
@@ -148,7 +152,6 @@ export default function AuthModal({
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn font-sans">
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden relative max-h-[92vh] flex flex-col">
-        
         {/* Close Button */}
         <button
           type="button"
@@ -162,14 +165,19 @@ export default function AuthModal({
         {/* Header */}
         <div className="p-6 pb-4 border-b border-gray-100 bg-slate-50/70">
           <div className="w-12 h-12 rounded-2xl bg-gold/20 text-gold-dark flex items-center justify-center mb-3 border border-gold/30">
-            <span className="material-symbols-outlined text-2xl! text-navy">lock</span>
+            <span className="material-symbols-outlined text-2xl! text-navy">
+              lock
+            </span>
           </div>
           <h2 className="text-xl font-extrabold text-navy tracking-tight">
-            {customTitle || (mode === 'login' ? 'Sign In to Request Quote' : 'Create an Account')}
+            {customTitle ||
+              (mode === "login"
+                ? "Sign In to Request Quote"
+                : "Create an Account")}
           </h2>
           <p className="text-xs text-gray-500 mt-1 leading-relaxed">
             {customSubtitle ||
-              'Only authenticated users can submit formal quotation requests. Your selected equipment cart remains safely preserved.'}
+              "Only authenticated users can submit formal quotation requests. Your selected equipment cart remains safely preserved."}
           </p>
 
           {/* Toggle Tabs */}
@@ -177,13 +185,13 @@ export default function AuthModal({
             <button
               type="button"
               onClick={() => {
-                setMode('login');
+                setMode("login");
                 setErrorMessage(null);
               }}
               className={`py-2 rounded-lg transition-all cursor-pointer ${
-                mode === 'login'
-                  ? 'bg-white text-navy shadow-xs'
-                  : 'text-gray-600 hover:text-navy'
+                mode === "login"
+                  ? "bg-white text-navy shadow-xs"
+                  : "text-gray-600 hover:text-navy"
               }`}
             >
               Sign In
@@ -191,13 +199,13 @@ export default function AuthModal({
             <button
               type="button"
               onClick={() => {
-                setMode('signup');
+                setMode("signup");
                 setErrorMessage(null);
               }}
               className={`py-2 rounded-lg transition-all cursor-pointer ${
-                mode === 'signup'
-                  ? 'bg-white text-navy shadow-xs'
-                  : 'text-gray-600 hover:text-navy'
+                mode === "signup"
+                  ? "bg-white text-navy shadow-xs"
+                  : "text-gray-600 hover:text-navy"
               }`}
             >
               Register
@@ -207,11 +215,12 @@ export default function AuthModal({
 
         {/* Content Body */}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          
           {/* Error Banner */}
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700 animate-fadeIn">
-              <span className="material-symbols-outlined text-base! mt-0.5 shrink-0">error</span>
+              <span className="material-symbols-outlined text-base! mt-0.5 shrink-0">
+                error
+              </span>
               <span className="flex-1 leading-relaxed">{errorMessage}</span>
             </div>
           )}
@@ -222,12 +231,14 @@ export default function AuthModal({
               <span className="material-symbols-outlined text-base! mt-0.5 shrink-0 text-emerald-600">
                 check_circle
               </span>
-              <span className="flex-1 leading-relaxed">{signupSuccessMessage}</span>
+              <span className="flex-1 leading-relaxed">
+                {signupSuccessMessage}
+              </span>
             </div>
           )}
 
           {/* LOGIN FORM */}
-          {mode === 'login' ? (
+          {mode === "login" ? (
             <form onSubmit={handleLoginSubmit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
@@ -258,7 +269,7 @@ export default function AuthModal({
                 </div>
                 <div className="relative">
                   <input
-                    type={showLoginPassword ? 'text' : 'password'}
+                    type={showLoginPassword ? "text" : "password"}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Enter your password"
@@ -271,7 +282,7 @@ export default function AuthModal({
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-lg!">
-                      {showLoginPassword ? 'visibility_off' : 'visibility'}
+                      {showLoginPassword ? "visibility_off" : "visibility"}
                     </span>
                   </button>
                 </div>
@@ -296,13 +307,19 @@ export default function AuthModal({
               >
                 {isLoading ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-base!">progress_activity</span>
+                    <span className="material-symbols-outlined animate-spin text-base!">
+                      progress_activity
+                    </span>
                     <span>Signing in...</span>
                   </>
                 ) : (
                   <>
-                    <span>{submitButtonText || 'Sign In & Continue Quote'}</span>
-                    <span className="material-symbols-outlined text-base!">arrow_forward</span>
+                    <span>
+                      {submitButtonText || "Sign In & Continue Quote"}
+                    </span>
+                    <span className="material-symbols-outlined text-base!">
+                      arrow_forward
+                    </span>
                   </>
                 )}
               </button>
@@ -357,7 +374,7 @@ export default function AuthModal({
                 </label>
                 <div className="relative">
                   <input
-                    type={showSignupPassword ? 'text' : 'password'}
+                    type={showSignupPassword ? "text" : "password"}
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     placeholder="Minimum 6 characters"
@@ -370,7 +387,7 @@ export default function AuthModal({
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-lg!">
-                      {showSignupPassword ? 'visibility_off' : 'visibility'}
+                      {showSignupPassword ? "visibility_off" : "visibility"}
                     </span>
                   </button>
                 </div>
@@ -381,7 +398,7 @@ export default function AuthModal({
                   Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type={showSignupPassword ? 'text' : 'password'}
+                  type={showSignupPassword ? "text" : "password"}
                   value={signupConfirmPassword}
                   onChange={(e) => setSignupConfirmPassword(e.target.value)}
                   placeholder="Re-enter password"
@@ -397,30 +414,32 @@ export default function AuthModal({
               >
                 {isLoading ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-base!">progress_activity</span>
+                    <span className="material-symbols-outlined animate-spin text-base!">
+                      progress_activity
+                    </span>
                     <span>Creating account...</span>
                   </>
                 ) : (
                   <>
                     <span>Create Account</span>
-                    <span className="material-symbols-outlined text-base!">how_to_reg</span>
+                    <span className="material-symbols-outlined text-base!">
+                      how_to_reg
+                    </span>
                   </>
                 )}
               </button>
             </form>
           )}
-
         </div>
 
         {/* Footer Note */}
         <div className="p-4 bg-slate-50 border-t border-gray-100 text-center text-[11px] text-gray-500">
           {customFooterNote !== undefined
             ? customFooterNote
-            : 'Your quotation cart items and quantities will remain intact.'}
+            : "Your quotation cart items and quantities will remain intact."}
         </div>
-
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

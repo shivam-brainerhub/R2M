@@ -1,4 +1,5 @@
 import uuid
+
 from starlette.testclient import TestClient
 
 
@@ -108,7 +109,9 @@ def test_oauth2_form_login(client: TestClient, test_regular_user):
     assert "access_token" in data
 
 
-def test_get_current_user_profile(client: TestClient, user_token_headers, test_regular_user):
+def test_get_current_user_profile(
+    client: TestClient, user_token_headers, test_regular_user
+):
     response = client.get("/api/auth/me", headers=user_token_headers)
     assert response.status_code == 200
     data = response.json()
@@ -133,7 +136,10 @@ def test_get_current_user_profile_invalid_token(client: TestClient):
 def test_refresh_token_flow(client: TestClient, test_regular_user):
     login_resp = client.post(
         "/api/auth/login",
-        json={"username_or_email": test_regular_user.username, "password": "UserPass123!"},
+        json={
+            "username_or_email": test_regular_user.username,
+            "password": "UserPass123!",
+        },
     )
     refresh_token = login_resp.json()["refresh_token"]
 
@@ -150,7 +156,10 @@ def test_refresh_token_flow(client: TestClient, test_regular_user):
 def test_refresh_token_rejects_access_token(client: TestClient, test_regular_user):
     login_resp = client.post(
         "/api/auth/login",
-        json={"username_or_email": test_regular_user.username, "password": "UserPass123!"},
+        json={
+            "username_or_email": test_regular_user.username,
+            "password": "UserPass123!",
+        },
     )
     access_token = login_resp.json()["access_token"]
 
@@ -166,7 +175,10 @@ def test_refresh_token_rejects_access_token(client: TestClient, test_regular_use
 def test_change_password_flow(client: TestClient, test_regular_user):
     login_resp = client.post(
         "/api/auth/login",
-        json={"username_or_email": test_regular_user.username, "password": "UserPass123!"},
+        json={
+            "username_or_email": test_regular_user.username,
+            "password": "UserPass123!",
+        },
     )
     token = login_resp.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -228,7 +240,10 @@ def test_forgot_and_reset_password_flow(client: TestClient, test_regular_user):
     # Verify login with new password
     new_login_resp = client.post(
         "/api/auth/login",
-        json={"username_or_email": test_regular_user.email, "password": "ResetPassword123!"},
+        json={
+            "username_or_email": test_regular_user.email,
+            "password": "ResetPassword123!",
+        },
     )
     assert new_login_resp.status_code == 200
 
@@ -244,7 +259,7 @@ def test_email_verification_flow(client: TestClient):
     unique_id = uuid.uuid4().hex[:8]
     email = f"verify_{unique_id}@hospital.org"
     password = "StrongPassword123!"
-    
+
     # 1. Register user
     reg_resp = client.post(
         "/api/auth/register",
@@ -268,6 +283,7 @@ def test_email_verification_flow(client: TestClient):
 
     # 3. Create valid verification token & verify
     from app.core.security import create_email_verification_token
+
     token = create_email_verification_token(email)
 
     verify_resp = client.post(
@@ -307,11 +323,12 @@ def test_update_profile_success(client: TestClient, user_token_headers):
     assert me_resp.json()["organization"] == "Mediclinic Panorama"
 
 
-def test_update_profile_duplicate_email(client: TestClient, user_token_headers, test_admin_user):
+def test_update_profile_duplicate_email(
+    client: TestClient, user_token_headers, test_admin_user
+):
     payload = {
         "email": test_admin_user.email,
     }
     response = client.put("/api/auth/me", headers=user_token_headers, json=payload)
     assert response.status_code == 400
     assert "already exists" in response.json()["detail"].lower()
-

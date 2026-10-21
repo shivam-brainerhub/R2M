@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Dict, Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+
 from app.models import ALL_PERMISSIONS_SECTIONS, VALID_PERMISSION_LEVELS
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 def sanitize_permissions(perms: Optional[Dict[str, str]]) -> Dict[str, str]:

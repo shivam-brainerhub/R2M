@@ -1,4 +1,5 @@
 import uuid
+
 from starlette.testclient import TestClient
 
 
@@ -35,7 +36,9 @@ def test_admin_create_new_admin_user(client: TestClient, admin_token_headers):
         "role": "admin",
         "is_active": True,
     }
-    response = client.post("/api/admin/users", headers=admin_token_headers, json=payload)
+    response = client.post(
+        "/api/admin/users", headers=admin_token_headers, json=payload
+    )
     assert response.status_code == 201
     data = response.json()
     assert data["email"] == payload["email"]
@@ -52,14 +55,18 @@ def test_admin_create_new_public_user(client: TestClient, admin_token_headers):
         "role": "user",
         "is_active": True,
     }
-    response = client.post("/api/admin/users", headers=admin_token_headers, json=payload)
+    response = client.post(
+        "/api/admin/users", headers=admin_token_headers, json=payload
+    )
     assert response.status_code == 201
     data = response.json()
     assert data["email"] == payload["email"]
     assert data["role"] == "user"
 
 
-def test_admin_get_user_by_id(client: TestClient, admin_token_headers, test_regular_user):
+def test_admin_get_user_by_id(
+    client: TestClient, admin_token_headers, test_regular_user
+):
     response = client.get(
         f"/api/admin/users/{test_regular_user.id}", headers=admin_token_headers
     )
@@ -116,7 +123,10 @@ def test_admin_delete_user_requires_suspension(client: TestClient, admin_token_h
         f"/api/admin/users/{target_id}", headers=admin_token_headers
     )
     assert fail_del_resp.status_code == 400
-    assert "only suspended accounts can be deleted" in fail_del_resp.json()["detail"].lower()
+    assert (
+        "only suspended accounts can be deleted"
+        in fail_del_resp.json()["detail"].lower()
+    )
 
     # Suspend user first
     suspend_resp = client.post(
@@ -134,9 +144,7 @@ def test_admin_delete_user_requires_suspension(client: TestClient, admin_token_h
     assert "deleted successfully" in del_resp.json()["message"]
 
     # Verify user is gone (404)
-    get_resp = client.get(
-        f"/api/admin/users/{target_id}", headers=admin_token_headers
-    )
+    get_resp = client.get(f"/api/admin/users/{target_id}", headers=admin_token_headers)
     assert get_resp.status_code == 404
 
 
@@ -265,7 +273,9 @@ def test_admin_list_users_search_filter_sort(client: TestClient, admin_token_hea
     assert usernames == sorted(usernames)
 
 
-def test_admin_update_user_to_sales_rep_by_role_id(client: TestClient, admin_token_headers):
+def test_admin_update_user_to_sales_rep_by_role_id(
+    client: TestClient, admin_token_headers
+):
     # Fetch roles to get sales_rep role id
     roles_res = client.get("/api/admin/roles", headers=admin_token_headers)
     assert roles_res.status_code == 200
@@ -307,7 +317,9 @@ def test_admin_update_user_to_sales_rep_by_role_id(client: TestClient, admin_tok
     assert data["permissions"]["users"] == "none"
 
 
-def test_admin_update_user_to_product_manager_by_slug(client: TestClient, admin_token_headers):
+def test_admin_update_user_to_product_manager_by_slug(
+    client: TestClient, admin_token_headers
+):
     uid = uuid.uuid4().hex[:8]
     create_resp = client.post(
         "/api/admin/users",
@@ -334,7 +346,9 @@ def test_admin_update_user_to_product_manager_by_slug(client: TestClient, admin_
     assert data["permissions"]["products"] == "read_write"
 
 
-def test_admin_update_user_custom_permissions_override_and_clear(client: TestClient, admin_token_headers):
+def test_admin_update_user_custom_permissions_override_and_clear(
+    client: TestClient, admin_token_headers
+):
     uid = uuid.uuid4().hex[:8]
     create_resp = client.post(
         "/api/admin/users",
@@ -420,7 +434,9 @@ def test_admin_update_user_validation_failures(client: TestClient, admin_token_h
     assert "invalid permission level" in res_bad_level.json()["detail"].lower()
 
 
-def test_admin_update_user_duplicate_email_or_username(client: TestClient, admin_token_headers):
+def test_admin_update_user_duplicate_email_or_username(
+    client: TestClient, admin_token_headers
+):
     uid1 = uuid.uuid4().hex[:8]
     uid2 = uuid.uuid4().hex[:8]
 
@@ -433,6 +449,7 @@ def test_admin_update_user_duplicate_email_or_username(client: TestClient, admin
             "password": "Password123!",
         },
     )
+    assert u1_resp.status_code == 201
     u2_resp = client.post(
         "/api/admin/users",
         headers=admin_token_headers,
@@ -463,7 +480,9 @@ def test_admin_update_user_duplicate_email_or_username(client: TestClient, admin
     assert "username is already taken" in dup_uname_res.json()["detail"].lower()
 
 
-def test_admin_cannot_demote_self(client: TestClient, admin_token_headers, test_admin_user):
+def test_admin_cannot_demote_self(
+    client: TestClient, admin_token_headers, test_admin_user
+):
     # Attempt to demote own admin account via role_id
     roles_res = client.get("/api/admin/roles", headers=admin_token_headers)
     sales_role = next(r for r in roles_res.json() if r["slug"] == "sales_rep")
@@ -474,7 +493,9 @@ def test_admin_cannot_demote_self(client: TestClient, admin_token_headers, test_
         json={"role_id": sales_role["id"]},
     )
     assert demote_res.status_code == 400
-    assert "cannot remove your own admin privileges" in demote_res.json()["detail"].lower()
+    assert (
+        "cannot remove your own admin privileges" in demote_res.json()["detail"].lower()
+    )
 
     # Attempt to demote own admin account via role string
     demote_res2 = client.put(
@@ -483,7 +504,10 @@ def test_admin_cannot_demote_self(client: TestClient, admin_token_headers, test_
         json={"role": "user"},
     )
     assert demote_res2.status_code == 400
-    assert "cannot remove your own admin privileges" in demote_res2.json()["detail"].lower()
+    assert (
+        "cannot remove your own admin privileges"
+        in demote_res2.json()["detail"].lower()
+    )
 
 
 def test_admin_update_nonexistent_user(client: TestClient, admin_token_headers):
@@ -496,7 +520,9 @@ def test_admin_update_nonexistent_user(client: TestClient, admin_token_headers):
     assert "not found" in res.json()["detail"].lower()
 
 
-def test_admin_create_user_with_sales_rep_and_validation(client: TestClient, admin_token_headers):
+def test_admin_create_user_with_sales_rep_and_validation(
+    client: TestClient, admin_token_headers
+):
     uid = uuid.uuid4().hex[:8]
 
     # Invalid role_id on create -> 400

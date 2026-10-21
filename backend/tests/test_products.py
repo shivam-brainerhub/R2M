@@ -1,7 +1,4 @@
-import io
-import pytest
 from starlette.testclient import TestClient
-from app.models import Product, Property
 
 
 def test_list_products_public(client: TestClient):
@@ -58,7 +55,9 @@ def test_compare_products_by_slug(client: TestClient):
     assert len(data["products"]) == 2
 
     # Check property alignment
-    display_row = next((p for p in data["properties"] if p["name"] == "Display Size"), None)
+    display_row = next(
+        (p for p in data["properties"] if p["name"] == "Display Size"), None
+    )
     assert display_row is not None
     assert display_row["values"]["benevision-n12"] == '12.1" Touchscreen'
     assert display_row["values"]["intellivue-mx450"] == '12.0" Touchscreen'
@@ -147,7 +146,9 @@ def test_update_and_toggle_status_and_delete_product(
         "sku": "TTM-999-TEMP",
         "status": "Active",
     }
-    create_res = client.post("/api/products", json=create_payload, headers=admin_token_headers)
+    create_res = client.post(
+        "/api/products", json=create_payload, headers=admin_token_headers
+    )
     assert create_res.status_code == 201
     prod_id = create_res.json()["id"]
 
@@ -281,7 +282,6 @@ def test_properties_crud_endpoints(client: TestClient, admin_token_headers):
     assert clear_group_res.status_code == 200
     assert clear_group_res.json()["group"] is None
 
-
     # 5. Delete property
     del_res = client.delete(f"/api/properties/{prop_id}", headers=admin_token_headers)
     assert del_res.status_code == 200
@@ -361,7 +361,11 @@ def test_product_lifecycle_updates_filter_cache_in_background(
     assert res_after_add.json()["total_products"] == init_total + 1
     # Check that new dynamic property "Screen Resolution" with "4K UltraHD" exists
     res_prop = next(
-        (p for p in res_after_add.json()["properties"] if p["name"] == "Screen Resolution"),
+        (
+            p
+            for p in res_after_add.json()["properties"]
+            if p["name"] == "Screen Resolution"
+        ),
         None,
     )
     assert res_prop is not None
@@ -417,5 +421,3 @@ def test_get_related_products_by_id(client: TestClient):
 def test_get_related_products_not_found(client: TestClient):
     res = client.get("/api/products/completely-unknown-slug/related")
     assert res.status_code == 404
-
-

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { brandsApi, BrandItem, getMediaUrl } from '@/lib/api';
+import { BrandItem, brandsApi, getMediaUrl } from "@/lib/api";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function ManufacturersPage() {
   const [brands, setBrands] = useState<BrandItem[]>([]);
@@ -28,7 +28,10 @@ export default function ManufacturersPage() {
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl font-bold mb-4">Our Manufacturers</h1>
           <p className="text-gray-300 max-w-2xl mx-auto text-lg">
-            We are proud to partner with the world&apos;s leading healthcare brands. By bringing top-tier medical devices and equipment to Southern Africa, we ensure facilities operate with trusted, globally-recognized technology.
+            We are proud to partner with the world&apos;s leading healthcare
+            brands. By bringing top-tier medical devices and equipment to
+            Southern Africa, we ensure facilities operate with trusted,
+            globally-recognized technology.
           </p>
         </div>
       </div>
@@ -40,15 +43,21 @@ export default function ManufacturersPage() {
             <span className="material-symbols-outlined text-4xl animate-spin text-blue-600">
               progress_activity
             </span>
-            <p className="text-sm font-semibold text-gray-500">Loading partner manufacturers...</p>
+            <p className="text-sm font-semibold text-gray-500">
+              Loading partner manufacturers...
+            </p>
           </div>
         ) : brands.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center max-w-md mx-auto shadow-sm">
             <span className="material-symbols-outlined text-5xl text-gray-300 mb-3 block">
               domain_disabled
             </span>
-            <h3 className="text-lg font-bold text-navy mb-1">No brands found</h3>
-            <p className="text-sm text-gray-500 mb-6">Manufacturers are being added to our catalogue.</p>
+            <h3 className="text-lg font-bold text-navy mb-1">
+              No brands found
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Manufacturers are being added to our catalogue.
+            </p>
             <Link
               href="/products"
               className="bg-navy text-white text-xs font-bold px-5 py-2.5 rounded-full hover:bg-navy-light transition-colors"
@@ -93,7 +102,8 @@ export default function ManufacturersPage() {
                   </div>
 
                   <p className="text-gray-600 text-sm leading-relaxed mb-6 flex-1">
-                    {m.description || 'Specialized manufacturer of medical equipment and clinical solutions.'}
+                    {m.description ||
+                      "Specialized manufacturer of medical equipment and clinical solutions."}
                   </p>
 
                   <div className="mt-auto">
@@ -115,17 +125,27 @@ export default function ManufacturersPage() {
       <section className="px-6 max-w-7xl mx-auto w-full mt-8">
         <div className="bg-gold rounded-3xl p-10 md:p-14 flex flex-col lg:flex-row items-center justify-between shadow-lg">
           <div className="flex items-center mb-8 lg:mb-0 max-w-2xl">
-            <span className="material-symbols-outlined text-6xl! text-navy mr-6">public</span>
+            <span className="material-symbols-outlined text-6xl! text-navy mr-6">
+              public
+            </span>
             <div>
-              <h3 className="text-2xl font-bold text-navy mb-2">Are you a medical manufacturer?</h3>
-              <p className="text-navy/80 text-lg">Partner with us to distribute your healthcare solutions across our network.</p>
+              <h3 className="text-2xl font-bold text-navy mb-2">
+                Are you a medical manufacturer?
+              </h3>
+              <p className="text-navy/80 text-lg">
+                Partner with us to distribute your healthcare solutions across
+                our network.
+              </p>
             </div>
           </div>
           <Link
             href="/supplier"
             className="bg-navy text-white font-bold px-8 py-4 rounded-full hover:bg-navy/90 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg group"
           >
-            Become a Supplier <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">arrow_forward</span>
+            Become a Supplier{" "}
+            <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">
+              arrow_forward
+            </span>
           </Link>
         </div>
       </section>

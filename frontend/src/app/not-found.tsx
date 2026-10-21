@@ -1,11 +1,11 @@
-import type { Metadata } from 'next';
-import ClientProviders from '@/components/ClientProviders';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import NotFoundView from '@/components/NotFoundView';
+import ClientProviders from "@/components/ClientProviders";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import NotFoundView from "@/components/NotFoundView";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'Page Not Found',
+  title: "Page Not Found",
 };
 
 export default function NotFound() {

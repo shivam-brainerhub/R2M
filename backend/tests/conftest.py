@@ -1,15 +1,16 @@
 import os
+
 import pytest
 
 # Ensure tests use an isolated in-memory SQLite database so that
 # the PostgreSQL database is never affected by test runs.
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
-from starlette.testclient import TestClient
-from app.database import Base, SessionLocal, engine
-from app.main import app
-from app.models import User, UserRole
-from app.core.security import get_password_hash, create_access_token
+from app.core.security import create_access_token, get_password_hash  # noqa: E402
+from app.database import Base, SessionLocal, engine  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import User, UserRole  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -18,16 +19,33 @@ def setup_test_db():
     db = SessionLocal()
     try:
         from app.init_db import init_db
+
         init_db(db)
 
-        from app.models import Category, Brand, Product, ProductImage, Property, ProductPropertyValue
-        diag = db.query(Category).filter(Category.slug == "diagnostic-and-measure").first()
+        from app.models import (
+            Brand,
+            Category,
+            Product,
+            ProductImage,
+            ProductPropertyValue,
+            Property,
+        )
+
+        diag = (
+            db.query(Category).filter(Category.slug == "diagnostic-and-measure").first()
+        )
         mindray = db.query(Brand).filter(Brand.slug == "mindray").first()
         philips = db.query(Brand).filter(Brand.slug == "philips").first()
         draeger = db.query(Brand).filter(Brand.slug == "draeger").first()
         contec = db.query(Brand).filter(Brand.slug == "contec").first()
 
-        props_to_seed = ["Display Size", "Touch Screen", "Battery Life", "Weight", "Parameters"]
+        props_to_seed = [
+            "Display Size",
+            "Touch Screen",
+            "Battery Life",
+            "Weight",
+            "Parameters",
+        ]
         prop_objs = {}
         for pname in props_to_seed:
             prop_obj = db.query(Property).filter(Property.name == pname).first()
@@ -38,10 +56,34 @@ def setup_test_db():
             prop_objs[pname] = prop_obj
 
         sample_products = [
-            ("BeneVision N12", "benevision-n12", "MN-N12-001", mindray.id if mindray else None, '12.1" Touchscreen'),
-            ("IntelliVue MX450", "intellivue-mx450", "PH-MX450-002", philips.id if philips else None, '12.0" Touchscreen'),
-            ("Infinity M300", "infinity-m300", "DR-M300-003", draeger.id if draeger else None, 'Color OLED'),
-            ("CMS8000", "contec-cms8000", "CT-CMS8000-004", contec.id if contec else None, '12.1" TFT LCD'),
+            (
+                "BeneVision N12",
+                "benevision-n12",
+                "MN-N12-001",
+                mindray.id if mindray else None,
+                '12.1" Touchscreen',
+            ),
+            (
+                "IntelliVue MX450",
+                "intellivue-mx450",
+                "PH-MX450-002",
+                philips.id if philips else None,
+                '12.0" Touchscreen',
+            ),
+            (
+                "Infinity M300",
+                "infinity-m300",
+                "DR-M300-003",
+                draeger.id if draeger else None,
+                "Color OLED",
+            ),
+            (
+                "CMS8000",
+                "contec-cms8000",
+                "CT-CMS8000-004",
+                contec.id if contec else None,
+                '12.1" TFT LCD',
+            ),
         ]
 
         for name, slug, sku, b_id, disp_val in sample_products:
@@ -64,13 +106,25 @@ def setup_test_db():
             )
             db.add(p)
             db.flush()
-            db.add(ProductImage(product_id=p.id, image_url=f"/images/{slug}.jpg", is_primary=True, display_order=0))
+            db.add(
+                ProductImage(
+                    product_id=p.id,
+                    image_url=f"/images/{slug}.jpg",
+                    is_primary=True,
+                    display_order=0,
+                )
+            )
             for k, v in specs.items():
-                db.add(ProductPropertyValue(product_id=p.id, property_id=prop_objs[k].id, value=v))
+                db.add(
+                    ProductPropertyValue(
+                        product_id=p.id, property_id=prop_objs[k].id, value=v
+                    )
+                )
         db.commit()
 
         # Invalidate filter cache so it reflects the test products
         from app.services.filter_cache import filter_cache_service
+
         filter_cache_service._cache = None
     finally:
         db.close()
@@ -134,17 +188,21 @@ def test_regular_user(db_session):
 
 @pytest.fixture(scope="session")
 def admin_token_headers(test_admin_user):
-    role_str = test_admin_user.role.value if hasattr(test_admin_user.role, "value") else str(test_admin_user.role)
-    token = create_access_token(
-        subject=test_admin_user.id, role=role_str
+    role_str = (
+        test_admin_user.role.value
+        if hasattr(test_admin_user.role, "value")
+        else str(test_admin_user.role)
     )
+    token = create_access_token(subject=test_admin_user.id, role=role_str)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(scope="session")
 def user_token_headers(test_regular_user):
-    role_str = test_regular_user.role.value if hasattr(test_regular_user.role, "value") else str(test_regular_user.role)
-    token = create_access_token(
-        subject=test_regular_user.id, role=role_str
+    role_str = (
+        test_regular_user.role.value
+        if hasattr(test_regular_user.role, "value")
+        else str(test_regular_user.role)
     )
+    token = create_access_token(subject=test_regular_user.id, role=role_str)
     return {"Authorization": f"Bearer {token}"}

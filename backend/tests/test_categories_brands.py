@@ -1,6 +1,4 @@
-import pytest
 from starlette.testclient import TestClient
-from app.models import Category, Brand
 
 
 def test_list_categories_public(client: TestClient):
@@ -114,7 +112,9 @@ def test_list_brands_filter_slider(client: TestClient):
         assert brand["featured_in_slider"] is True
 
 
-def test_create_update_toggle_delete_brand_admin(client: TestClient, admin_token_headers):
+def test_create_update_toggle_delete_brand_admin(
+    client: TestClient, admin_token_headers
+):
     # 1. Create brand
     payload = {
         "name": "BioX Systems",
@@ -146,7 +146,10 @@ def test_create_update_toggle_delete_brand_admin(client: TestClient, admin_token
     # 3. Update brand
     update_res = client.put(
         f"/api/brands/{brand_id}",
-        json={"country": "Switzerland", "description": "Swiss-engineered laboratory equipment"},
+        json={
+            "country": "Switzerland",
+            "description": "Swiss-engineered laboratory equipment",
+        },
         headers=admin_token_headers,
     )
     assert update_res.status_code == 200

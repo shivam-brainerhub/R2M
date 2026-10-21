@@ -1,59 +1,72 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import CustomSelect from "@/components/CustomSelect";
+import { useAuth } from "@/context/AuthContext";
 import {
-  inquiriesApi,
-  ContactMessageItem,
-  SupplierApplicationItem,
-  InquiriesStatsResponse,
   ApiError,
-} from '@/lib/api';
-import CustomSelect from '@/components/CustomSelect';
+  ContactMessageItem,
+  inquiriesApi,
+  InquiriesStatsResponse,
+  SupplierApplicationItem,
+} from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
 
-type InquiryTab = 'contact' | 'supplier';
+type InquiryTab = "contact" | "supplier";
 
 export default function AdminInquiriesPage() {
   const { token, hasPermission } = useAuth();
-  const canWriteInquiries = hasPermission('inquiries', 'write');
+  const canWriteInquiries = hasPermission("inquiries", "write");
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<InquiryTab>('contact');
+  const [activeTab, setActiveTab] = useState<InquiryTab>("contact");
 
   // Stats State
   const [stats, setStats] = useState<InquiriesStatsResponse | null>(null);
 
   // Contact Messages State
-  const [contactMessages, setContactMessages] = useState<ContactMessageItem[]>([]);
-  const [contactStatusFilter, setContactStatusFilter] = useState<string>('All');
-  const [contactSearch, setContactSearch] = useState<string>('');
+  const [contactMessages, setContactMessages] = useState<ContactMessageItem[]>(
+    [],
+  );
+  const [contactStatusFilter, setContactStatusFilter] = useState<string>("All");
+  const [contactSearch, setContactSearch] = useState<string>("");
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
 
   // Supplier Applications State
-  const [supplierApps, setSupplierApps] = useState<SupplierApplicationItem[]>([]);
-  const [supplierStatusFilter, setSupplierStatusFilter] = useState<string>('All');
-  const [supplierSearch, setSupplierSearch] = useState<string>('');
+  const [supplierApps, setSupplierApps] = useState<SupplierApplicationItem[]>(
+    [],
+  );
+  const [supplierStatusFilter, setSupplierStatusFilter] =
+    useState<string>("All");
+  const [supplierSearch, setSupplierSearch] = useState<string>("");
   const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
 
   // Modals & Active Selections
-  const [selectedContact, setSelectedContact] = useState<ContactMessageItem | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<SupplierApplicationItem | null>(null);
-  const [notesInput, setNotesInput] = useState<string>('');
+  const [selectedContact, setSelectedContact] =
+    useState<ContactMessageItem | null>(null);
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<SupplierApplicationItem | null>(null);
+  const [notesInput, setNotesInput] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Delete Confirmation Modal
   const [itemToDelete, setItemToDelete] = useState<{
     id: number;
-    type: 'contact' | 'supplier';
+    type: "contact" | "supplier";
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Toast State
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
@@ -69,11 +82,11 @@ export default function AdminInquiriesPage() {
     try {
       const data = await inquiriesApi.getInquiriesStats(token);
       setStats(data);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('admin:refresh-stats'));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("admin:refresh-stats"));
       }
     } catch (err) {
-      console.error('Failed to fetch inquiries stats:', err);
+      console.error("Failed to fetch inquiries stats:", err);
     }
   }, [token]);
 
@@ -87,8 +100,11 @@ export default function AdminInquiriesPage() {
       });
       setContactMessages(data);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to load contact messages';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to load contact messages";
+      showToast(msg, "error");
     } finally {
       setIsLoadingContacts(false);
     }
@@ -104,8 +120,11 @@ export default function AdminInquiriesPage() {
       });
       setSupplierApps(data);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to load supplier applications';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to load supplier applications";
+      showToast(msg, "error");
     } finally {
       setIsLoadingSuppliers(false);
     }
@@ -115,9 +134,12 @@ export default function AdminInquiriesPage() {
     let active = true;
     if (!token) return;
 
-    inquiriesApi.getInquiriesStats(token).then((data) => {
-      if (active) setStats(data);
-    }).catch((err) => console.error('Failed to fetch inquiries stats:', err));
+    inquiriesApi
+      .getInquiriesStats(token)
+      .then((data) => {
+        if (active) setStats(data);
+      })
+      .catch((err) => console.error("Failed to fetch inquiries stats:", err));
 
     return () => {
       active = false;
@@ -128,7 +150,7 @@ export default function AdminInquiriesPage() {
     let active = true;
     if (!token) return;
 
-    if (activeTab === 'contact') {
+    if (activeTab === "contact") {
       inquiriesApi
         .listContactMessages(token, {
           status: contactStatusFilter,
@@ -142,8 +164,11 @@ export default function AdminInquiriesPage() {
         })
         .catch((err) => {
           if (active) {
-            const msg = err instanceof ApiError ? err.message : 'Failed to load contact messages';
-            showToast(msg, 'error');
+            const msg =
+              err instanceof ApiError
+                ? err.message
+                : "Failed to load contact messages";
+            showToast(msg, "error");
             setIsLoadingContacts(false);
           }
         });
@@ -161,8 +186,11 @@ export default function AdminInquiriesPage() {
         })
         .catch((err) => {
           if (active) {
-            const msg = err instanceof ApiError ? err.message : 'Failed to load supplier applications';
-            showToast(msg, 'error');
+            const msg =
+              err instanceof ApiError
+                ? err.message
+                : "Failed to load supplier applications";
+            showToast(msg, "error");
             setIsLoadingSuppliers(false);
           }
         });
@@ -171,15 +199,24 @@ export default function AdminInquiriesPage() {
     return () => {
       active = false;
     };
-  }, [token, activeTab, contactStatusFilter, contactSearch, supplierStatusFilter, supplierSearch]);
+  }, [
+    token,
+    activeTab,
+    contactStatusFilter,
+    contactSearch,
+    supplierStatusFilter,
+    supplierSearch,
+  ]);
 
   // Lock background screen scroll when any inquiry modal is open
-  const isAnyInquiryModalOpen = Boolean(selectedContact || selectedSupplier || itemToDelete);
+  const isAnyInquiryModalOpen = Boolean(
+    selectedContact || selectedSupplier || itemToDelete,
+  );
 
   useEffect(() => {
     if (isAnyInquiryModalOpen) {
       const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = originalOverflow;
       };
@@ -192,28 +229,35 @@ export default function AdminInquiriesPage() {
 
   const handleOpenContactModal = (item: ContactMessageItem) => {
     setSelectedContact(item);
-    setNotesInput(item.notes || '');
+    setNotesInput(item.notes || "");
   };
 
   const handleOpenSupplierModal = (item: SupplierApplicationItem) => {
     setSelectedSupplier(item);
-    setNotesInput(item.notes || '');
+    setNotesInput(item.notes || "");
   };
 
   const handleUpdateContactStatus = async (newStatus: string) => {
     if (!token || !selectedContact) return;
     setIsUpdatingStatus(true);
     try {
-      const updated = await inquiriesApi.updateContactMessage(token, selectedContact.id, {
-        status: newStatus,
-      });
+      const updated = await inquiriesApi.updateContactMessage(
+        token,
+        selectedContact.id,
+        {
+          status: newStatus,
+        },
+      );
       setSelectedContact(updated);
-      setContactMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      setContactMessages((prev) =>
+        prev.map((m) => (m.id === updated.id ? updated : m)),
+      );
       fetchStats();
       showToast(`Status updated to "${newStatus}"`);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to update status';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to update status";
+      showToast(msg, "error");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -223,15 +267,22 @@ export default function AdminInquiriesPage() {
     if (!token || !selectedContact) return;
     setIsSavingNotes(true);
     try {
-      const updated = await inquiriesApi.updateContactMessage(token, selectedContact.id, {
-        notes: notesInput,
-      });
+      const updated = await inquiriesApi.updateContactMessage(
+        token,
+        selectedContact.id,
+        {
+          notes: notesInput,
+        },
+      );
       setSelectedContact(updated);
-      setContactMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-      showToast('Internal notes saved successfully');
+      setContactMessages((prev) =>
+        prev.map((m) => (m.id === updated.id ? updated : m)),
+      );
+      showToast("Internal notes saved successfully");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to save notes';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to save notes";
+      showToast(msg, "error");
     } finally {
       setIsSavingNotes(false);
     }
@@ -241,16 +292,23 @@ export default function AdminInquiriesPage() {
     if (!token || !selectedSupplier) return;
     setIsUpdatingStatus(true);
     try {
-      const updated = await inquiriesApi.updateSupplierApplication(token, selectedSupplier.id, {
-        status: newStatus,
-      });
+      const updated = await inquiriesApi.updateSupplierApplication(
+        token,
+        selectedSupplier.id,
+        {
+          status: newStatus,
+        },
+      );
       setSelectedSupplier(updated);
-      setSupplierApps((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      setSupplierApps((prev) =>
+        prev.map((a) => (a.id === updated.id ? updated : a)),
+      );
       fetchStats();
       showToast(`Status updated to "${newStatus}"`);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to update status';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to update status";
+      showToast(msg, "error");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -260,15 +318,22 @@ export default function AdminInquiriesPage() {
     if (!token || !selectedSupplier) return;
     setIsSavingNotes(true);
     try {
-      const updated = await inquiriesApi.updateSupplierApplication(token, selectedSupplier.id, {
-        notes: notesInput,
-      });
+      const updated = await inquiriesApi.updateSupplierApplication(
+        token,
+        selectedSupplier.id,
+        {
+          notes: notesInput,
+        },
+      );
       setSelectedSupplier(updated);
-      setSupplierApps((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-      showToast('Internal notes saved successfully');
+      setSupplierApps((prev) =>
+        prev.map((a) => (a.id === updated.id ? updated : a)),
+      );
+      showToast("Internal notes saved successfully");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to save notes';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to save notes";
+      showToast(msg, "error");
     } finally {
       setIsSavingNotes(false);
     }
@@ -278,22 +343,25 @@ export default function AdminInquiriesPage() {
     if (!token || !itemToDelete) return;
     setIsDeleting(true);
     try {
-      if (itemToDelete.type === 'contact') {
+      if (itemToDelete.type === "contact") {
         await inquiriesApi.deleteContactMessage(token, itemToDelete.id);
-        setContactMessages((prev) => prev.filter((m) => m.id !== itemToDelete.id));
+        setContactMessages((prev) =>
+          prev.filter((m) => m.id !== itemToDelete.id),
+        );
         if (selectedContact?.id === itemToDelete.id) setSelectedContact(null);
-        showToast('Contact message deleted');
+        showToast("Contact message deleted");
       } else {
         await inquiriesApi.deleteSupplierApplication(token, itemToDelete.id);
         setSupplierApps((prev) => prev.filter((a) => a.id !== itemToDelete.id));
         if (selectedSupplier?.id === itemToDelete.id) setSelectedSupplier(null);
-        showToast('Supplier application deleted');
+        showToast("Supplier application deleted");
       }
       setItemToDelete(null);
       fetchStats();
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete item';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to delete item";
+      showToast(msg, "error");
     } finally {
       setIsDeleting(false);
     }
@@ -304,15 +372,15 @@ export default function AdminInquiriesPage() {
   // ---------------------------------------------------------------------------
 
   const formatDate = (isoStr?: string | null) => {
-    if (!isoStr) return '—';
+    if (!isoStr) return "—";
     try {
       const d = new Date(isoStr);
-      return d.toLocaleDateString('en-ZA', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+      return d.toLocaleDateString("en-ZA", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return isoStr;
@@ -321,19 +389,19 @@ export default function AdminInquiriesPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'New':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'In Progress':
-      case 'Under Review':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Responded':
-      case 'Approved':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Archived':
-      case 'Declined':
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case "New":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "In Progress":
+      case "Under Review":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "Responded":
+      case "Approved":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Archived":
+      case "Declined":
+        return "bg-gray-100 text-gray-700 border-gray-200";
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return "bg-slate-100 text-slate-700 border-slate-200";
     }
   };
 
@@ -343,13 +411,13 @@ export default function AdminInquiriesPage() {
       {toast && (
         <div
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium flex items-center gap-2.5 transition-all animate-fadeIn ${
-            toast.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-red-50 text-red-800 border-red-200'
+            toast.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : "bg-red-50 text-red-800 border-red-200"
           }`}
         >
           <span className="material-symbols-outlined text-base">
-            {toast.type === 'success' ? 'check_circle' : 'error'}
+            {toast.type === "success" ? "check_circle" : "error"}
           </span>
           <span>{toast.message}</span>
         </div>
@@ -358,7 +426,9 @@ export default function AdminInquiriesPage() {
       {/* Header & Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-navy tracking-tight">Inquiries & Leads</h1>
+          <h1 className="text-2xl font-bold text-navy tracking-tight">
+            Inquiries & Leads
+          </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage contact form messages and supplier onboarding applications
           </p>
@@ -366,7 +436,7 @@ export default function AdminInquiriesPage() {
         <button
           onClick={() => {
             fetchStats();
-            if (activeTab === 'contact') fetchContactMessages();
+            if (activeTab === "contact") fetchContactMessages();
             else fetchSupplierApplications();
           }}
           className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-2xs self-start sm:self-auto cursor-pointer"
@@ -378,11 +448,14 @@ export default function AdminInquiriesPage() {
 
       {!canWriteInquiries && (
         <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
-          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">
+            visibility
+          </span>
           <div>
             <p className="font-bold text-amber-950">Read-Only Inquiries View</p>
             <p className="text-amber-800/90 mt-0.5">
-              Your account has read-only access to customer inquiries and supplier applications.
+              Your account has read-only access to customer inquiries and
+              supplier applications.
             </p>
           </div>
         </div>
@@ -392,11 +465,17 @@ export default function AdminInquiriesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-xl">mark_email_unread</span>
+            <span className="material-symbols-outlined text-xl">
+              mark_email_unread
+            </span>
           </div>
           <div>
-            <div className="text-2xl font-bold text-navy">{stats?.total_new ?? '—'}</div>
-            <div className="text-xs text-gray-500 font-medium">New Unread Leads</div>
+            <div className="text-2xl font-bold text-navy">
+              {stats?.total_new ?? "—"}
+            </div>
+            <div className="text-xs text-gray-500 font-medium">
+              New Unread Leads
+            </div>
           </div>
         </div>
 
@@ -405,8 +484,12 @@ export default function AdminInquiriesPage() {
             <span className="material-symbols-outlined text-xl">mail</span>
           </div>
           <div>
-            <div className="text-2xl font-bold text-navy">{stats?.total_contact ?? '—'}</div>
-            <div className="text-xs text-gray-500 font-medium">Contact Messages</div>
+            <div className="text-2xl font-bold text-navy">
+              {stats?.total_contact ?? "—"}
+            </div>
+            <div className="text-xs text-gray-500 font-medium">
+              Contact Messages
+            </div>
           </div>
         </div>
 
@@ -415,23 +498,34 @@ export default function AdminInquiriesPage() {
             <span className="material-symbols-outlined text-xl">store</span>
           </div>
           <div>
-            <div className="text-2xl font-bold text-navy">{stats?.total_supplier ?? '—'}</div>
-            <div className="text-xs text-gray-500 font-medium">Supplier Applications</div>
+            <div className="text-2xl font-bold text-navy">
+              {stats?.total_supplier ?? "—"}
+            </div>
+            <div className="text-xs text-gray-500 font-medium">
+              Supplier Applications
+            </div>
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-xl">pending_actions</span>
+            <span className="material-symbols-outlined text-xl">
+              pending_actions
+            </span>
           </div>
           <div>
             <div className="text-2xl font-bold text-navy">
-              {stats ? (stats.total_in_progress ?? ((stats.in_progress_contact ?? 0) + (stats.under_review_supplier ?? 0))) : '—'}
+              {stats
+                ? stats.total_in_progress ??
+                  (stats.in_progress_contact ?? 0) +
+                    (stats.under_review_supplier ?? 0)
+                : "—"}
             </div>
-            <div className="text-xs text-gray-500 font-medium">In Progress / In Review</div>
+            <div className="text-xs text-gray-500 font-medium">
+              In Progress / In Review
+            </div>
           </div>
         </div>
-
       </div>
 
       {/* Main Content Area: Tabs + Filters + Table */}
@@ -439,11 +533,11 @@ export default function AdminInquiriesPage() {
         {/* Tab Selector */}
         <div className="border-b border-gray-200 px-4 pt-3 flex items-center gap-6">
           <button
-            onClick={() => setActiveTab('contact')}
+            onClick={() => setActiveTab("contact")}
             className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'contact'
-                ? 'border-navy text-navy'
-                : 'border-transparent text-gray-500 hover:text-navy'
+              activeTab === "contact"
+                ? "border-navy text-navy"
+                : "border-transparent text-gray-500 hover:text-navy"
             }`}
           >
             <span className="material-symbols-outlined text-lg">mail</span>
@@ -456,11 +550,11 @@ export default function AdminInquiriesPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('supplier')}
+            onClick={() => setActiveTab("supplier")}
             className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'supplier'
-                ? 'border-navy text-navy'
-                : 'border-transparent text-gray-500 hover:text-navy'
+              activeTab === "supplier"
+                ? "border-navy text-navy"
+                : "border-transparent text-gray-500 hover:text-navy"
             }`}
           >
             <span className="material-symbols-outlined text-lg">domain</span>
@@ -482,18 +576,18 @@ export default function AdminInquiriesPage() {
             <input
               type="text"
               placeholder={
-                activeTab === 'contact'
-                  ? 'Search by name, email, org...'
-                  : 'Search company, contact, category...'
+                activeTab === "contact"
+                  ? "Search by name, email, org..."
+                  : "Search company, contact, category..."
               }
-              value={activeTab === 'contact' ? contactSearch : supplierSearch}
+              value={activeTab === "contact" ? contactSearch : supplierSearch}
               onChange={(e) => {
-                if (activeTab === 'contact') setContactSearch(e.target.value);
+                if (activeTab === "contact") setContactSearch(e.target.value);
                 else setSupplierSearch(e.target.value);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  if (activeTab === 'contact') fetchContactMessages();
+                if (e.key === "Enter") {
+                  if (activeTab === "contact") fetchContactMessages();
                   else fetchSupplierApplications();
                 }
               }}
@@ -504,29 +598,33 @@ export default function AdminInquiriesPage() {
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <label className="text-xs text-gray-500 font-medium">Status:</label>
             <CustomSelect
-              value={activeTab === 'contact' ? contactStatusFilter : supplierStatusFilter}
+              value={
+                activeTab === "contact"
+                  ? contactStatusFilter
+                  : supplierStatusFilter
+              }
               onChange={(val) => {
-                if (activeTab === 'contact') {
+                if (activeTab === "contact") {
                   setContactStatusFilter(val);
                 } else {
                   setSupplierStatusFilter(val);
                 }
               }}
               options={
-                activeTab === 'contact'
+                activeTab === "contact"
                   ? [
-                      { value: 'All', label: 'All Statuses' },
-                      { value: 'New', label: 'New' },
-                      { value: 'In Progress', label: 'In Progress' },
-                      { value: 'Responded', label: 'Responded' },
-                      { value: 'Archived', label: 'Archived' },
+                      { value: "All", label: "All Statuses" },
+                      { value: "New", label: "New" },
+                      { value: "In Progress", label: "In Progress" },
+                      { value: "Responded", label: "Responded" },
+                      { value: "Archived", label: "Archived" },
                     ]
                   : [
-                      { value: 'All', label: 'All Statuses' },
-                      { value: 'New', label: 'New' },
-                      { value: 'Under Review', label: 'Under Review' },
-                      { value: 'Approved', label: 'Approved' },
-                      { value: 'Declined', label: 'Declined' },
+                      { value: "All", label: "All Statuses" },
+                      { value: "New", label: "New" },
+                      { value: "Under Review", label: "Under Review" },
+                      { value: "Approved", label: "Approved" },
+                      { value: "Declined", label: "Declined" },
                     ]
               }
               size="sm"
@@ -537,7 +635,7 @@ export default function AdminInquiriesPage() {
         </div>
 
         {/* Tab 1: Contact Messages Table */}
-        {activeTab === 'contact' && (
+        {activeTab === "contact" && (
           <div className="overflow-x-auto">
             {isLoadingContacts ? (
               <div className="p-12 text-center text-sm text-gray-500">
@@ -565,13 +663,18 @@ export default function AdminInquiriesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {contactMessages.map((msg) => (
-                    <tr key={msg.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr
+                      key={msg.id}
+                      className="hover:bg-slate-50/60 transition-colors"
+                    >
                       <td className="py-3 px-4">
                         <div className="font-semibold text-navy">
                           {msg.first_name} {msg.last_name}
                         </div>
                         {msg.organization && (
-                          <div className="text-[11px] text-gray-500">{msg.organization}</div>
+                          <div className="text-[11px] text-gray-500">
+                            {msg.organization}
+                          </div>
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -591,7 +694,7 @@ export default function AdminInquiriesPage() {
                       <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
-                            msg.status
+                            msg.status,
                           )}`}
                         >
                           {msg.status}
@@ -610,14 +713,16 @@ export default function AdminInquiriesPage() {
                               onClick={() =>
                                 setItemToDelete({
                                   id: msg.id,
-                                  type: 'contact',
+                                  type: "contact",
                                   name: `${msg.first_name} ${msg.last_name}`,
                                 })
                               }
                               className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
                               title="Delete"
                             >
-                              <span className="material-symbols-outlined text-base">delete</span>
+                              <span className="material-symbols-outlined text-base">
+                                delete
+                              </span>
                             </button>
                           )}
                         </div>
@@ -631,7 +736,7 @@ export default function AdminInquiriesPage() {
         )}
 
         {/* Tab 2: Supplier Applications Table */}
-        {activeTab === 'supplier' && (
+        {activeTab === "supplier" && (
           <div className="overflow-x-auto">
             {isLoadingSuppliers ? (
               <div className="p-12 text-center text-sm text-gray-500">
@@ -660,17 +765,22 @@ export default function AdminInquiriesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {supplierApps.map((app) => (
-                    <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
+                    <tr
+                      key={app.id}
+                      className="hover:bg-slate-50/60 transition-colors"
+                    >
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-navy">{app.company_name}</div>
+                        <div className="font-semibold text-navy">
+                          {app.company_name}
+                        </div>
                         <div className="text-[11px] text-gray-500">
                           {app.contact_person}
-                          {app.job_title ? ` (${app.job_title})` : ''}
+                          {app.job_title ? ` (${app.job_title})` : ""}
                         </div>
                         {app.website && (
                           <a
                             href={
-                              app.website.startsWith('http')
+                              app.website.startsWith("http")
                                 ? app.website
                                 : `https://${app.website}`
                             }
@@ -679,7 +789,9 @@ export default function AdminInquiriesPage() {
                             className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 mt-0.5"
                           >
                             <span>Website</span>
-                            <span className="material-symbols-outlined text-[10px]!">open_in_new</span>
+                            <span className="material-symbols-outlined text-[10px]!">
+                              open_in_new
+                            </span>
                           </a>
                         )}
                       </td>
@@ -692,7 +804,9 @@ export default function AdminInquiriesPage() {
                             {app.email}
                           </a>
                         </div>
-                        <div className="text-[11px] text-gray-500">{app.phone}</div>
+                        <div className="text-[11px] text-gray-500">
+                          {app.phone}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-medium text-[11px]">
@@ -708,7 +822,7 @@ export default function AdminInquiriesPage() {
                       <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
-                            app.status
+                            app.status,
                           )}`}
                         >
                           {app.status}
@@ -727,14 +841,16 @@ export default function AdminInquiriesPage() {
                               onClick={() =>
                                 setItemToDelete({
                                   id: app.id,
-                                  type: 'supplier',
+                                  type: "supplier",
                                   name: app.company_name,
                                 })
                               }
                               className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
                               title="Delete"
                             >
-                              <span className="material-symbols-outlined text-base">delete</span>
+                              <span className="material-symbols-outlined text-base">
+                                delete
+                              </span>
                             </button>
                           )}
                         </div>
@@ -780,35 +896,47 @@ export default function AdminInquiriesPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Email Address</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Email Address
+                </span>
                 <a
                   href={`mailto:${selectedContact.email}`}
                   className="font-semibold text-navy hover:underline flex items-center gap-1"
                 >
-                  <span className="material-symbols-outlined text-sm">mail</span>
+                  <span className="material-symbols-outlined text-sm">
+                    mail
+                  </span>
                   <span>{selectedContact.email}</span>
                 </a>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Organization</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Organization
+                </span>
                 <div className="font-semibold text-navy">
-                  {selectedContact.organization || 'Not specified'}
+                  {selectedContact.organization || "Not specified"}
                 </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Submission Date</span>
-                <div className="font-semibold text-navy">{formatDate(selectedContact.created_at)}</div>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Submission Date
+                </span>
+                <div className="font-semibold text-navy">
+                  {formatDate(selectedContact.created_at)}
+                </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Status</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Status
+                </span>
                 <CustomSelect
                   disabled={isUpdatingStatus || !canWriteInquiries}
                   value={selectedContact.status}
                   onChange={(val) => handleUpdateContactStatus(val)}
-                  options={['New', 'In Progress', 'Responded', 'Archived']}
+                  options={["New", "In Progress", "Responded", "Archived"]}
                   size="sm"
                   className="w-full mt-1"
                 />
@@ -853,7 +981,7 @@ export default function AdminInquiriesPage() {
                     disabled={isSavingNotes}
                     className="px-3 py-1.5 text-xs font-semibold bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                    {isSavingNotes ? "Saving..." : "Save Notes"}
                   </button>
                 </div>
               )}
@@ -896,7 +1024,9 @@ export default function AdminInquiriesPage() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-xl font-bold text-navy">{selectedSupplier.company_name}</h3>
+                <h3 className="text-xl font-bold text-navy">
+                  {selectedSupplier.company_name}
+                </h3>
               </div>
               <button
                 onClick={() => setSelectedSupplier(null)}
@@ -908,30 +1038,40 @@ export default function AdminInquiriesPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Contact Person</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Contact Person
+                </span>
                 <div className="font-semibold text-navy">
                   {selectedSupplier.contact_person}
-                  {selectedSupplier.job_title ? ` (${selectedSupplier.job_title})` : ''}
+                  {selectedSupplier.job_title
+                    ? ` (${selectedSupplier.job_title})`
+                    : ""}
                 </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Email & Phone</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Email & Phone
+                </span>
                 <a
                   href={`mailto:${selectedSupplier.email}`}
                   className="font-semibold text-navy hover:underline block truncate"
                 >
                   {selectedSupplier.email}
                 </a>
-                <div className="text-gray-600 mt-0.5">{selectedSupplier.phone}</div>
+                <div className="text-gray-600 mt-0.5">
+                  {selectedSupplier.phone}
+                </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Company Website</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Company Website
+                </span>
                 {selectedSupplier.website ? (
                   <a
                     href={
-                      selectedSupplier.website.startsWith('http')
+                      selectedSupplier.website.startsWith("http")
                         ? selectedSupplier.website
                         : `https://${selectedSupplier.website}`
                     }
@@ -940,32 +1080,44 @@ export default function AdminInquiriesPage() {
                     className="font-semibold text-blue-600 hover:underline flex items-center gap-1"
                   >
                     <span className="truncate">{selectedSupplier.website}</span>
-                    <span className="material-symbols-outlined text-xs!">open_in_new</span>
+                    <span className="material-symbols-outlined text-xs!">
+                      open_in_new
+                    </span>
                   </a>
                 ) : (
-                  <span className="text-gray-400 font-medium">None provided</span>
+                  <span className="text-gray-400 font-medium">
+                    None provided
+                  </span>
                 )}
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Category</span>
-                <div className="font-semibold text-navy">{selectedSupplier.category}</div>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Category
+                </span>
+                <div className="font-semibold text-navy">
+                  {selectedSupplier.category}
+                </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Applied Date</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Applied Date
+                </span>
                 <div className="font-semibold text-navy">
                   {formatDate(selectedSupplier.created_at)}
                 </div>
               </div>
 
               <div className="bg-slate-50 p-3 rounded-lg border border-gray-100">
-                <span className="text-gray-500 font-medium block mb-1">Status</span>
+                <span className="text-gray-500 font-medium block mb-1">
+                  Status
+                </span>
                 <CustomSelect
                   disabled={isUpdatingStatus || !canWriteInquiries}
                   value={selectedSupplier.status}
                   onChange={(val) => handleUpdateSupplierStatus(val)}
-                  options={['New', 'Under Review', 'Approved', 'Declined']}
+                  options={["New", "Under Review", "Approved", "Declined"]}
                   size="sm"
                   className="w-full mt-1"
                 />
@@ -1010,7 +1162,7 @@ export default function AdminInquiriesPage() {
                     disabled={isSavingNotes}
                     className="px-3 py-1.5 text-xs font-semibold bg-navy text-white rounded-lg hover:bg-navy-light transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    {isSavingNotes ? 'Saving...' : 'Save Notes'}
+                    {isSavingNotes ? "Saving..." : "Save Notes"}
                   </button>
                 </div>
               )}
@@ -1042,13 +1194,21 @@ export default function AdminInquiriesPage() {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
             <div className="w-12 h-12 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl">warning</span>
+              <span className="material-symbols-outlined text-2xl">
+                warning
+              </span>
             </div>
             <div>
               <h3 className="text-lg font-bold text-navy">Confirm Deletion</h3>
               <p className="text-xs text-gray-500 mt-1">
-                Are you sure you want to permanently delete the {itemToDelete.type === 'contact' ? 'contact message from' : 'supplier application from'}{' '}
-                <span className="font-semibold text-navy">{itemToDelete.name}</span>? This action cannot be undone.
+                Are you sure you want to permanently delete the{" "}
+                {itemToDelete.type === "contact"
+                  ? "contact message from"
+                  : "supplier application from"}{" "}
+                <span className="font-semibold text-navy">
+                  {itemToDelete.name}
+                </span>
+                ? This action cannot be undone.
               </p>
             </div>
             <div className="flex justify-end gap-2.5 pt-2">
@@ -1064,7 +1224,7 @@ export default function AdminInquiriesPage() {
                 disabled={isDeleting}
                 className="px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                {isDeleting ? "Deleting..." : "Delete Permanently"}
               </button>
             </div>
           </div>

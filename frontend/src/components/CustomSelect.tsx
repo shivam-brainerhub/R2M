@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useId } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface SelectOption {
   value: string | number;
@@ -17,10 +17,10 @@ export interface CustomSelectProps {
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'white' | 'slate';
-  align?: 'left' | 'right';
-  direction?: 'down' | 'up' | 'auto';
+  size?: "sm" | "md" | "lg";
+  variant?: "white" | "slate";
+  align?: "left" | "right";
+  direction?: "down" | "up" | "auto";
   portal?: boolean;
   className?: string;
   dropdownClassName?: string;
@@ -36,24 +36,24 @@ interface DropdownCoords {
   bottom?: number;
   width: number;
   maxHeight: number;
-  placement: 'top' | 'bottom';
+  placement: "top" | "bottom";
 }
 
 export default function CustomSelect({
   value,
   onChange,
   options,
-  placeholder = 'Select an option...',
+  placeholder = "Select an option...",
   disabled = false,
   error = false,
-  size = 'md',
-  variant = 'white',
-  align = 'left',
-  direction = 'auto',
+  size = "md",
+  variant = "white",
+  align = "left",
+  direction = "auto",
   portal = true,
-  className = '',
-  dropdownClassName = '',
-  triggerClassName = '',
+  className = "",
+  dropdownClassName = "",
+  triggerClassName = "",
   name,
   id,
   prefixIcon,
@@ -62,7 +62,7 @@ export default function CustomSelect({
   const selectId = id || autoId;
 
   const [isOpen, setIsOpen] = useState(false);
-  const [placement, setPlacement] = useState<'top' | 'bottom'>('bottom');
+  const [placement, setPlacement] = useState<"top" | "bottom">("bottom");
   const [coords, setCoords] = useState<DropdownCoords | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -77,7 +77,7 @@ export default function CustomSelect({
 
   // Normalize options to SelectOption[]
   const normalizedOptions: SelectOption[] = options.map((opt) => {
-    if (typeof opt === 'string') {
+    if (typeof opt === "string") {
       return { value: opt, label: opt };
     }
     return opt;
@@ -85,7 +85,7 @@ export default function CustomSelect({
 
   // Find currently selected option
   const selectedOption = normalizedOptions.find(
-    (opt) => String(opt.value) === String(value)
+    (opt) => String(opt.value) === String(value),
   );
 
   // Compute dynamic position and placement (top vs bottom)
@@ -105,37 +105,45 @@ export default function CustomSelect({
     const spaceBelow = window.innerHeight - rect.bottom - GAP;
     const spaceAbove = rect.top - GAP;
 
-    let chosenPlacement: 'top' | 'bottom';
-    if (direction === 'up') {
-      chosenPlacement = 'top';
-    } else if (direction === 'down') {
-      chosenPlacement = 'bottom';
+    let chosenPlacement: "top" | "bottom";
+    if (direction === "up") {
+      chosenPlacement = "top";
+    } else if (direction === "down") {
+      chosenPlacement = "bottom";
     } else {
       // 'auto': if space below is cramped (< 220px) and space above offers more room, open upwards!
-      chosenPlacement = spaceBelow < 220 && spaceAbove > spaceBelow ? 'top' : 'bottom';
+      chosenPlacement =
+        spaceBelow < 220 && spaceAbove > spaceBelow ? "top" : "bottom";
     }
 
     setPlacement(chosenPlacement);
 
-    const availableHeight = chosenPlacement === 'top' ? spaceAbove - 12 : spaceBelow - 12;
+    const availableHeight =
+      chosenPlacement === "top" ? spaceAbove - 12 : spaceBelow - 12;
     const maxHeight = Math.min(280, Math.max(120, availableHeight));
 
     const width = rect.width;
     const screenMargin = 8;
     let left = rect.left;
-    if (align === 'right') {
+    if (align === "right") {
       left = rect.right - width;
     }
     // Clamp horizontally to avoid viewport overflow
-    left = Math.max(screenMargin, Math.min(left, window.innerWidth - width - screenMargin));
+    left = Math.max(
+      screenMargin,
+      Math.min(left, window.innerWidth - width - screenMargin),
+    );
 
     setCoords({
       left,
       width,
       maxHeight,
       placement: chosenPlacement,
-      top: chosenPlacement === 'bottom' ? rect.bottom + GAP : undefined,
-      bottom: chosenPlacement === 'top' ? window.innerHeight - rect.top + GAP : undefined,
+      top: chosenPlacement === "bottom" ? rect.bottom + GAP : undefined,
+      bottom:
+        chosenPlacement === "top"
+          ? window.innerHeight - rect.top + GAP
+          : undefined,
     });
   }, [direction, align]);
 
@@ -148,19 +156,22 @@ export default function CustomSelect({
 
     const handleScroll = (e: Event) => {
       // Do not reposition if scrolling inside the dropdown itself
-      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        dropdownRef.current.contains(e.target as Node)
+      ) {
         return;
       }
       updatePosition();
     };
 
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', updatePosition);
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", updatePosition);
 
     return () => {
       cancelAnimationFrame(rafId);
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", updatePosition);
     };
   }, [isOpen, updatePosition]);
 
@@ -168,7 +179,7 @@ export default function CustomSelect({
   useEffect(() => {
     if (isOpen) {
       const selectedIndex = normalizedOptions.findIndex(
-        (opt) => value !== undefined && String(opt.value) === String(value)
+        (opt) => value !== undefined && String(opt.value) === String(value),
       );
       setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
     } else {
@@ -182,7 +193,7 @@ export default function CustomSelect({
       const items = dropdownRef.current.querySelectorAll('[role="option"]');
       const item = items[highlightedIndex] as HTMLElement | undefined;
       if (item) {
-        item.scrollIntoView({ block: 'nearest' });
+        item.scrollIntoView({ block: "nearest" });
       }
     }
   }, [isOpen, highlightedIndex]);
@@ -202,10 +213,10 @@ export default function CustomSelect({
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
@@ -214,7 +225,12 @@ export default function CustomSelect({
     if (disabled) return;
 
     if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+      if (
+        e.key === "ArrowDown" ||
+        e.key === "ArrowUp" ||
+        e.key === "Enter" ||
+        e.key === " "
+      ) {
         e.preventDefault();
         updatePosition();
         setIsOpen(true);
@@ -222,20 +238,23 @@ export default function CustomSelect({
       return;
     }
 
-    if (e.key === 'Escape' || e.key === 'Tab') {
-      if (e.key === 'Escape') e.preventDefault();
+    if (e.key === "Escape" || e.key === "Tab") {
+      if (e.key === "Escape") e.preventDefault();
       setIsOpen(false);
       triggerRef.current?.focus();
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setHighlightedIndex((prev) => {
         let next = prev + 1;
-        while (next < normalizedOptions.length && normalizedOptions[next].disabled) {
+        while (
+          next < normalizedOptions.length &&
+          normalizedOptions[next].disabled
+        ) {
           next++;
         }
         return next < normalizedOptions.length ? next : prev;
       });
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlightedIndex((prev) => {
         let next = prev - 1;
@@ -244,9 +263,12 @@ export default function CustomSelect({
         }
         return next >= 0 ? next : prev;
       });
-    } else if (e.key === 'Enter' || e.key === ' ') {
+    } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < normalizedOptions.length) {
+      if (
+        highlightedIndex >= 0 &&
+        highlightedIndex < normalizedOptions.length
+      ) {
         const opt = normalizedOptions[highlightedIndex];
         if (!opt.disabled) {
           onChange(String(opt.value));
@@ -269,18 +291,18 @@ export default function CustomSelect({
 
   // Size specific styling
   const sizeClasses = {
-    sm: 'py-1.5 px-3 text-xs rounded-lg gap-2',
-    md: 'py-2.5 px-3.5 text-xs sm:text-sm rounded-xl gap-2.5',
-    lg: 'py-3 px-4 text-sm rounded-xl gap-3',
+    sm: "py-1.5 px-3 text-xs rounded-lg gap-2",
+    md: "py-2.5 px-3.5 text-xs sm:text-sm rounded-xl gap-2.5",
+    lg: "py-3 px-4 text-sm rounded-xl gap-3",
   }[size];
 
   // Variant specific styling
   const variantClasses = {
-    white: 'bg-white text-navy border-gray-200',
-    slate: 'bg-slate-50 text-navy border-gray-200 focus:bg-white',
+    white: "bg-white text-navy border-gray-200",
+    slate: "bg-slate-50 text-navy border-gray-200 focus:bg-white",
   }[variant];
 
-  const hasValue = selectedOption !== undefined && selectedOption.value !== '';
+  const hasValue = selectedOption !== undefined && selectedOption.value !== "";
 
   // Dropdown panel content
   const dropdownContent = (
@@ -291,28 +313,33 @@ export default function CustomSelect({
       style={
         portal && coords
           ? {
-              position: 'fixed',
+              position: "fixed",
               left: `${coords.left}px`,
               width: `${coords.width}px`,
               maxHeight: `${coords.maxHeight}px`,
               zIndex: 99999,
               ...(coords.top !== undefined ? { top: `${coords.top}px` } : {}),
-              ...(coords.bottom !== undefined ? { bottom: `${coords.bottom}px` } : {}),
+              ...(coords.bottom !== undefined
+                ? { bottom: `${coords.bottom}px` }
+                : {}),
             }
           : undefined
       }
       className={`bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden py-1 text-xs overflow-y-auto ${
         portal
-          ? coords?.placement === 'top'
-            ? 'animate-in fade-in-0 zoom-in-95 origin-bottom'
-            : 'animate-in fade-in-0 zoom-in-95 origin-top'
+          ? coords?.placement === "top"
+            ? "animate-in fade-in-0 zoom-in-95 origin-bottom"
+            : "animate-in fade-in-0 zoom-in-95 origin-top"
           : `absolute ${
-              placement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-            } ${align === 'right' ? 'right-0' : 'left-0'} min-w-full w-max max-w-xs sm:max-w-md z-50 max-h-60 animate-fadeIn`
+              placement === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5"
+            } ${
+              align === "right" ? "right-0" : "left-0"
+            } min-w-full w-max max-w-xs sm:max-w-md z-50 max-h-60 animate-fadeIn`
       } ${dropdownClassName}`}
     >
       {normalizedOptions.map((opt, idx) => {
-        const isSelected = value !== undefined && String(opt.value) === String(value);
+        const isSelected =
+          value !== undefined && String(opt.value) === String(value);
         const isHighlighted = idx === highlightedIndex;
 
         return (
@@ -332,12 +359,14 @@ export default function CustomSelect({
             }}
             className={`w-full text-left px-3.5 py-2 transition-colors flex items-center justify-between cursor-pointer ${
               isSelected
-                ? 'text-navy font-bold bg-blue-50/80 text-blue-900'
+                ? "text-navy font-bold bg-blue-50/80 text-blue-900"
                 : isHighlighted
-                ? 'bg-slate-100 text-navy font-semibold'
-                : 'text-gray-700 hover:text-navy hover:bg-slate-50'
+                  ? "bg-slate-100 text-navy font-semibold"
+                  : "text-gray-700 hover:text-navy hover:bg-slate-50"
             } ${
-              opt.disabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''
+              opt.disabled
+                ? "opacity-40 cursor-not-allowed hover:bg-transparent"
+                : ""
             }`}
           >
             <div className="flex items-center gap-2 min-w-0 pr-2 truncate">
@@ -370,7 +399,7 @@ export default function CustomSelect({
         <input
           type="hidden"
           name={name}
-          value={value !== undefined ? String(value) : ''}
+          value={value !== undefined ? String(value) : ""}
         />
       )}
 
@@ -387,12 +416,12 @@ export default function CustomSelect({
         aria-controls={`${selectId}-listbox`}
         className={`w-full flex items-center justify-between border transition-all text-left shadow-2xs cursor-pointer ${sizeClasses} ${variantClasses} ${
           disabled
-            ? 'opacity-50 cursor-not-allowed bg-slate-100 hover:border-gray-200'
+            ? "opacity-50 cursor-not-allowed bg-slate-100 hover:border-gray-200"
             : isOpen
-            ? 'border-blue-500 ring-2 ring-blue-500/20'
-            : error
-            ? 'border-red-400 bg-red-50/20 hover:border-red-500'
-            : 'hover:border-blue-400 hover:text-navy'
+              ? "border-blue-500 ring-2 ring-blue-500/20"
+              : error
+                ? "border-red-400 bg-red-50/20 hover:border-red-500"
+                : "hover:border-blue-400 hover:text-navy"
         } ${triggerClassName}`}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
@@ -418,7 +447,7 @@ export default function CustomSelect({
 
         <span
           className={`material-symbols-outlined text-gray-400 text-sm! shrink-0 ml-1.5 transition-transform duration-200 ${
-            isOpen ? (placement === 'top' ? 'rotate-180' : 'rotate-180') : ''
+            isOpen ? (placement === "top" ? "rotate-180" : "rotate-180") : ""
           }`}
         >
           expand_more
@@ -427,7 +456,7 @@ export default function CustomSelect({
 
       {/* Dropdown Menu Panel (Portaled to document.body by default or rendered locally) */}
       {isOpen &&
-        (portal && isMounted && typeof document !== 'undefined'
+        (portal && isMounted && typeof document !== "undefined"
           ? createPortal(dropdownContent, document.body)
           : dropdownContent)}
     </div>

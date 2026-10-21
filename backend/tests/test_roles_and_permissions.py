@@ -1,4 +1,3 @@
-import pytest
 from app.core.security import create_access_token, get_password_hash
 from app.models import Role, User
 
@@ -36,7 +35,9 @@ def test_admin_create_update_delete_custom_role(client, admin_token_headers):
             "roles": "none",
         },
     }
-    create_res = client.post("/api/admin/roles", json=create_payload, headers=admin_token_headers)
+    create_res = client.post(
+        "/api/admin/roles", json=create_payload, headers=admin_token_headers
+    )
     assert create_res.status_code == 201
     created_role = create_res.json()
     assert created_role["name"] == "Procurement Officer"
@@ -57,7 +58,9 @@ def test_admin_create_update_delete_custom_role(client, admin_token_headers):
             "quotes": "read",
         },
     }
-    update_res = client.put(f"/api/admin/roles/{role_id}", json=update_payload, headers=admin_token_headers)
+    update_res = client.put(
+        f"/api/admin/roles/{role_id}", json=update_payload, headers=admin_token_headers
+    )
     assert update_res.status_code == 200
     updated = update_res.json()
     assert updated["description"] == "Updated description"
@@ -74,7 +77,9 @@ def test_cannot_delete_system_role(client, admin_token_headers):
     roles_res = client.get("/api/admin/roles", headers=admin_token_headers)
     admin_role = next(r for r in roles_res.json() if r["slug"] == "admin")
 
-    del_res = client.delete(f"/api/admin/roles/{admin_role['id']}", headers=admin_token_headers)
+    del_res = client.delete(
+        f"/api/admin/roles/{admin_role['id']}", headers=admin_token_headers
+    )
     assert del_res.status_code == 400
     assert "System roles cannot be deleted" in del_res.json()["detail"]
 
@@ -109,9 +114,14 @@ def test_granular_permissions_enforcement(client, db_session, admin_token_header
     assert res_prods.status_code == 200
 
     # 3. Sales rep CANNOT create products (products: write required)
-    res_create_prod = client.post("/api/products", json={"name": "Forbidden Device"}, headers=sales_headers)
+    res_create_prod = client.post(
+        "/api/products", json={"name": "Forbidden Device"}, headers=sales_headers
+    )
     assert res_create_prod.status_code == 403
-    assert "insufficient permissions" in res_create_prod.json()["detail"].lower() or "do not have permission" in res_create_prod.json()["detail"].lower()
+    assert (
+        "insufficient permissions" in res_create_prod.json()["detail"].lower()
+        or "do not have permission" in res_create_prod.json()["detail"].lower()
+    )
 
     # 4. Sales rep CANNOT access user management (users: none)
     res_users = client.get("/api/admin/users", headers=sales_headers)
@@ -161,7 +171,10 @@ def test_user_permission_override(client, db_session):
     # User can now update site content thanks to the override
     content_res = client.put(
         "/api/content/hero",
-        json={"title": "Custom Test Hero", "content": {"headline_part1": "Healthcare Updated"}},
+        json={
+            "title": "Custom Test Hero",
+            "content": {"headline_part1": "Healthcare Updated"},
+        },
         headers=headers,
     )
     assert content_res.status_code == 200
@@ -171,7 +184,10 @@ def test_user_permission_override(client, db_session):
     db_session.commit()
     client.put(
         "/api/content/hero",
-        json={"title": "Homepage Hero & Search", "content": {"headline_part1": "Healthcare", "headline_part2": "without"}},
+        json={
+            "title": "Homepage Hero & Search",
+            "content": {"headline_part1": "Healthcare", "headline_part2": "without"},
+        },
         headers=headers,
     )
 
@@ -271,4 +287,3 @@ def test_user_management_granular_permissions(client, db_session, admin_token_he
     db_session.delete(reader_user)
     db_session.delete(writer_user)
     db_session.commit()
-

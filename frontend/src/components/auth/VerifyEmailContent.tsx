@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { authApi, ApiError } from '@/lib/api';
+import { ApiError, authApi } from "@/lib/api";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function VerifyEmailContent() {
   const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const token = searchParams.get("token") || "";
 
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>(() =>
-    token ? 'verifying' : 'error'
+  const [status, setStatus] = useState<"verifying" | "success" | "error">(() =>
+    token ? "verifying" : "error",
   );
   const [message, setMessage] = useState<string>(() =>
     token
-      ? 'Verifying your email address...'
-      : 'Missing confirmation token. Please check your verification link or request a new one.'
+      ? "Verifying your email address..."
+      : "Missing confirmation token. Please check your verification link or request a new one.",
   );
-  const [resendEmail, setResendEmail] = useState('');
+  const [resendEmail, setResendEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
 
@@ -30,16 +30,18 @@ export default function VerifyEmailContent() {
       try {
         const resp = await authApi.verifyEmail(token);
         if (isMounted) {
-          setStatus('success');
-          setMessage(resp.message || 'Email successfully verified! You can now log in.');
+          setStatus("success");
+          setMessage(
+            resp.message || "Email successfully verified! You can now log in.",
+          );
         }
       } catch (err) {
         if (isMounted) {
-          setStatus('error');
+          setStatus("error");
           if (err instanceof ApiError) {
             setMessage(err.message);
           } else {
-            setMessage('Invalid or expired confirmation link.');
+            setMessage("Invalid or expired confirmation link.");
           }
         }
       }
@@ -58,12 +60,12 @@ export default function VerifyEmailContent() {
     e.preventDefault();
     const trimmed = resendEmail.trim();
     if (!trimmed) {
-      setEmailError('Please enter your email address');
+      setEmailError("Please enter your email address");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmed)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
       return;
     }
     setEmailError(null);
@@ -71,9 +73,11 @@ export default function VerifyEmailContent() {
     setResendStatus(null);
     try {
       await authApi.resendVerification(trimmed);
-      setResendStatus('A new confirmation link has been sent if an unverified account exists.');
+      setResendStatus(
+        "A new confirmation link has been sent if an unverified account exists.",
+      );
     } catch {
-      setResendStatus('Failed to send verification email. Please try again.');
+      setResendStatus("Failed to send verification email. Please try again.");
     } finally {
       setIsResending(false);
     }
@@ -82,8 +86,7 @@ export default function VerifyEmailContent() {
   return (
     <div className="flex flex-col justify-center items-center py-16 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-md w-full bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-gray-100 text-center animate-fadeIn space-y-6">
-        
-        {status === 'verifying' && (
+        {status === "verifying" && (
           <div className="space-y-4">
             <div className="w-16 h-16 bg-navy/5 border border-navy/15 rounded-2xl mx-auto flex items-center justify-center">
               <div className="w-8 h-8 border-3 border-navy/20 border-t-navy rounded-full animate-spin" />
@@ -97,10 +100,12 @@ export default function VerifyEmailContent() {
           </div>
         )}
 
-        {status === 'success' && (
+        {status === "success" && (
           <div className="space-y-5">
             <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center">
-              <span className="material-symbols-outlined text-4xl">check_circle</span>
+              <span className="material-symbols-outlined text-4xl">
+                check_circle
+              </span>
             </div>
             <div>
               <h2 className="text-2xl font-extrabold text-navy">
@@ -121,7 +126,7 @@ export default function VerifyEmailContent() {
           </div>
         )}
 
-        {status === 'error' && (
+        {status === "error" && (
           <div className="space-y-5">
             <div className="w-16 h-16 bg-red-50 border border-red-200 text-red-600 rounded-2xl mx-auto flex items-center justify-center">
               <span className="material-symbols-outlined text-4xl">error</span>
@@ -151,13 +156,15 @@ export default function VerifyEmailContent() {
                     }}
                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
                       emailError
-                        ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                        : 'border-gray-300 focus:ring-navy'
+                        ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                        : "border-gray-300 focus:ring-navy"
                     }`}
                   />
                   {emailError && (
                     <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                      <span className="material-symbols-outlined text-sm!">error</span>
+                      <span className="material-symbols-outlined text-sm!">
+                        error
+                      </span>
                       <span>{emailError}</span>
                     </p>
                   )}
@@ -167,7 +174,7 @@ export default function VerifyEmailContent() {
                   disabled={isResending}
                   className="w-full py-2 bg-navy text-white text-xs font-semibold rounded-lg hover:bg-navy-light transition-colors disabled:opacity-60 cursor-pointer"
                 >
-                  {isResending ? 'Sending...' : 'Send New Confirmation Link'}
+                  {isResending ? "Sending..." : "Send New Confirmation Link"}
                 </button>
               </form>
 
@@ -188,7 +195,6 @@ export default function VerifyEmailContent() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

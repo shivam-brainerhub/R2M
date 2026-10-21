@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { authApi, ApiError } from '@/lib/api';
+import { useAuth } from "@/context/AuthContext";
+import { ApiError, authApi } from "@/lib/api";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState } from "react";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect');
+  const redirectUrl = searchParams.get("redirect");
 
   const { login } = useAuth();
 
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -30,10 +30,10 @@ export default function LoginForm() {
 
     const errors: { [key: string]: string } = {};
     if (!usernameOrEmail.trim()) {
-      errors.usernameOrEmail = 'Please enter your email or username.';
+      errors.usernameOrEmail = "Please enter your email or username.";
     }
     if (!password) {
-      errors.password = 'Please enter your password.';
+      errors.password = "Please enter your password.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -49,10 +49,10 @@ export default function LoginForm() {
           username_or_email: usernameOrEmail.trim(),
           password,
         },
-        rememberMe
+        rememberMe,
       );
 
-      setSuccessMessage('Login successful! Redirecting...');
+      setSuccessMessage("Login successful! Redirecting...");
 
       // Redirect based on user role or redirect query parameter
       setTimeout(() => {
@@ -60,12 +60,13 @@ export default function LoginForm() {
           router.push(redirectUrl);
         } else if (
           user.is_admin ||
-          user.role?.toLowerCase() === 'admin' ||
-          (user.permissions && Object.values(user.permissions).some((l) => l !== 'none'))
+          user.role?.toLowerCase() === "admin" ||
+          (user.permissions &&
+            Object.values(user.permissions).some((l) => l !== "none"))
         ) {
-          router.push('/portal');
+          router.push("/portal");
         } else {
-          router.push('/home');
+          router.push("/home");
         }
       }, 500);
     } catch (error) {
@@ -74,7 +75,9 @@ export default function LoginForm() {
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Unable to connect to the authentication server. Please try again.');
+        setErrorMessage(
+          "Unable to connect to the authentication server. Please try again.",
+        );
       }
     } finally {
       setIsLoading(false);
@@ -84,7 +87,8 @@ export default function LoginForm() {
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
 
-  const isUnverifiedError = errorMessage && errorMessage.toLowerCase().includes('confirm your email');
+  const isUnverifiedError =
+    errorMessage && errorMessage.toLowerCase().includes("confirm your email");
 
   const handleResendVerification = async () => {
     if (!usernameOrEmail.trim()) return;
@@ -92,9 +96,9 @@ export default function LoginForm() {
     setResendStatus(null);
     try {
       await authApi.resendVerification(usernameOrEmail.trim());
-      setResendStatus('A new confirmation link has been sent to your email.');
+      setResendStatus("A new confirmation link has been sent to your email.");
     } catch {
-      setResendStatus('Failed to send confirmation email. Please try again.');
+      setResendStatus("Failed to send confirmation email. Please try again.");
     } finally {
       setIsResending(false);
     }
@@ -126,14 +130,16 @@ export default function LoginForm() {
 
             {isUnverifiedError && (
               <div className="pt-2 border-t border-red-200/60 flex items-center justify-between">
-                <span className="text-xs text-red-700">Didn&apos;t receive the link?</span>
+                <span className="text-xs text-red-700">
+                  Didn&apos;t receive the link?
+                </span>
                 <button
                   type="button"
                   onClick={handleResendVerification}
                   disabled={isResending}
                   className="text-xs font-bold text-red-900 underline hover:text-red-700 disabled:opacity-60"
                 >
-                  {isResending ? 'Sending...' : 'Resend confirmation email'}
+                  {isResending ? "Sending..." : "Resend confirmation email"}
                 </button>
               </div>
             )}
@@ -177,26 +183,35 @@ export default function LoginForm() {
                   onChange={(e) => {
                     setUsernameOrEmail(e.target.value);
                     if (fieldErrors.usernameOrEmail) {
-                      setFieldErrors((prev) => ({ ...prev, usernameOrEmail: '' }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        usernameOrEmail: "",
+                      }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.usernameOrEmail
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="admin@yopmail.com or admin"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.usernameOrEmail ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.usernameOrEmail
+                      ? "text-red-400"
+                      : "text-gray-400"
+                  }`}
+                >
                   mail
                 </span>
               </div>
               {fieldErrors.usernameOrEmail && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.usernameOrEmail}</span>
                 </p>
               )}
@@ -213,42 +228,46 @@ export default function LoginForm() {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (fieldErrors.password) {
-                      setFieldErrors((prev) => ({ ...prev, password: '' }));
+                      setFieldErrors((prev) => ({ ...prev, password: "" }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.password
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="••••••••"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.password ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.password ? "text-red-400" : "text-gray-400"
+                  }`}
+                >
                   lock
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   <span className="material-symbols-outlined text-xl">
-                    {showPassword ? 'visibility_off' : 'visibility'}
+                    {showPassword ? "visibility_off" : "visibility"}
                   </span>
                 </button>
               </div>
               {fieldErrors.password && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.password}</span>
                 </p>
               )}
@@ -265,7 +284,9 @@ export default function LoginForm() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 text-navy focus:ring-navy border-gray-300 rounded cursor-pointer"
               />
-              <span className="ml-2 block text-sm text-gray-700">Remember me</span>
+              <span className="ml-2 block text-sm text-gray-700">
+                Remember me
+              </span>
             </label>
 
             <Link
@@ -288,12 +309,12 @@ export default function LoginForm() {
                   <span>Logging in...</span>
                 </div>
               ) : (
-                'Login'
+                "Login"
               )}
             </button>
 
             <div className="text-center text-sm text-gray-600 pt-2 border-t border-gray-100">
-              Don&apos;t have an account?{' '}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
                 className="font-semibold text-navy underline decoration-2 underline-offset-2 hover:text-gold transition-colors"

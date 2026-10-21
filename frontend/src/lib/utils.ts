@@ -12,7 +12,7 @@
 export function getUserInitials(
   fullName?: string | null,
   username?: string | null,
-  fallback = 'U'
+  fallback = "U",
 ): string {
   const cleanName = fullName?.trim();
   if (cleanName) {
@@ -33,5 +33,5 @@ export function getUserInitials(
     return cleanUser.substring(0, 2).toUpperCase();
   }
 
-  return (fallback || 'U').substring(0, 2).toUpperCase();
+  return (fallback || "U").substring(0, 2).toUpperCase();
 }

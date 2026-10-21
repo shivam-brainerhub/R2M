@@ -1,7 +1,4 @@
-import pytest
 from starlette.testclient import TestClient
-from sqlalchemy.orm import Session
-from app.models import QuoteRequest, QuoteRequestItem
 
 
 def test_unauthenticated_user_cannot_submit_quote(client: TestClient):
@@ -22,7 +19,9 @@ def test_unauthenticated_user_cannot_submit_quote(client: TestClient):
     assert response.status_code == 401
 
 
-def test_authenticated_user_submit_and_my_quotes(client: TestClient, user_token_headers: dict):
+def test_authenticated_user_submit_and_my_quotes(
+    client: TestClient, user_token_headers: dict
+):
     payload = {
         "facility_name": "Cape Primary Care Clinic",
         "contact_name": "Test User",
@@ -60,7 +59,9 @@ def test_authenticated_user_submit_and_my_quotes(client: TestClient, user_token_
     assert any(q["id"] == created_quote["id"] for q in my_quotes)
 
 
-def test_validation_requires_at_least_one_item(client: TestClient, user_token_headers: dict):
+def test_validation_requires_at_least_one_item(
+    client: TestClient, user_token_headers: dict
+):
     bad_payload = {
         "facility_name": "Empty Hospital",
         "contact_name": "Admin",
@@ -72,7 +73,9 @@ def test_validation_requires_at_least_one_item(client: TestClient, user_token_he
     assert resp.status_code == 422
 
 
-def test_admin_list_and_filter_quotes(client: TestClient, admin_token_headers: dict, user_token_headers: dict):
+def test_admin_list_and_filter_quotes(
+    client: TestClient, admin_token_headers: dict, user_token_headers: dict
+):
     # Create a quote first as user
     payload = {
         "facility_name": "Filter Test Hospital",
@@ -96,7 +99,9 @@ def test_admin_list_and_filter_quotes(client: TestClient, admin_token_headers: d
         assert q["status"] == "New"
 
 
-def test_admin_update_quote_status_and_notes(client: TestClient, admin_token_headers: dict, user_token_headers: dict):
+def test_admin_update_quote_status_and_notes(
+    client: TestClient, admin_token_headers: dict, user_token_headers: dict
+):
     # First create a quote as authenticated user
     payload = {
         "facility_name": "Netcare St Augustine",
@@ -115,7 +120,9 @@ def test_admin_update_quote_status_and_notes(client: TestClient, admin_token_hea
         "internal_notes": "Official quote sent via email to Sister Nomsa.",
         "quoted_amount": "R 145,000.00",
     }
-    patch_res = client.patch(f"/api/quotes/{quote_id}", json=patch_payload, headers=admin_token_headers)
+    patch_res = client.patch(
+        f"/api/quotes/{quote_id}", json=patch_payload, headers=admin_token_headers
+    )
     assert patch_res.status_code == 200
     updated = patch_res.json()
     assert updated["status"] == "Quoted"
@@ -133,7 +140,9 @@ def test_admin_quote_stats(client: TestClient, admin_token_headers: dict):
     assert stats["total_quotes"] >= 1
 
 
-def test_regular_user_cannot_access_admin_quote_endpoints(client: TestClient, user_token_headers: dict):
+def test_regular_user_cannot_access_admin_quote_endpoints(
+    client: TestClient, user_token_headers: dict
+):
     # Regular user cannot list all quotes
     res = client.get("/api/quotes", headers=user_token_headers)
     assert res.status_code == 403

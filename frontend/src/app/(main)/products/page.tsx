@@ -1,62 +1,63 @@
 "use client";
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { Suspense, useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  productsApi,
-  contentApi,
-  ProductItem,
-  CategoryItem,
-  ProductFilterOptionsResponse,
   CategoryFilterOption,
-  ProductsPageContent,
+  CategoryItem,
+  contentApi,
   getMediaUrl,
-} from '@/lib/api';
-import { DEFAULT_PRODUCTS_PAGE } from '@/lib/constants';
+  ProductFilterOptionsResponse,
+  ProductItem,
+  productsApi,
+  ProductsPageContent,
+} from "@/lib/api";
+import { DEFAULT_PRODUCTS_PAGE } from "@/lib/constants";
+import Image from "next/image";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
-import { useQuoteCart } from '@/context/QuoteCartContext';
-import BrochureDownloadButton from '@/components/BrochureDownloadButton';
-import CustomSelect from '@/components/CustomSelect';
-import PredictiveSearchBar from '@/components/PredictiveSearchBar';
+import BrochureDownloadButton from "@/components/BrochureDownloadButton";
+import CustomSelect from "@/components/CustomSelect";
+import PredictiveSearchBar from "@/components/PredictiveSearchBar";
+import { useQuoteCart } from "@/context/QuoteCartContext";
 
 const CATEGORY_ICON_MAP: Record<string, string> = {
-  'diagnostic-and-measure': 'monitor_heart',
-  'furniture': 'bed',
-  'disposables-and-care-supplies': 'clean_hands',
-  'hygiene-and-sterilisation': 'sanitizer',
-  'hygiene-disinfection-and-sterilisation': 'sanitizer',
-  'emergency-reanimation-and-surgery': 'medical_services',
-  'living-aid': 'accessible',
-  'instruments': 'content_cut',
-  'lab': 'science',
-  'veterinary': 'pets',
+  "diagnostic-and-measure": "monitor_heart",
+  furniture: "bed",
+  "disposables-and-care-supplies": "clean_hands",
+  "hygiene-and-sterilisation": "sanitizer",
+  "hygiene-disinfection-and-sterilisation": "sanitizer",
+  "emergency-reanimation-and-surgery": "medical_services",
+  "living-aid": "accessible",
+  instruments: "content_cut",
+  lab: "science",
+  veterinary: "pets",
 };
 
 function getCategoryIcon(cat: CategoryFilterOption | CategoryItem): string {
-  if (cat.icon && cat.icon.trim() && cat.icon !== 'category') return cat.icon;
-  if (cat.slug && CATEGORY_ICON_MAP[cat.slug]) return CATEGORY_ICON_MAP[cat.slug];
+  if (cat.icon && cat.icon.trim() && cat.icon !== "category") return cat.icon;
+  if (cat.slug && CATEGORY_ICON_MAP[cat.slug])
+    return CATEGORY_ICON_MAP[cat.slug];
   const nameLower = cat.name.toLowerCase();
   for (const [slugKey, iconName] of Object.entries(CATEGORY_ICON_MAP)) {
-    if (nameLower.includes(slugKey.replace(/-/g, ' '))) return iconName;
+    if (nameLower.includes(slugKey.replace(/-/g, " "))) return iconName;
   }
-  return 'medical_services';
+  return "medical_services";
 }
 
 function ProductsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const urlSearch = searchParams.get('search') || '';
-  const urlCategory = searchParams.get('category') || '';
-  const urlBrand = searchParams.get('brand') || '';
-  const urlSector = searchParams.get('sector') || '';
+  const urlSearch = searchParams.get("search") || "";
+  const urlCategory = searchParams.get("category") || "";
+  const urlBrand = searchParams.get("brand") || "";
+  const urlSector = searchParams.get("sector") || "";
 
   const { addItem } = useQuoteCart();
 
   // Primary Data
   const [products, setProducts] = useState<ProductItem[]>([]);
-  const [filterOptions, setFilterOptions] = useState<ProductFilterOptionsResponse | null>(null);
+  const [filterOptions, setFilterOptions] =
+    useState<ProductFilterOptionsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Pagination State
@@ -68,59 +69,89 @@ function ProductsContent() {
   // activeSearch: committed search query state
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [activeSearch, setActiveSearch] = useState(urlSearch);
-  const [selectedCategory, setSelectedCategory] = useState<string>(urlCategory || 'All');
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    urlCategory || "All",
+  );
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
+    null,
+  );
 
   // Accordion Expand/Collapse States
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >({});
   const [isSectorExpanded, setIsSectorExpanded] = useState(true);
   const [isBrandExpanded, setIsBrandExpanded] = useState(true);
   const [showAllBrands, setShowAllBrands] = useState(false);
-  const [expandedProperties, setExpandedProperties] = useState<Record<string, boolean>>({});
-  const [showMoreProperties, setShowMoreProperties] = useState<Record<string, boolean>>({});
+  const [expandedProperties, setExpandedProperties] = useState<
+    Record<string, boolean>
+  >({});
+  const [showMoreProperties, setShowMoreProperties] = useState<
+    Record<string, boolean>
+  >({});
   const [isAvailabilityExpanded, setIsAvailabilityExpanded] = useState(false);
 
   // Filter Selection States
-  const [selectedSectors, setSelectedSectors] = useState<string[]>(urlSector ? [urlSector] : []);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>(urlBrand ? [urlBrand] : []);
-  const [selectedPropertyFilters, setSelectedPropertyFilters] = useState<Record<string, string[]>>({});
-  const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(
+    urlSector ? [urlSector] : [],
+  );
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(
+    urlBrand ? [urlBrand] : [],
+  );
+  const [selectedPropertyFilters, setSelectedPropertyFilters] = useState<
+    Record<string, string[]>
+  >({});
+  const [selectedAvailability, setSelectedAvailability] = useState<string[]>(
+    [],
+  );
 
   // UI States
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [selectedSort, setSelectedSort] = useState('A-Z');
+  const [selectedSort, setSelectedSort] = useState("A-Z");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // CMS Content State
-  const [catalogueContent, setCatalogueContent] = useState<ProductsPageContent>(DEFAULT_PRODUCTS_PAGE);
+  const [catalogueContent, setCatalogueContent] = useState<ProductsPageContent>(
+    DEFAULT_PRODUCTS_PAGE,
+  );
 
   // Pin document title to prevent browser tab flickering during state transitions
   useEffect(() => {
-    document.title = 'Products | SA Healthcare';
+    document.title = "Products | SA Healthcare";
   }, []);
 
   // Load catalogue CMS content on mount
   useEffect(() => {
     let active = true;
     contentApi
-      .getSection('products_page')
+      .getSection("products_page")
       .then((res) => {
         if (!active || !res?.content) return;
         const data = res.content as ProductsPageContent;
         setCatalogueContent({
           title: data.title || DEFAULT_PRODUCTS_PAGE.title,
-          subtitle: data.subtitle !== undefined ? data.subtitle : DEFAULT_PRODUCTS_PAGE.subtitle,
+          subtitle:
+            data.subtitle !== undefined
+              ? data.subtitle
+              : DEFAULT_PRODUCTS_PAGE.subtitle,
           searchPlaceholder:
-            data.searchPlaceholder || data.search_placeholder || DEFAULT_PRODUCTS_PAGE.searchPlaceholder,
-          popularSearches: Array.isArray(data.popularSearches || data.popular_searches)
-            ? (data.popularSearches || data.popular_searches)
+            data.searchPlaceholder ||
+            data.search_placeholder ||
+            DEFAULT_PRODUCTS_PAGE.searchPlaceholder,
+          popularSearches: Array.isArray(
+            data.popularSearches || data.popular_searches,
+          )
+            ? data.popularSearches || data.popular_searches
             : DEFAULT_PRODUCTS_PAGE.popularSearches,
         });
       })
       .catch((err) => {
-        console.warn('Failed to fetch catalogue CMS content, using defaults:', err);
+        console.warn(
+          "Failed to fetch catalogue CMS content, using defaults:",
+          err,
+        );
       });
 
     return () => {
@@ -129,7 +160,9 @@ function ProductsContent() {
   }, []);
 
   const popularSearches = useMemo(() => {
-    return (catalogueContent.popularSearches || []).filter((term) => term && term.trim().length > 0);
+    return (catalogueContent.popularSearches || []).filter(
+      (term) => term && term.trim().length > 0,
+    );
   }, [catalogueContent.popularSearches]);
 
   // Load precomputed filter options (cached in backend) once on mount
@@ -156,7 +189,7 @@ function ProductsContent() {
     productsApi
       .listProducts({
         search: activeSearch.trim() || undefined,
-        status: 'Active',
+        status: "Active",
         limit: 500,
       })
       .then((prods) => {
@@ -166,7 +199,7 @@ function ProductsContent() {
       })
       .catch((err) => {
         if (!active) return;
-        console.error('Failed to load products:', err);
+        console.error("Failed to load products:", err);
         setIsLoading(false);
       });
 
@@ -181,54 +214,55 @@ function ProductsContent() {
       setActiveSearch(urlSearch);
       setSearchInput(urlSearch);
     }
-  }, [urlSearch]);
+  }, [urlSearch, activeSearch]);
 
   // Handle browser back and forward history buttons
   useEffect(() => {
     const handlePopState = () => {
       const currentParams = new URLSearchParams(window.location.search);
-      const search = currentParams.get('search') || '';
+      const search = currentParams.get("search") || "";
       setActiveSearch(search);
       setSearchInput(search);
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   // Sync if URL sector or category changes externally (e.g. from Sectors or Categories page navigation)
   useEffect(() => {
     if (urlSector) {
-      setSelectedSectors((prev) => (prev.includes(urlSector) ? prev : [urlSector]));
+      setSelectedSectors((prev) =>
+        prev.includes(urlSector) ? prev : [urlSector],
+      );
     }
     if (urlCategory) {
       setSelectedCategory(urlCategory);
     }
     if (urlBrand) {
-      setSelectedBrands((prev) => (prev.includes(urlBrand) ? prev : [urlBrand]));
+      setSelectedBrands((prev) =>
+        prev.includes(urlBrand) ? prev : [urlBrand],
+      );
     }
   }, [urlSector, urlCategory, urlBrand]);
 
   // Execute Search: updates URL parameters and state smoothly with history.replaceState (avoids router transition title flicker)
-  const handleExecuteSearch = useCallback(
-    (query: string) => {
-      const trimmed = query.trim();
-      setSearchInput(trimmed);
-      setActiveSearch(trimmed);
+  const handleExecuteSearch = useCallback((query: string) => {
+    const trimmed = query.trim();
+    setSearchInput(trimmed);
+    setActiveSearch(trimmed);
 
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        if (trimmed) {
-          params.set('search', trimmed);
-        } else {
-          params.delete('search');
-        }
-        const qs = params.toString();
-        const newUrl = `/products${qs ? `?${qs}` : ''}`;
-        window.history.replaceState(null, '', newUrl);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (trimmed) {
+        params.set("search", trimmed);
+      } else {
+        params.delete("search");
       }
-    },
-    []
-  );
+      const qs = params.toString();
+      const newUrl = `/products${qs ? `?${qs}` : ""}`;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, []);
 
   // Quick Toast Helper
   const showToast = (msg: string) => {
@@ -241,7 +275,7 @@ function ProductsContent() {
   // Toggle comparison selection
   const handleSelectCompare = (slug: string) => {
     setSelectedProducts((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
     );
   };
 
@@ -259,7 +293,6 @@ function ProductsContent() {
     });
     showToast(`Added "${product.name}" to Quote Request!`);
   };
-
 
   // Toggle category expansion and selection
   const handleCategoryClick = (cat: CategoryItem) => {
@@ -280,7 +313,7 @@ function ProductsContent() {
   };
 
   const handleResetCategory = () => {
-    setSelectedCategory('All');
+    setSelectedCategory("All");
     setSelectedSubcategory(null);
     setExpandedCategories({});
   };
@@ -288,14 +321,18 @@ function ProductsContent() {
   // Sector Toggle
   const toggleSector = (sectorName: string) => {
     setSelectedSectors((prev) =>
-      prev.includes(sectorName) ? prev.filter((s) => s !== sectorName) : [...prev, sectorName]
+      prev.includes(sectorName)
+        ? prev.filter((s) => s !== sectorName)
+        : [...prev, sectorName],
     );
   };
 
   // Brand Toggle
   const toggleBrand = (brandName: string) => {
     setSelectedBrands((prev) =>
-      prev.includes(brandName) ? prev.filter((b) => b !== brandName) : [...prev, brandName]
+      prev.includes(brandName)
+        ? prev.filter((b) => b !== brandName)
+        : [...prev, brandName],
     );
   };
 
@@ -323,7 +360,7 @@ function ProductsContent() {
   // Availability Toggle
   const toggleAvailability = (type: string) => {
     setSelectedAvailability((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   };
 
@@ -338,7 +375,10 @@ function ProductsContent() {
   const activeRefineFiltersCount =
     selectedSectors.length +
     selectedBrands.length +
-    Object.values(selectedPropertyFilters).reduce((acc, curr) => acc + curr.length, 0) +
+    Object.values(selectedPropertyFilters).reduce(
+      (acc, curr) => acc + curr.length,
+      0,
+    ) +
     selectedAvailability.length;
 
   // Precomputed Filter Options from Backend (Cached in Memory)
@@ -357,38 +397,52 @@ function ProductsContent() {
   }, [filterOptions]);
 
   // Reset pagination to page 1 whenever any filter changes (render-phase state adjustment)
-  const filterKey = `${activeSearch}_${selectedCategory}_${selectedSubcategory}_${selectedSectors.join(',')}_${selectedBrands.join(',')}_${JSON.stringify(selectedPropertyFilters)}_${selectedAvailability}_${selectedSort}`;
+  const filterKey = `${activeSearch}_${selectedCategory}_${selectedSubcategory}_${selectedSectors.join(
+    ",",
+  )}_${selectedBrands.join(",")}_${JSON.stringify(
+    selectedPropertyFilters,
+  )}_${selectedAvailability}_${selectedSort}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (filterKey !== prevFilterKey) {
     setPrevFilterKey(filterKey);
     setCurrentPage(1);
   }
 
-
   // FILTER PRODUCTS
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       // 1. Search filter: only filter client-side when not loading from backend, and check full description
-      if (!isLoading && activeSearch.trim() !== '') {
+      if (!isLoading && activeSearch.trim() !== "") {
         const term = activeSearch.toLowerCase().trim();
         const matchesName = p.name.toLowerCase().includes(term);
-        const matchesBrand = Boolean(p.brand_name && p.brand_name.toLowerCase().includes(term));
+        const matchesBrand = Boolean(
+          p.brand_name && p.brand_name.toLowerCase().includes(term),
+        );
         const matchesSku = Boolean(p.sku && p.sku.toLowerCase().includes(term));
         const matchesDesc = Boolean(
           (p.description && p.description.toLowerCase().includes(term)) ||
-          (p.short_description && p.short_description.toLowerCase().includes(term))
+            (p.short_description &&
+              p.short_description.toLowerCase().includes(term)),
         );
         const matchesProps = Boolean(
-          p.properties?.some((prop) => prop.value && prop.value.toLowerCase().includes(term))
+          p.properties?.some(
+            (prop) => prop.value && prop.value.toLowerCase().includes(term),
+          ),
         );
 
-        if (!matchesName && !matchesBrand && !matchesSku && !matchesDesc && !matchesProps) {
+        if (
+          !matchesName &&
+          !matchesBrand &&
+          !matchesSku &&
+          !matchesDesc &&
+          !matchesProps
+        ) {
           return false;
         }
       }
 
       // 2. Category filter
-      if (selectedCategory !== 'All') {
+      if (selectedCategory !== "All") {
         const matchesCat =
           p.category_name?.toLowerCase() === selectedCategory.toLowerCase() ||
           p.category_id?.toString() === selectedCategory;
@@ -398,16 +452,18 @@ function ProductsContent() {
       // 3. Subcategory filter
       if (selectedSubcategory) {
         const matchesSub =
-          p.subcategory_name?.toLowerCase() === selectedSubcategory.toLowerCase() ||
+          p.subcategory_name?.toLowerCase() ===
+            selectedSubcategory.toLowerCase() ||
           p.subcategory_id?.toString() === selectedSubcategory;
         if (!matchesSub) return false;
       }
 
       // 4. Healthcare Sector filter (multi-select)
       if (selectedSectors.length > 0) {
-        const prodSectorNames = p.sectors?.map((s) => s.name.toLowerCase()) || [];
+        const prodSectorNames =
+          p.sectors?.map((s) => s.name.toLowerCase()) || [];
         const matchesSector = selectedSectors.some((sec) =>
-          prodSectorNames.includes(sec.toLowerCase())
+          prodSectorNames.includes(sec.toLowerCase()),
         );
         if (!matchesSector) {
           return false;
@@ -422,22 +478,27 @@ function ProductsContent() {
       }
 
       // 6. Dynamic Property Filters (multi-select per property)
-      for (const [propName, desiredValues] of Object.entries(selectedPropertyFilters)) {
+      for (const [propName, desiredValues] of Object.entries(
+        selectedPropertyFilters,
+      )) {
         if (!desiredValues || desiredValues.length === 0) continue;
         const matchingProp = p.properties?.find(
-          (prop) => prop.name.toLowerCase() === propName.toLowerCase()
+          (prop) => prop.name.toLowerCase() === propName.toLowerCase(),
         );
-        if (!matchingProp || !desiredValues.includes(matchingProp.value.trim())) {
+        if (
+          !matchingProp ||
+          !desiredValues.includes(matchingProp.value.trim())
+        ) {
           return false;
         }
       }
 
       // 7. Availability filter
       if (selectedAvailability.length > 0) {
-        if (selectedAvailability.includes('active') && p.status !== 'Active') {
+        if (selectedAvailability.includes("active") && p.status !== "Active") {
           return false;
         }
-        if (selectedAvailability.includes('brochure') && !p.brochure_url) {
+        if (selectedAvailability.includes("brochure") && !p.brochure_url) {
           return false;
         }
       }
@@ -446,6 +507,7 @@ function ProductsContent() {
     });
   }, [
     products,
+    isLoading,
     activeSearch,
     selectedCategory,
     selectedSubcategory,
@@ -458,22 +520,25 @@ function ProductsContent() {
   // SORT PRODUCTS
   const sortedProducts = useMemo(() => {
     const list = [...filteredProducts];
-    if (selectedSort === 'A-Z') {
+    if (selectedSort === "A-Z") {
       list.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (selectedSort === 'Z-A') {
+    } else if (selectedSort === "Z-A") {
       list.sort((a, b) => b.name.localeCompare(a.name));
-    } else if (selectedSort === 'Newest') {
+    } else if (selectedSort === "Newest") {
       list.sort(
-        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime(),
       );
-    } else if (selectedSort === 'Oldest') {
+    } else if (selectedSort === "Oldest") {
       list.sort(
-        (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        (a, b) =>
+          new Date(a.created_at || 0).getTime() -
+          new Date(b.created_at || 0).getTime(),
       );
     }
     return list;
   }, [filteredProducts, selectedSort]);
-
 
   // Paginated Products
   const totalPages = Math.max(1, Math.ceil(sortedProducts.length / pageSize));
@@ -484,7 +549,9 @@ function ProductsContent() {
 
   // Selected Category Information for Breadcrumbs & Title
   const activeCategoryObj = categories.find(
-    (c) => c.name.toLowerCase() === selectedCategory.toLowerCase() || c.slug === selectedCategory
+    (c) =>
+      c.name.toLowerCase() === selectedCategory.toLowerCase() ||
+      c.slug === selectedCategory,
   );
 
   return (
@@ -492,9 +559,16 @@ function ProductsContent() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 bg-navy text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-gold/50 animate-slide-up">
-          <span className="material-symbols-outlined text-gold">check_circle</span>
-          <span className="text-xs sm:text-sm font-semibold">{toastMessage}</span>
-          <Link href="/quote" className="text-xs text-gold underline hover:text-white ml-2">
+          <span className="material-symbols-outlined text-gold">
+            check_circle
+          </span>
+          <span className="text-xs sm:text-sm font-semibold">
+            {toastMessage}
+          </span>
+          <Link
+            href="/quote"
+            className="text-xs text-gold underline hover:text-white ml-2"
+          >
             View Quote
           </Link>
         </div>
@@ -505,10 +579,11 @@ function ProductsContent() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold mb-2.5 tracking-tight">
-              {catalogueContent.title || 'Browse the Catalogue'}
+              {catalogueContent.title || "Browse the Catalogue"}
             </h1>
             <p className="text-gray-300 text-sm sm:text-base max-w-xl">
-              {catalogueContent.subtitle || 'Explore our range of medical products from trusted global manufacturers.'}
+              {catalogueContent.subtitle ||
+                "Explore our range of medical products from trusted global manufacturers."}
             </p>
           </div>
 
@@ -518,7 +593,10 @@ function ProductsContent() {
               value={searchInput}
               onChange={setSearchInput}
               onSubmit={(val) => handleExecuteSearch(val)}
-              placeholder={catalogueContent.searchPlaceholder || 'Search by product, model number, manufacturer...'}
+              placeholder={
+                catalogueContent.searchPlaceholder ||
+                "Search by product, model number, manufacturer..."
+              }
               size="md"
             />
           </div>
@@ -527,22 +605,24 @@ function ProductsContent() {
         {/* Popular Searches Pills */}
         {popularSearches && popularSearches.length > 0 && (
           <div className="max-w-7xl mx-auto mt-5 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-gray-300 font-semibold mr-1">Popular searches:</span>
+            <span className="text-gray-300 font-semibold mr-1">
+              Popular searches:
+            </span>
             {popularSearches.map((keyword) => (
               <button
                 key={keyword}
                 type="button"
                 onClick={() => {
                   if (activeSearch.toLowerCase() === keyword.toLowerCase()) {
-                    handleExecuteSearch('');
+                    handleExecuteSearch("");
                   } else {
                     handleExecuteSearch(keyword);
                   }
                 }}
                 className={`px-3 py-1 rounded-full border transition-colors cursor-pointer ${
                   activeSearch.toLowerCase() === keyword.toLowerCase()
-                    ? 'bg-gold text-navy font-bold border-gold'
-                    : 'bg-navy-light/60 text-gray-200 border-white/20 hover:border-gold hover:text-white'
+                    ? "bg-gold text-navy font-bold border-gold"
+                    : "bg-navy-light/60 text-gray-200 border-white/20 hover:border-gold hover:text-white"
                 }`}
               >
                 {keyword}
@@ -556,7 +636,9 @@ function ProductsContent() {
         {/* Mobile Filter Toggle Header */}
         <div className="md:hidden flex items-center justify-between bg-white p-3.5 rounded-xl shadow-xs border border-gray-100">
           <div>
-            <span className="font-bold text-navy text-sm">{sortedProducts.length} Products</span>
+            <span className="font-bold text-navy text-sm">
+              {sortedProducts.length} Products
+            </span>
             {activeRefineFiltersCount > 0 && (
               <span className="ml-2 text-[11px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
                 {activeRefineFiltersCount} filtered
@@ -567,14 +649,15 @@ function ProductsContent() {
             onClick={() => setShowMobileFilters(true)}
             className="flex items-center text-xs font-semibold text-navy bg-light-blue/80 hover:bg-light-blue px-3.5 py-1.5 rounded-full border border-blue-200 shadow-xs gap-1.5"
           >
-            <span className="material-symbols-outlined text-sm!">tune</span> Filters
+            <span className="material-symbols-outlined text-sm!">tune</span>{" "}
+            Filters
           </button>
         </div>
 
         {/* Mobile Filter Backdrop */}
         <div
           className={`fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs transition-opacity duration-300 cursor-pointer ${
-            showMobileFilters ? 'opacity-100 visible' : 'opacity-0 invisible'
+            showMobileFilters ? "opacity-100 visible" : "opacity-0 invisible"
           }`}
           onClick={() => setShowMobileFilters(false)}
         />
@@ -582,7 +665,9 @@ function ProductsContent() {
         {/* SIDEBAR FILTERS (DESKTOP & MOBILE DRAWER) */}
         <aside
           className={`fixed inset-y-0 left-0 z-50 w-[85%] max-w-sm bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto md:relative md:transform-none md:w-72 lg:w-80 md:shadow-none md:bg-transparent md:z-auto md:overflow-visible shrink-0 ${
-            showMobileFilters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            showMobileFilters
+              ? "translate-x-0"
+              : "-translate-x-full md:translate-x-0"
           }`}
         >
           <div className="p-5 md:p-0 space-y-3 min-h-full">
@@ -594,15 +679,19 @@ function ProductsContent() {
                 className="p-1.5 bg-gray-100 rounded-full text-gray-600 hover:text-navy"
                 aria-label="Close filters"
               >
-                <span className="material-symbols-outlined text-base! block">close</span>
+                <span className="material-symbols-outlined text-base! block">
+                  close
+                </span>
               </button>
             </div>
 
             {/* CARD 1: PRODUCT CATEGORIES (COLLAPSIBLE ACCORDION) */}
             <div className="bg-white rounded-2xl shadow-xs border border-gray-200/80 p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3.5">
-                <h3 className="font-bold text-navy text-base tracking-tight">Product Categories</h3>
-                {selectedCategory !== 'All' && (
+                <h3 className="font-bold text-navy text-base tracking-tight">
+                  Product Categories
+                </h3>
+                {selectedCategory !== "All" && (
                   <button
                     onClick={handleResetCategory}
                     className="text-xs text-blue-600 hover:underline font-semibold"
@@ -616,16 +705,24 @@ function ProductsContent() {
               <div
                 onClick={handleResetCategory}
                 className={`p-2.5 rounded-xl cursor-pointer flex items-center justify-between text-xs sm:text-sm font-semibold transition-all mb-2 ${
-                  selectedCategory === 'All'
-                    ? 'bg-navy text-white shadow-xs'
-                    : 'text-gray-700 hover:bg-slate-50'
+                  selectedCategory === "All"
+                    ? "bg-navy text-white shadow-xs"
+                    : "text-gray-700 hover:bg-slate-50"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-base!">apps</span>
+                  <span className="material-symbols-outlined text-base!">
+                    apps
+                  </span>
                   <span>All Categories</span>
                 </div>
-                <span className={`font-mono text-xs ${selectedCategory === 'All' ? 'text-gray-300' : 'text-gray-400'}`}>
+                <span
+                  className={`font-mono text-xs ${
+                    selectedCategory === "All"
+                      ? "text-gray-300"
+                      : "text-gray-400"
+                  }`}
+                >
                   ({filterOptions?.total_products ?? products.length})
                 </span>
               </div>
@@ -647,8 +744,8 @@ function ProductsContent() {
                       key={cat.id}
                       className={`rounded-xl transition-all border ${
                         isCatSelected
-                          ? 'border-blue-600 bg-blue-50/40 shadow-xs'
-                          : 'border-transparent hover:bg-slate-50'
+                          ? "border-blue-600 bg-blue-50/40 shadow-xs"
+                          : "border-transparent hover:bg-slate-50"
                       }`}
                     >
                       {/* Category Header Row */}
@@ -659,14 +756,18 @@ function ProductsContent() {
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
                           <span
                             className={`material-symbols-outlined text-lg! shrink-0 transition-colors ${
-                              isCatSelected ? 'text-blue-700' : 'text-blue-600 group-hover:text-blue-700'
+                              isCatSelected
+                                ? "text-blue-700"
+                                : "text-blue-600 group-hover:text-blue-700"
                             }`}
                           >
                             {getCategoryIcon(cat)}
                           </span>
                           <span
                             className={`text-xs sm:text-sm truncate ${
-                              isCatSelected ? 'font-bold text-navy' : 'font-medium text-gray-800'
+                              isCatSelected
+                                ? "font-bold text-navy"
+                                : "font-medium text-gray-800"
                             }`}
                           >
                             {cat.name}
@@ -681,10 +782,12 @@ function ProductsContent() {
                           )}
                           <span
                             className={`material-symbols-outlined text-base! transition-transform duration-200 ${
-                              isCatSelected ? 'text-blue-700' : 'text-gray-400 group-hover:text-navy'
+                              isCatSelected
+                                ? "text-blue-700"
+                                : "text-gray-400 group-hover:text-navy"
                             }`}
                           >
-                            {isExpanded ? 'expand_more' : 'chevron_right'}
+                            {isExpanded ? "expand_more" : "chevron_right"}
                           </span>
                         </div>
                       </div>
@@ -700,32 +803,39 @@ function ProductsContent() {
                             }}
                             className={`px-3 py-1.5 rounded-lg text-xs cursor-pointer flex justify-between items-center transition-colors ${
                               isCatSelected && !selectedSubcategory
-                                ? 'bg-blue-100 text-blue-900 font-bold'
-                                : 'text-gray-600 hover:text-navy hover:bg-slate-100/70'
+                                ? "bg-blue-100 text-blue-900 font-bold"
+                                : "text-gray-600 hover:text-navy hover:bg-slate-100/70"
                             }`}
                           >
                             <span>All {cat.name}</span>
-                            <span className="text-gray-400 font-mono text-[11px]">({catProductCount})</span>
+                            <span className="text-gray-400 font-mono text-[11px]">
+                              ({catProductCount})
+                            </span>
                           </div>
 
                           {/* Subcategory Items */}
                           {subcategoriesList.map((sub) => {
                             const isSubSelected =
                               isCatSelected &&
-                              (selectedSubcategory === sub.name || selectedSubcategory === sub.slug);
+                              (selectedSubcategory === sub.name ||
+                                selectedSubcategory === sub.slug);
                             const subProductCount = sub.product_count;
 
                             return (
                               <div
                                 key={sub.id}
-                                onClick={() => handleSubcategoryClick(cat, sub.name)}
+                                onClick={() =>
+                                  handleSubcategoryClick(cat, sub.name)
+                                }
                                 className={`px-3 py-1.5 rounded-lg text-xs cursor-pointer flex justify-between items-center transition-colors ${
                                   isSubSelected
-                                    ? 'bg-blue-100 text-blue-900 font-bold shadow-2xs'
-                                    : 'text-gray-600 hover:text-navy hover:bg-slate-100/70'
+                                    ? "bg-blue-100 text-blue-900 font-bold shadow-2xs"
+                                    : "text-gray-600 hover:text-navy hover:bg-slate-100/70"
                                 }`}
                               >
-                                <span className="truncate pr-2">{sub.name}</span>
+                                <span className="truncate pr-2">
+                                  {sub.name}
+                                </span>
                                 <span className="font-mono text-[11px] text-gray-400 shrink-0">
                                   ({subProductCount})
                                 </span>
@@ -745,7 +855,9 @@ function ProductsContent() {
               {/* Section Header with Clear All button */}
               <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-navy text-base tracking-tight">Refine your search</h3>
+                  <h3 className="font-bold text-navy text-base tracking-tight">
+                    Refine your search
+                  </h3>
                   {activeRefineFiltersCount > 0 && (
                     <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
                       {activeRefineFiltersCount}
@@ -778,7 +890,7 @@ function ProductsContent() {
                     )}
                   </div>
                   <span className="material-symbols-outlined text-gray-400 group-hover:text-navy text-lg! transition-transform">
-                    {isSectorExpanded ? 'expand_less' : 'expand_more'}
+                    {isSectorExpanded ? "expand_less" : "expand_more"}
                   </span>
                 </button>
 
@@ -797,7 +909,11 @@ function ProductsContent() {
                             onChange={() => toggleSector(sec.name)}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                           />
-                          <span className={`flex-1 truncate ${isChecked ? 'font-bold text-navy' : ''}`}>
+                          <span
+                            className={`flex-1 truncate ${
+                              isChecked ? "font-bold text-navy" : ""
+                            }`}
+                          >
                             {sec.name}
                           </span>
                           <span className="text-gray-400 font-mono text-[11px]">
@@ -826,13 +942,16 @@ function ProductsContent() {
                     )}
                   </div>
                   <span className="material-symbols-outlined text-gray-400 group-hover:text-navy text-lg! transition-transform">
-                    {isBrandExpanded ? 'expand_less' : 'expand_more'}
+                    {isBrandExpanded ? "expand_less" : "expand_more"}
                   </span>
                 </button>
 
                 {isBrandExpanded && (
                   <div className="mt-2.5 space-y-1.5">
-                    {(showAllBrands ? brandFilterList : brandFilterList.slice(0, 5)).map((b) => {
+                    {(showAllBrands
+                      ? brandFilterList
+                      : brandFilterList.slice(0, 5)
+                    ).map((b) => {
                       const isChecked = selectedBrands.includes(b.name);
                       return (
                         <label
@@ -845,10 +964,16 @@ function ProductsContent() {
                             onChange={() => toggleBrand(b.name)}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                           />
-                          <span className={`flex-1 truncate ${isChecked ? 'font-bold text-navy' : ''}`}>
+                          <span
+                            className={`flex-1 truncate ${
+                              isChecked ? "font-bold text-navy" : ""
+                            }`}
+                          >
                             {b.name}
                           </span>
-                          <span className="text-gray-400 font-mono text-[11px]">({b.count})</span>
+                          <span className="text-gray-400 font-mono text-[11px]">
+                            ({b.count})
+                          </span>
                         </label>
                       );
                     })}
@@ -858,9 +983,9 @@ function ProductsContent() {
                         onClick={() => setShowAllBrands(!showAllBrands)}
                         className="text-blue-600 hover:underline text-xs font-semibold flex items-center gap-1 pt-1.5"
                       >
-                        <span>{showAllBrands ? 'Show less' : 'Show more'}</span>
+                        <span>{showAllBrands ? "Show less" : "Show more"}</span>
                         <span className="material-symbols-outlined text-xs!">
-                          {showAllBrands ? 'expand_less' : 'chevron_right'}
+                          {showAllBrands ? "expand_less" : "chevron_right"}
                         </span>
                       </button>
                     )}
@@ -872,10 +997,14 @@ function ProductsContent() {
               {dynamicPropertyGroups.map((propGroup) => {
                 const isExpanded = Boolean(expandedProperties[propGroup.name]);
                 const showAll = Boolean(showMoreProperties[propGroup.name]);
-                const selectedForThisProp = selectedPropertyFilters[propGroup.name] || [];
+                const selectedForThisProp =
+                  selectedPropertyFilters[propGroup.name] || [];
 
                 return (
-                  <div key={propGroup.name} className="border-t border-gray-100 pt-4">
+                  <div
+                    key={propGroup.name}
+                    className="border-t border-gray-100 pt-4"
+                  >
                     <button
                       type="button"
                       onClick={() =>
@@ -900,14 +1029,19 @@ function ProductsContent() {
                         )}
                       </div>
                       <span className="material-symbols-outlined text-gray-400 group-hover:text-navy text-lg! transition-transform shrink-0">
-                        {isExpanded ? 'expand_less' : 'expand_more'}
+                        {isExpanded ? "expand_less" : "expand_more"}
                       </span>
                     </button>
 
                     {isExpanded && (
                       <div className="mt-2.5 space-y-1.5">
-                        {(showAll ? propGroup.options : propGroup.options.slice(0, 5)).map((opt) => {
-                          const isChecked = selectedForThisProp.includes(opt.value);
+                        {(showAll
+                          ? propGroup.options
+                          : propGroup.options.slice(0, 5)
+                        ).map((opt) => {
+                          const isChecked = selectedForThisProp.includes(
+                            opt.value,
+                          );
                           return (
                             <label
                               key={opt.value}
@@ -916,13 +1050,24 @@ function ProductsContent() {
                               <input
                                 type="checkbox"
                                 checked={isChecked}
-                                onChange={() => togglePropertyFilter(propGroup.name, opt.value)}
+                                onChange={() =>
+                                  togglePropertyFilter(
+                                    propGroup.name,
+                                    opt.value,
+                                  )
+                                }
                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                               />
-                              <span className={`flex-1 truncate ${isChecked ? 'font-bold text-navy' : ''}`}>
+                              <span
+                                className={`flex-1 truncate ${
+                                  isChecked ? "font-bold text-navy" : ""
+                                }`}
+                              >
                                 {opt.value}
                               </span>
-                              <span className="text-gray-400 font-mono text-[11px]">({opt.count})</span>
+                              <span className="text-gray-400 font-mono text-[11px]">
+                                ({opt.count})
+                              </span>
                             </label>
                           );
                         })}
@@ -937,9 +1082,9 @@ function ProductsContent() {
                             }
                             className="text-blue-600 hover:underline text-xs font-semibold flex items-center gap-1 pt-1.5"
                           >
-                            <span>{showAll ? 'Show less' : 'Show more'}</span>
+                            <span>{showAll ? "Show less" : "Show more"}</span>
                             <span className="material-symbols-outlined text-xs!">
-                              {showAll ? 'expand_less' : 'chevron_right'}
+                              {showAll ? "expand_less" : "chevron_right"}
                             </span>
                           </button>
                         )}
@@ -953,7 +1098,9 @@ function ProductsContent() {
               <div className="border-t border-gray-100 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsAvailabilityExpanded(!isAvailabilityExpanded)}
+                  onClick={() =>
+                    setIsAvailabilityExpanded(!isAvailabilityExpanded)
+                  }
                   className="w-full flex items-center justify-between text-left py-1 text-navy font-bold text-sm select-none group"
                 >
                   <div className="flex items-center gap-1.5">
@@ -965,7 +1112,7 @@ function ProductsContent() {
                     )}
                   </div>
                   <span className="material-symbols-outlined text-gray-400 group-hover:text-navy text-lg! transition-transform">
-                    {isAvailabilityExpanded ? 'expand_less' : 'expand_more'}
+                    {isAvailabilityExpanded ? "expand_less" : "expand_more"}
                   </span>
                 </button>
 
@@ -974,8 +1121,8 @@ function ProductsContent() {
                     <label className="flex items-center space-x-2.5 cursor-pointer text-xs text-gray-700 py-1 hover:text-navy select-none">
                       <input
                         type="checkbox"
-                        checked={selectedAvailability.includes('active')}
-                        onChange={() => toggleAvailability('active')}
+                        checked={selectedAvailability.includes("active")}
+                        onChange={() => toggleAvailability("active")}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                       />
                       <span className="flex-1">In Stock / Active</span>
@@ -987,8 +1134,8 @@ function ProductsContent() {
                     <label className="flex items-center space-x-2.5 cursor-pointer text-xs text-gray-700 py-1 hover:text-navy select-none">
                       <input
                         type="checkbox"
-                        checked={selectedAvailability.includes('brochure')}
-                        onChange={() => toggleAvailability('brochure')}
+                        checked={selectedAvailability.includes("brochure")}
+                        onChange={() => toggleAvailability("brochure")}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
                       />
                       <span className="flex-1">Brochure</span>
@@ -1024,21 +1171,33 @@ function ProductsContent() {
             <Link href="/products" className="hover:text-navy hover:underline">
               Products
             </Link>
-            {selectedCategory !== 'All' && (
+            {selectedCategory !== "All" && (
               <>
                 <span>&gt;</span>
                 <span
-                  onClick={selectedSubcategory ? () => setSelectedSubcategory(null) : undefined}
-                  className={selectedSubcategory ? 'hover:text-navy hover:underline cursor-pointer' : 'text-gray-800 font-semibold'}
+                  onClick={
+                    selectedSubcategory
+                      ? () => setSelectedSubcategory(null)
+                      : undefined
+                  }
+                  className={
+                    selectedSubcategory
+                      ? "hover:text-navy hover:underline cursor-pointer"
+                      : "text-gray-800 font-semibold"
+                  }
                 >
-                  {activeCategoryObj ? activeCategoryObj.name : selectedCategory}
+                  {activeCategoryObj
+                    ? activeCategoryObj.name
+                    : selectedCategory}
                 </span>
               </>
             )}
             {selectedSubcategory && (
               <>
                 <span>&gt;</span>
-                <span className="text-navy font-bold">{selectedSubcategory}</span>
+                <span className="text-navy font-bold">
+                  {selectedSubcategory}
+                </span>
               </>
             )}
           </nav>
@@ -1049,20 +1208,20 @@ function ProductsContent() {
               <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
                 {activeSearch
                   ? `Search results for "${activeSearch}"`
-                  : selectedSectors.length === 1 && selectedCategory === 'All'
+                  : selectedSectors.length === 1 && selectedCategory === "All"
                     ? selectedSectors[0]
                     : selectedSubcategory ||
-                      (selectedCategory === 'All'
-                        ? 'All Products'
+                      (selectedCategory === "All"
+                        ? "All Products"
                         : activeCategoryObj?.name || selectedCategory)}
               </h2>
               <p className="text-xs sm:text-sm text-gray-600 mt-1.5 max-w-2xl leading-relaxed">
                 {activeSearch
                   ? `Showing medical equipment matching "${activeSearch}".`
-                  : selectedSectors.length === 1 && selectedCategory === 'All'
+                  : selectedSectors.length === 1 && selectedCategory === "All"
                     ? `Showing tailored healthcare equipment and clinical solutions for ${selectedSectors[0]}.`
                     : activeCategoryObj?.description ||
-                      'Explore our catalogue of patient monitors, hospital beds, and clinical equipment from trusted global manufacturers.'}
+                      "Explore our catalogue of patient monitors, hospital beds, and clinical equipment from trusted global manufacturers."}
               </p>
             </div>
 
@@ -1070,7 +1229,9 @@ function ProductsContent() {
             <div className="bg-linear-to-br from-navy via-navy to-navy-light text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gold/30 shrink-0 lg:max-w-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-gold text-[11px] font-bold uppercase tracking-wider mb-1">
-                  <span className="material-symbols-outlined text-sm!">folder_open</span>
+                  <span className="material-symbols-outlined text-sm!">
+                    folder_open
+                  </span>
                   <span>Resource Centre</span>
                 </div>
                 <h4 className="font-bold text-white text-sm leading-snug">
@@ -1085,7 +1246,9 @@ function ProductsContent() {
                 className="inline-flex items-center gap-1.5 whitespace-nowrap bg-gold hover:bg-gold-bright text-navy font-bold text-xs px-3.5 py-2 rounded-xl shadow-md transition-all duration-200 active:scale-95 group shrink-0"
               >
                 <span>Browse Resources</span>
-                <span className="material-symbols-outlined text-sm! transition-transform duration-200 group-hover:translate-x-1">arrow_forward</span>
+                <span className="material-symbols-outlined text-sm! transition-transform duration-200 group-hover:translate-x-1">
+                  arrow_forward
+                </span>
               </Link>
             </div>
           </div>
@@ -1110,11 +1273,13 @@ function ProductsContent() {
                   <span>Search: &ldquo;{activeSearch}&rdquo;</span>
                   <button
                     type="button"
-                    onClick={() => handleExecuteSearch('')}
+                    onClick={() => handleExecuteSearch("")}
                     className="hover:text-red-600 cursor-pointer flex items-center"
                     title="Clear search"
                   >
-                    <span className="material-symbols-outlined text-xs!">close</span>
+                    <span className="material-symbols-outlined text-xs!">
+                      close
+                    </span>
                   </button>
                 </div>
               )}
@@ -1123,7 +1288,9 @@ function ProductsContent() {
                   key={sectorName}
                   className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-900 font-semibold px-2.5 py-1 rounded-full text-xs border border-blue-200"
                 >
-                  <span className="material-symbols-outlined text-xs! text-blue-600">health_and_safety</span>
+                  <span className="material-symbols-outlined text-xs! text-blue-600">
+                    health_and_safety
+                  </span>
                   <span>{sectorName}</span>
                   <button
                     type="button"
@@ -1131,7 +1298,9 @@ function ProductsContent() {
                     className="hover:text-red-600 cursor-pointer flex items-center"
                     title="Remove sector filter"
                   >
-                    <span className="material-symbols-outlined text-xs!">close</span>
+                    <span className="material-symbols-outlined text-xs!">
+                      close
+                    </span>
                   </button>
                 </div>
               ))}
@@ -1141,7 +1310,9 @@ function ProductsContent() {
                   className="hidden sm:inline-flex items-center gap-1 text-xs text-blue-600 hover:underline bg-blue-50 px-2 py-0.5 rounded-md font-medium"
                 >
                   <span>Clear filters</span>
-                  <span className="material-symbols-outlined text-xs!">close</span>
+                  <span className="material-symbols-outlined text-xs!">
+                    close
+                  </span>
                 </button>
               )}
             </div>
@@ -1150,26 +1321,30 @@ function ProductsContent() {
               {/* View Switcher Icons */}
               <div className="flex bg-white border border-gray-200 rounded-lg p-0.5 shadow-xs">
                 <button
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => setViewMode("grid")}
                   className={`p-1.5 rounded transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-light-blue text-navy'
-                      : 'text-gray-400 hover:text-navy'
+                    viewMode === "grid"
+                      ? "bg-light-blue text-navy"
+                      : "text-gray-400 hover:text-navy"
                   }`}
                   aria-label="Grid view"
                 >
-                  <span className="material-symbols-outlined text-lg! block">grid_view</span>
+                  <span className="material-symbols-outlined text-lg! block">
+                    grid_view
+                  </span>
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
+                  onClick={() => setViewMode("list")}
                   className={`p-1.5 rounded transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-light-blue text-navy'
-                      : 'text-gray-400 hover:text-navy'
+                    viewMode === "list"
+                      ? "bg-light-blue text-navy"
+                      : "text-gray-400 hover:text-navy"
                   }`}
                   aria-label="List view"
                 >
-                  <span className="material-symbols-outlined text-lg! block">view_list</span>
+                  <span className="material-symbols-outlined text-lg! block">
+                    view_list
+                  </span>
                 </button>
               </div>
 
@@ -1177,7 +1352,7 @@ function ProductsContent() {
               <CustomSelect
                 value={selectedSort}
                 onChange={(val) => setSelectedSort(val)}
-                options={['A-Z', 'Z-A', 'Newest', 'Oldest']}
+                options={["A-Z", "Z-A", "Newest", "Oldest"]}
                 size="sm"
                 align="right"
                 dropdownClassName="w-36"
@@ -1191,22 +1366,27 @@ function ProductsContent() {
               <span className="material-symbols-outlined text-4xl! animate-spin text-blue-600 mb-2">
                 progress_activity
               </span>
-              <p className="text-xs text-gray-500 font-semibold">Loading catalogue products...</p>
+              <p className="text-xs text-gray-500 font-semibold">
+                Loading catalogue products...
+              </p>
             </div>
           ) : sortedProducts.length === 0 ? (
             <div className="bg-white rounded-2xl p-16 text-center shadow-xs border border-gray-100">
               <span className="material-symbols-outlined text-5xl! text-gray-300 mb-3">
                 inventory_2
               </span>
-              <h3 className="text-lg font-bold text-navy">No products match your criteria</h3>
+              <h3 className="text-lg font-bold text-navy">
+                No products match your criteria
+              </h3>
               <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
-                Try clearing some of your search filters or selecting another category.
+                Try clearing some of your search filters or selecting another
+                category.
               </p>
               <button
                 onClick={() => {
                   handleClearAllRefine();
                   handleResetCategory();
-                  handleExecuteSearch('');
+                  handleExecuteSearch("");
                 }}
                 className="mt-4 bg-navy text-white text-xs font-semibold px-4 py-2 rounded-full hover:bg-navy-light transition-colors shadow-xs"
               >
@@ -1216,37 +1396,39 @@ function ProductsContent() {
           ) : (
             <div
               className={`relative z-10 ${
-                viewMode === 'grid'
-                  ? 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5'
-                  : 'flex flex-col gap-3 sm:gap-4'
+                viewMode === "grid"
+                  ? "grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5"
+                  : "flex flex-col gap-3 sm:gap-4"
               }`}
             >
               {paginatedProducts.map((p) => {
                 const img =
-                  p.primary_image_url || p.images[0]?.image_url || '/images/benevision_n12.jpg';
+                  p.primary_image_url ||
+                  p.images[0]?.image_url ||
+                  "/images/benevision_n12.jpg";
                 const isSelected = selectedProducts.includes(p.slug);
 
                 return (
                   <div
                     key={p.id}
                     className={`bg-white border border-gray-100 rounded-2xl shadow-xs hover:shadow-md transition-shadow p-3 sm:p-4 md:p-5 group relative ${
-                      viewMode === 'list'
-                        ? 'flex flex-row items-stretch gap-3 sm:gap-5 md:gap-6'
-                        : 'flex flex-col h-full justify-between'
+                      viewMode === "list"
+                        ? "flex flex-row items-stretch gap-3 sm:gap-5 md:gap-6"
+                        : "flex flex-col h-full justify-between"
                     }`}
                   >
                     {/* Product Photo Box (With Brand header if in Grid View) */}
                     <div
                       className={
-                        viewMode === 'list'
-                          ? 'w-24 sm:w-36 md:w-48 shrink-0 flex flex-col justify-center'
-                          : 'w-full'
+                        viewMode === "list"
+                          ? "w-24 sm:w-36 md:w-48 shrink-0 flex flex-col justify-center"
+                          : "w-full"
                       }
                     >
-                      {viewMode === 'grid' && (
+                      {viewMode === "grid" && (
                         <div className="w-full flex items-center mb-1.5 sm:mb-2">
                           <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-red-600 truncate">
-                            {p.brand_name || 'Generic'}
+                            {p.brand_name || "Generic"}
                           </span>
                         </div>
                       )}
@@ -1254,9 +1436,9 @@ function ProductsContent() {
                       <Link
                         href={`/products/${p.slug}`}
                         className={
-                          viewMode === 'list'
-                            ? 'w-full aspect-square bg-slate-50/50 rounded-xl flex items-center justify-center p-1.5 sm:p-2 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors'
-                            : 'w-full aspect-square bg-white rounded-xl flex items-center justify-center mb-2 sm:mb-3 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors'
+                          viewMode === "list"
+                            ? "w-full aspect-square bg-slate-50/50 rounded-xl flex items-center justify-center p-1.5 sm:p-2 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors"
+                            : "w-full aspect-square bg-white rounded-xl flex items-center justify-center mb-2 sm:mb-3 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors"
                         }
                       >
                         <Image
@@ -1272,10 +1454,10 @@ function ProductsContent() {
                     {/* Info Block */}
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
-                        {viewMode === 'list' && (
+                        {viewMode === "list" && (
                           <div className="w-full flex items-center mb-1">
                             <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-red-600 truncate">
-                              {p.brand_name || 'Generic'}
+                              {p.brand_name || "Generic"}
                             </span>
                           </div>
                         )}
@@ -1286,18 +1468,30 @@ function ProductsContent() {
                           </h3>
                         </Link>
                         {p.short_description && (
-                          <p className={`text-gray-500 text-[11px] sm:text-xs mt-1 sm:mt-1.5 line-clamp-2 leading-relaxed ${viewMode === 'grid' ? 'hidden sm:block' : ''}`}>
+                          <p
+                            className={`text-gray-500 text-[11px] sm:text-xs mt-1 sm:mt-1.5 line-clamp-2 leading-relaxed ${
+                              viewMode === "grid" ? "hidden sm:block" : ""
+                            }`}
+                          >
                             {p.short_description}
                           </p>
                         )}
 
                         {/* Specs & Brochure Links */}
-                        <div className={`mt-2 sm:mt-3 mb-2 sm:mb-4 flex flex-wrap items-center ${viewMode === 'grid' ? 'gap-x-2 gap-y-1' : 'gap-x-3 sm:gap-x-4 gap-y-1'} text-[11px] sm:text-xs`}>
+                        <div
+                          className={`mt-2 sm:mt-3 mb-2 sm:mb-4 flex flex-wrap items-center ${
+                            viewMode === "grid"
+                              ? "gap-x-2 gap-y-1"
+                              : "gap-x-3 sm:gap-x-4 gap-y-1"
+                          } text-[11px] sm:text-xs`}
+                        >
                           <Link
                             href={`/products/${p.slug}`}
                             className="inline-flex items-center gap-1 text-blue-600 hover:underline font-semibold"
                           >
-                            <span className="material-symbols-outlined text-sm! sm:text-base!">description</span>
+                            <span className="material-symbols-outlined text-sm! sm:text-base!">
+                              description
+                            </span>
                             <span>View Specs</span>
                           </Link>
 
@@ -1306,9 +1500,19 @@ function ProductsContent() {
                               brochureUrl={p.brochure_url}
                               className="inline-flex items-center gap-1 text-blue-600 hover:underline font-semibold cursor-pointer"
                             >
-                              <span className="material-symbols-outlined text-sm! sm:text-base!">download</span>
-                              <span className={viewMode === 'grid' ? 'hidden sm:inline' : ''}>Download Brochure</span>
-                              {viewMode === 'grid' && <span className="sm:hidden">Brochure</span>}
+                              <span className="material-symbols-outlined text-sm! sm:text-base!">
+                                download
+                              </span>
+                              <span
+                                className={
+                                  viewMode === "grid" ? "hidden sm:inline" : ""
+                                }
+                              >
+                                Download Brochure
+                              </span>
+                              {viewMode === "grid" && (
+                                <span className="sm:hidden">Brochure</span>
+                              )}
                             </BrochureDownloadButton>
                           )}
                         </div>
@@ -1330,8 +1534,12 @@ function ProductsContent() {
                           onClick={() => handleAddToQuote(p)}
                           className="bg-gold text-navy font-bold px-2.5 sm:px-4 py-1.5 rounded-full hover:bg-gold-bright transition-all text-[11px] sm:text-xs active:scale-95 shadow-xs flex items-center gap-0.5 sm:gap-1 shrink-0 cursor-pointer"
                         >
-                          <span>{viewMode === 'grid' ? 'Quote' : 'Get a Quote'}</span>
-                          <span className="material-symbols-outlined text-xs!">arrow_forward</span>
+                          <span>
+                            {viewMode === "grid" ? "Quote" : "Get a Quote"}
+                          </span>
+                          <span className="material-symbols-outlined text-xs!">
+                            arrow_forward
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -1345,11 +1553,19 @@ function ProductsContent() {
           {!isLoading && totalPages > 1 && (
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs">
               <span className="text-xs text-gray-500 font-medium">
-                Showing <span className="font-bold text-navy">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                Showing{" "}
+                <span className="font-bold text-navy">
+                  {(currentPage - 1) * pageSize + 1}
+                </span>{" "}
+                to{" "}
                 <span className="font-bold text-navy">
                   {Math.min(currentPage * pageSize, sortedProducts.length)}
-                </span>{' '}
-                of <span className="font-bold text-navy">{sortedProducts.length}</span> products
+                </span>{" "}
+                of{" "}
+                <span className="font-bold text-navy">
+                  {sortedProducts.length}
+                </span>{" "}
+                products
               </span>
 
               <div className="flex items-center gap-1.5">
@@ -1359,35 +1575,43 @@ function ProductsContent() {
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-semibold flex items-center gap-1 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-sm!">chevron_left</span>
+                  <span className="material-symbols-outlined text-sm!">
+                    chevron_left
+                  </span>
                   <span>Prev</span>
                 </button>
 
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        currentPage === pageNum
-                          ? 'bg-navy text-white shadow-xs'
-                          : 'border border-gray-200 text-gray-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          currentPage === pageNum
+                            ? "bg-navy text-white shadow-xs"
+                            : "border border-gray-200 text-gray-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ),
+                  )}
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-semibold flex items-center gap-1 cursor-pointer"
                 >
                   <span>Next</span>
-                  <span className="material-symbols-outlined text-sm!">chevron_right</span>
+                  <span className="material-symbols-outlined text-sm!">
+                    chevron_right
+                  </span>
                 </button>
               </div>
             </div>
@@ -1400,9 +1624,12 @@ function ProductsContent() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-6xl bg-navy text-white px-5 sm:px-6 py-3.5 rounded-2xl shadow-2xl z-50 animate-slide-up border border-white/10 flex items-center justify-between gap-4 sm:gap-6 backdrop-blur-md">
           {/* Left: Balance Icon + Selected Count */}
           <div className="flex items-center gap-3 shrink-0">
-            <span className="material-symbols-outlined text-2xl! sm:text-3xl! text-gold">balance</span>
+            <span className="material-symbols-outlined text-2xl! sm:text-3xl! text-gold">
+              balance
+            </span>
             <span className="font-semibold text-white text-xs sm:text-sm md:text-base whitespace-nowrap">
-              {selectedProducts.length} {selectedProducts.length === 1 ? 'product' : 'products'} selected
+              {selectedProducts.length}{" "}
+              {selectedProducts.length === 1 ? "product" : "products"} selected
             </span>
           </div>
 
@@ -1413,10 +1640,13 @@ function ProductsContent() {
               const img =
                 product?.primary_image_url ||
                 product?.images[0]?.image_url ||
-                '/images/benevision_n12.jpg';
+                "/images/benevision_n12.jpg";
 
               return (
-                <div key={slug} className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+                <div
+                  key={slug}
+                  className="flex items-center gap-2.5 sm:gap-3 shrink-0"
+                >
                   {/* Thumbnail Box */}
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden relative shadow-xs">
                     <Image
@@ -1431,7 +1661,7 @@ function ProductsContent() {
                   {/* Brand & Model */}
                   <div className="flex flex-col text-left">
                     <span className="font-bold text-white text-xs leading-tight">
-                      {product?.brand_name || 'Generic'}
+                      {product?.brand_name || "Generic"}
                     </span>
                     <span className="text-gray-300 text-xs truncate max-w-25 sm:max-w-32.5 leading-tight mt-0.5">
                       {product?.name || slug}
@@ -1444,9 +1674,13 @@ function ProductsContent() {
                     onClick={() => handleSelectCompare(slug)}
                     className="text-gray-400 hover:text-white transition-colors p-1 cursor-pointer"
                     title="Remove from compare"
-                    aria-label={`Remove ${product ? product.name : slug} from compare`}
+                    aria-label={`Remove ${
+                      product ? product.name : slug
+                    } from compare`}
                   >
-                    <span className="material-symbols-outlined text-sm! block">close</span>
+                    <span className="material-symbols-outlined text-sm! block">
+                      close
+                    </span>
                   </button>
                 </div>
               );
@@ -1458,11 +1692,13 @@ function ProductsContent() {
             <div className="h-8 w-px bg-white/20 hidden md:block" />
 
             <Link
-              href={`/compare?items=${selectedProducts.join(',')}`}
+              href={`/compare?items=${selectedProducts.join(",")}`}
               className="bg-gold text-navy font-bold px-5 sm:px-6 py-2.5 sm:py-3 rounded-full hover:bg-gold-bright transition-all active:scale-95 text-xs sm:text-sm whitespace-nowrap shadow-lg flex items-center gap-2"
             >
               <span>Compare Products</span>
-              <span className="material-symbols-outlined text-sm!">arrow_forward</span>
+              <span className="material-symbols-outlined text-sm!">
+                arrow_forward
+              </span>
             </Link>
           </div>
         </div>

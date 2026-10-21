@@ -1,27 +1,27 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import BrandSlider from '@/components/BrandSlider';
-import PredictiveSearchBar from '@/components/PredictiveSearchBar';
+import BrandSlider from "@/components/BrandSlider";
+import PredictiveSearchBar from "@/components/PredictiveSearchBar";
 import {
-  contentApi,
   categoriesApi,
-  HeroContent,
-  CompanyContent,
-  WhyUsContent,
-  CTAContent,
   CategoryItem,
-} from '@/lib/api';
+  CompanyContent,
+  contentApi,
+  CTAContent,
+  HeroContent,
+  WhyUsContent,
+} from "@/lib/api";
 import {
-  DEFAULT_HERO,
-  DEFAULT_COMPANY,
-  DEFAULT_WHY_US,
-  DEFAULT_CTA,
   CATEGORY_ICON_MAP,
-} from '@/lib/constants';
+  DEFAULT_COMPANY,
+  DEFAULT_CTA,
+  DEFAULT_HERO,
+  DEFAULT_WHY_US,
+} from "@/lib/constants";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function HomeContent() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function HomeContent() {
   const [whyUs, setWhyUs] = useState<WhyUsContent>(DEFAULT_WHY_US);
   const [cta, setCta] = useState<CTAContent>(DEFAULT_CTA);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     contentApi
@@ -40,35 +40,61 @@ export default function HomeContent() {
           const heroData = data.hero;
           setHero((prev) => ({
             ...prev,
-            headlinePart1: heroData.headlinePart1 || heroData.headline_part1 || prev.headlinePart1,
-            headlinePart2: heroData.headlinePart2 || heroData.headline_part2 || prev.headlinePart2,
-            headlineAccent: heroData.headlineAccent || heroData.headline_accent || prev.headlineAccent,
+            headlinePart1:
+              heroData.headlinePart1 ||
+              heroData.headline_part1 ||
+              prev.headlinePart1,
+            headlinePart2:
+              heroData.headlinePart2 ||
+              heroData.headline_part2 ||
+              prev.headlinePart2,
+            headlineAccent:
+              heroData.headlineAccent ||
+              heroData.headline_accent ||
+              prev.headlineAccent,
             subheading: heroData.subheading || prev.subheading,
             showSearchBar:
               heroData.showSearchBar !== undefined
                 ? heroData.showSearchBar
                 : heroData.show_search_bar !== undefined
-                ? heroData.show_search_bar
-                : true,
+                  ? heroData.show_search_bar
+                  : true,
             searchPlaceholder:
-              heroData.searchPlaceholder || heroData.search_placeholder || prev.searchPlaceholder,
+              heroData.searchPlaceholder ||
+              heroData.search_placeholder ||
+              prev.searchPlaceholder,
             popularSearches:
-              heroData.popularSearches || heroData.popular_searches || prev.popularSearches,
-            badgeTitle: heroData.badgeTitle || heroData.badge_title || prev.badgeTitle,
-            badgeTagline: heroData.badgeTagline || heroData.badge_tagline || prev.badgeTagline,
+              heroData.popularSearches ||
+              heroData.popular_searches ||
+              prev.popularSearches,
+            badgeTitle:
+              heroData.badgeTitle || heroData.badge_title || prev.badgeTitle,
+            badgeTagline:
+              heroData.badgeTagline ||
+              heroData.badge_tagline ||
+              prev.badgeTagline,
           }));
         }
         if (data.company) {
           const companyData = data.company;
           setCompany((prev) => ({
             ...prev,
-            companyName: companyData.companyName || companyData.company_name || prev.companyName,
+            companyName:
+              companyData.companyName ||
+              companyData.company_name ||
+              prev.companyName,
             phone: companyData.phone || prev.phone,
-            tollFree: companyData.tollFree || companyData.toll_free || prev.tollFree,
+            tollFree:
+              companyData.tollFree || companyData.toll_free || prev.tollFree,
             email: companyData.email || prev.email,
-            salesEmail: companyData.salesEmail || companyData.sales_email || prev.salesEmail,
+            salesEmail:
+              companyData.salesEmail ||
+              companyData.sales_email ||
+              prev.salesEmail,
             physicalAddress:
-              companyData.physicalAddress || companyData.physical_address || prev.physicalAddress,
+              companyData.physicalAddress ||
+              companyData.physical_address ||
+              prev.physicalAddress,
             hours: companyData.hours || prev.hours,
           }));
         }
@@ -76,7 +102,8 @@ export default function HomeContent() {
           const whyUsData = data.why_us;
           setWhyUs((prev) => ({
             ...prev,
-            sectionTag: whyUsData.sectionTag || whyUsData.section_tag || prev.sectionTag,
+            sectionTag:
+              whyUsData.sectionTag || whyUsData.section_tag || prev.sectionTag,
             title: whyUsData.title || prev.title,
             items:
               Array.isArray(whyUsData.items) && whyUsData.items.length > 0
@@ -90,13 +117,14 @@ export default function HomeContent() {
             ...prev,
             heading: ctaData.heading || prev.heading,
             subheading: ctaData.subheading || prev.subheading,
-            buttonText: ctaData.buttonText || ctaData.button_text || prev.buttonText,
+            buttonText:
+              ctaData.buttonText || ctaData.button_text || prev.buttonText,
             buttonLink:
-              ctaData.buttonLink && ctaData.buttonLink !== '/contact'
+              ctaData.buttonLink && ctaData.buttonLink !== "/contact"
                 ? ctaData.buttonLink
-                : ctaData.button_link && ctaData.button_link !== '/contact'
-                ? ctaData.button_link
-                : '/quote',
+                : ctaData.button_link && ctaData.button_link !== "/contact"
+                  ? ctaData.button_link
+                  : "/quote",
             phone: ctaData.phone || prev.phone,
             email: ctaData.email || prev.email,
           }));
@@ -119,22 +147,14 @@ export default function HomeContent() {
   }, []);
 
   const getCatIcon = (cat: CategoryItem) => {
-    if (cat.icon && cat.icon.trim() && cat.icon !== 'category') return cat.icon;
-    if (cat.slug && CATEGORY_ICON_MAP[cat.slug]) return CATEGORY_ICON_MAP[cat.slug];
+    if (cat.icon && cat.icon.trim() && cat.icon !== "category") return cat.icon;
+    if (cat.slug && CATEGORY_ICON_MAP[cat.slug])
+      return CATEGORY_ICON_MAP[cat.slug];
     const nameLower = cat.name.toLowerCase();
     for (const [slugKey, iconName] of Object.entries(CATEGORY_ICON_MAP)) {
-      if (nameLower.includes(slugKey.replace(/-/g, ' '))) return iconName;
+      if (nameLower.includes(slugKey.replace(/-/g, " "))) return iconName;
     }
-    return 'medical_services';
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push('/products');
-    }
+    return "medical_services";
   };
 
   const handlePopularSearchClick = (term: string) => {
@@ -163,7 +183,8 @@ export default function HomeContent() {
           <div className="w-full max-w-2xl text-white">
             <h1 className="text-5xl md:text-[5.5rem] font-bold mb-4 md:mb-6 leading-tight md:leading-none drop-shadow-lg tracking-tight">
               {hero.headlinePart1} <br />
-              {hero.headlinePart2} <span className="text-light-blue">{hero.headlineAccent}</span>
+              {hero.headlinePart2}{" "}
+              <span className="text-light-blue">{hero.headlineAccent}</span>
             </h1>
 
             <p className="text-base md:text-xl mb-8 md:mb-10 text-gray-200 drop-shadow-md max-w-lg font-light leading-relaxed">
@@ -178,14 +199,16 @@ export default function HomeContent() {
                   onChange={setSearchQuery}
                   onSubmit={(query) => {
                     if (query && query.trim()) {
-                      router.push(`/products?search=${encodeURIComponent(query.trim())}`);
+                      router.push(
+                        `/products?search=${encodeURIComponent(query.trim())}`,
+                      );
                     } else {
-                      router.push('/products');
+                      router.push("/products");
                     }
                   }}
                   placeholder={
                     hero.searchPlaceholder ||
-                    'Search by product, model number, manufacturer, brochure or technical specification...'
+                    "Search by product, model number, manufacturer, brochure or technical specification..."
                   }
                   size="lg"
                 />
@@ -194,7 +217,9 @@ export default function HomeContent() {
 
             {/* Popular Searches */}
             {hero.popularSearches &&
-              hero.popularSearches.filter((term) => term && term.trim().length > 0).length > 0 && (
+              hero.popularSearches.filter(
+                (term) => term && term.trim().length > 0,
+              ).length > 0 && (
                 <div className="flex flex-wrap gap-2.5 items-center">
                   <span className="text-white font-medium text-sm mr-2">
                     Popular searches:
@@ -249,7 +274,9 @@ export default function HomeContent() {
           <div className="absolute top-1/3 -translate-y-1/2 right-0 w-full pr-4 pl-15 xl:pl-34 text-navy pointer-events-auto z-30">
             <div className="flex flex-col">
               <h2 className="text-md xl:text-xl font-bold tracking-[0.15em] text-navy whitespace-pre-line leading-relaxed">
-                {hero.badgeTitle ? hero.badgeTitle.replace(/ • /g, '\n') : "TRUST\nACCESS\nINNOVATION\nIMPACT"}
+                {hero.badgeTitle
+                  ? hero.badgeTitle.replace(/ • /g, "\n")
+                  : "TRUST\nACCESS\nINNOVATION\nIMPACT"}
               </h2>
 
               <div className="h-1.5 w-12 bg-gold my-2" />
@@ -287,10 +314,14 @@ export default function HomeContent() {
       <section className="py-20 px-6 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center space-x-4 mb-4">
-            <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">PRODUCT CATEGORIES</h2>
+            <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">
+              PRODUCT CATEGORIES
+            </h2>
             <div className="h-px bg-gold w-12"></div>
           </div>
-          <h3 className="text-4xl font-bold text-navy mb-12">Find the products you need</h3>
+          <h3 className="text-4xl font-bold text-navy mb-12">
+            Find the products you need
+          </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {categories.map((cat, idx) => (
@@ -300,16 +331,20 @@ export default function HomeContent() {
                 className="bg-white p-1 md:p-3 rounded-xl border border-blue-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] group flex items-center"
               >
                 <div className="w-20 h-20 md:w-24 md:h-24 flex items-center justify-center text-blue-600 bg-blue-50 rounded-full group-hover:scale-105 transition-transform shrink-0 mr-6">
-                  <span className="material-symbols-outlined text-5xl!">{getCatIcon(cat)}</span>
+                  <span className="material-symbols-outlined text-5xl!">
+                    {getCatIcon(cat)}
+                  </span>
                 </div>
                 <div className="flex-1 pr-4">
                   <div className="text-gold text-sm font-bold mb-1">
-                    {cat.code || String(idx + 1).padStart(2, '0')}
+                    {cat.code || String(idx + 1).padStart(2, "0")}
                   </div>
                   <h4 className="text-navy font-bold text-lg leading-tight mb-2 group-hover:text-blue-600 transition-colors">
                     {cat.name}
                   </h4>
-                  <p className="text-gray-500 text-sm leading-relaxed">{cat.description || ''}</p>
+                  <p className="text-gray-500 text-sm leading-relaxed">
+                    {cat.description || ""}
+                  </p>
                 </div>
                 <span className="material-symbols-outlined text-blue-600 font-bold self-center">
                   chevron_right
@@ -326,10 +361,14 @@ export default function HomeContent() {
           <div className="flex items-end justify-between mb-12">
             <div>
               <div className="flex items-center space-x-4 mb-4">
-                <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">HEALTHCARE SECTORS</h2>
+                <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">
+                  HEALTHCARE SECTORS
+                </h2>
                 <div className="h-px bg-gold w-12"></div>
               </div>
-              <h3 className="text-4xl font-bold text-navy">Browse by healthcare sector</h3>
+              <h3 className="text-4xl font-bold text-navy">
+                Browse by healthcare sector
+              </h3>
             </div>
             <Link
               href="/sectors"
@@ -344,16 +383,21 @@ export default function HomeContent() {
 
           <div className="flex overflow-x-auto pb-6 gap-6 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
             {[
-              { title: 'Hospitals &\nHealthcare Groups', icon: 'domain' },
-              { title: 'Clinics &\nPrimary Care', icon: 'medical_information' },
-              { title: 'Pharmacies &\nRetail Healthcare', icon: 'local_pharmacy' },
-              { title: 'Public\nHealthcare', icon: 'account_balance' },
-              { title: 'Laboratories', icon: 'biotech' },
-              { title: 'Specialist\nCare', icon: 'favorite' },
-              { title: 'Veterinary\nPractices', icon: 'pets' },
+              { title: "Hospitals &\nHealthcare Groups", icon: "domain" },
+              { title: "Clinics &\nPrimary Care", icon: "medical_information" },
+              {
+                title: "Pharmacies &\nRetail Healthcare",
+                icon: "local_pharmacy",
+              },
+              { title: "Public\nHealthcare", icon: "account_balance" },
+              { title: "Laboratories", icon: "biotech" },
+              { title: "Specialist\nCare", icon: "favorite" },
+              { title: "Veterinary\nPractices", icon: "pets" },
             ].map((sector, idx) => (
               <Link
-                href={`/products?sector=${encodeURIComponent(sector.title.replace('\n', ' '))}`}
+                href={`/products?sector=${encodeURIComponent(
+                  sector.title.replace("\n", " "),
+                )}`}
                 key={idx}
                 className="snap-start flex-none w-52 bg-white border border-gray-100 p-7 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 active:scale-[0.98] flex flex-col items-center text-center group"
               >
@@ -387,7 +431,8 @@ export default function HomeContent() {
               </h3>
             </div>
             <p className="text-gray-500 text-sm md:text-base max-w-xl leading-relaxed">
-              Direct authorized distribution, certified clinical equipment, and factory warranties from globally accredited manufacturers.
+              Direct authorized distribution, certified clinical equipment, and
+              factory warranties from globally accredited manufacturers.
             </p>
           </div>
 
@@ -400,20 +445,27 @@ export default function HomeContent() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center space-x-4 mb-12">
             <h2 className="text-blue-600 text-sm font-bold uppercase tracking-widest">
-              {whyUs.sectionTag || 'WHY SA HEALTHCARE'}
+              {whyUs.sectionTag || "WHY SA HEALTHCARE"}
             </h2>
             <div className="h-px bg-gold w-12"></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
             {whyUs.items.map((item, idx) => (
-              <div key={idx} className="flex items-start lg:px-8 py-8 first:pt-0 last:pb-0 lg:py-0 first:lg:pl-0">
+              <div
+                key={idx}
+                className="flex items-start lg:px-8 py-8 first:pt-0 last:pb-0 lg:py-0 first:lg:pl-0"
+              >
                 <span className="material-symbols-outlined text-5xl! text-navy mr-6 shrink-0">
                   {item.icon}
                 </span>
                 <div>
-                  <h4 className="text-navy font-bold text-xl mb-3">{item.title}</h4>
-                  <p className="text-gray-500 text-sm md:text-base lg:text-sm leading-relaxed">{item.description}</p>
+                  <h4 className="text-navy font-bold text-xl mb-3">
+                    {item.title}
+                  </h4>
+                  <p className="text-gray-500 text-sm md:text-base lg:text-sm leading-relaxed">
+                    {item.description}
+                  </p>
                 </div>
               </div>
             ))}
@@ -429,10 +481,12 @@ export default function HomeContent() {
               handshake
             </span>
             <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-navy mb-3">Become a Supplier</h3>
+              <h3 className="text-2xl md:text-3xl font-bold text-navy mb-3">
+                Become a Supplier
+              </h3>
               <p className="text-gray-600 text-base md:text-lg leading-relaxed">
-                Are you a healthcare manufacturer looking to expand your reach across Southern Africa?
-                We&apos;d love to hear from you.
+                Are you a healthcare manufacturer looking to expand your reach
+                across Southern Africa? We&apos;d love to hear from you.
               </p>
             </div>
           </div>
@@ -440,7 +494,7 @@ export default function HomeContent() {
             href="/supplier"
             className="bg-gold text-navy font-bold px-8 md:px-10 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg shadow-gold/20 hover:shadow-gold/40 group"
           >
-            Become a Supplier{' '}
+            Become a Supplier{" "}
             <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">
               arrow_forward
             </span>
@@ -456,17 +510,25 @@ export default function HomeContent() {
               receipt_long
             </span>
             <div>
-              <h3 className="text-2xl md:text-3xl font-bold mb-3">{cta.heading}</h3>
-              <p className="text-gray-300 text-base md:text-lg">{cta.subheading}</p>
+              <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                {cta.heading}
+              </h3>
+              <p className="text-gray-300 text-base md:text-lg">
+                {cta.subheading}
+              </p>
             </div>
           </div>
 
           <div className="flex flex-wrap justify-center lg:justify-end items-center gap-6 md:gap-8 mt-4 lg:mt-0">
             <Link
-              href={cta.buttonLink && cta.buttonLink !== '/contact' ? cta.buttonLink : '/quote'}
+              href={
+                cta.buttonLink && cta.buttonLink !== "/contact"
+                  ? cta.buttonLink
+                  : "/quote"
+              }
               className="bg-gold text-navy font-bold px-8 md:px-10 py-4 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-105 active:scale-95 flex items-center shrink-0 shadow-lg shadow-gold/20 hover:shadow-gold/40 group"
             >
-              {cta.buttonText || 'Request a Quote'}{' '}
+              {cta.buttonText || "Request a Quote"}{" "}
               <span className="material-symbols-outlined ml-2 transition-transform duration-300 group-hover:translate-x-1">
                 arrow_forward
               </span>
@@ -474,24 +536,35 @@ export default function HomeContent() {
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 md:gap-8 border-white/20">
               <a
-                href={`tel:${(company.phone || cta.phone || '+27115550100').replace(/\s+/g, '')}`}
+                href={`tel:${(
+                  company.phone ||
+                  cta.phone ||
+                  "+27115550100"
+                ).replace(/\s+/g, "")}`}
                 className="flex items-center text-white hover:text-gold transition-colors shrink-0 group"
               >
                 <span className="material-symbols-outlined mr-2 md:mr-3 text-2xl md:text-3xl! group-hover:scale-110 transition-transform">
                   call
                 </span>
                 <span className="font-semibold whitespace-nowrap text-base md:text-lg">
-                  {company.phone || cta.phone || 'Get in Touch'}
+                  {company.phone || cta.phone || "Get in Touch"}
                 </span>
               </a>
               <a
-                href={`mailto:${company.salesEmail || company.email || cta.email || 'info@sahealthcare.com'}`}
+                href={`mailto:${
+                  company.salesEmail ||
+                  company.email ||
+                  cta.email ||
+                  "info@sahealthcare.com"
+                }`}
                 className="flex items-center text-white hover:text-gold transition-colors shrink-0 group"
               >
                 <span className="material-symbols-outlined mr-2 md:mr-3 text-2xl md:text-3xl! group-hover:scale-110 transition-transform">
                   mail
                 </span>
-                <span className="font-semibold whitespace-nowrap text-base md:text-lg">Email Us</span>
+                <span className="font-semibold whitespace-nowrap text-base md:text-lg">
+                  Email Us
+                </span>
               </a>
             </div>
           </div>

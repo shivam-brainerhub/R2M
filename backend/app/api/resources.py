@@ -1,14 +1,14 @@
 import os
 from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from fastapi.responses import FileResponse
-from sqlalchemy import or_
-from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import get_current_user_from_header_or_query
 from app.database import get_db
 from app.models import Brand, Category, Document, Product, User
-from app.schemas.product import ResourceItemResponse, PaginatedResourcesResponse
+from app.schemas.product import PaginatedResourcesResponse, ResourceItemResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.responses import FileResponse
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
 
 router = APIRouter(
     tags=["Resource Centre & Documents"],
@@ -19,17 +19,27 @@ MEDIA_DIR = os.path.realpath(
 )
 
 
-@router.get("/resources", response_model=Union[PaginatedResourcesResponse, List[ResourceItemResponse]])
+@router.get(
+    "/resources",
+    response_model=Union[PaginatedResourcesResponse, List[ResourceItemResponse]],
+)
 def list_resources(
-    search: Optional[str] = Query(None, description="Search by document title, product name, or brand"),
+    search: Optional[str] = Query(
+        None, description="Search by document title, product name, or brand"
+    ),
     category: Optional[str] = Query(None, description="Filter by category slug or ID"),
     brand: Optional[str] = Query(None, description="Filter by brand slug or ID"),
-    type: Optional[str] = Query(None, description="Filter by document type (Brochure, Specifications, User Manual, Certificate)"),
+    type: Optional[str] = Query(
+        None,
+        description="Filter by document type (Brochure, Specifications, User Manual, Certificate)",
+    ),
     page: Optional[int] = Query(None, ge=1, description="Page number (1-indexed)"),
     page_size: Optional[int] = Query(None, ge=1, le=100, description="Items per page"),
     limit: Optional[int] = Query(None, ge=1, le=500, description="Items to return"),
     skip: Optional[int] = Query(None, ge=0, description="Items to skip"),
-    paginated: bool = Query(False, description="Whether to return a PaginatedResourcesResponse envelope"),
+    paginated: bool = Query(
+        False, description="Whether to return a PaginatedResourcesResponse envelope"
+    ),
     response: Response = None,
     db: Session = Depends(get_db),
 ):
@@ -132,7 +142,9 @@ def list_resources(
             if category.isdigit():
                 prod_query = prod_query.filter(Product.category_id == int(category))
             else:
-                cat = db.query(Category).filter(Category.slug == category.strip()).first()
+                cat = (
+                    db.query(Category).filter(Category.slug == category.strip()).first()
+                )
                 if cat:
                     prod_query = prod_query.filter(Product.category_id == cat.id)
 
@@ -181,12 +193,22 @@ def list_resources(
         effective_skip = (effective_page - 1) * effective_page_size
         effective_limit = effective_page_size
     else:
-        effective_limit = limit if limit is not None else (page_size if page_size is not None else (12 if paginated else 100))
+        effective_limit = (
+            limit
+            if limit is not None
+            else (page_size if page_size is not None else (12 if paginated else 100))
+        )
         effective_skip = skip if skip is not None else 0
         effective_page_size = effective_limit
-        effective_page = (effective_skip // effective_limit) + 1 if effective_limit > 0 else 1
+        effective_page = (
+            (effective_skip // effective_limit) + 1 if effective_limit > 0 else 1
+        )
 
-    total_pages = max(1, (total + effective_page_size - 1) // effective_page_size) if effective_page_size > 0 else 1
+    total_pages = (
+        max(1, (total + effective_page_size - 1) // effective_page_size)
+        if effective_page_size > 0
+        else 1
+    )
     has_more = (effective_skip + effective_limit) < total
     paged_items = results[effective_skip : effective_skip + effective_limit]
 
@@ -196,7 +218,9 @@ def list_resources(
         response.headers["X-Page-Size"] = str(effective_page_size)
         response.headers["X-Total-Pages"] = str(total_pages)
         response.headers["X-Has-More"] = "true" if has_more else "false"
-        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count, X-Page, X-Page-Size, X-Total-Pages, X-Has-More"
+        response.headers["Access-Control-Expose-Headers"] = (
+            "X-Total-Count, X-Page, X-Page-Size, X-Total-Pages, X-Has-More"
+        )
 
     if paginated:
         return PaginatedResourcesResponse(
@@ -213,8 +237,12 @@ def list_resources(
 
 @router.get("/documents/download")
 def download_document(
-    url: str = Query(..., description="Media URL or relative path of the document to download"),
-    token: Optional[str] = Query(None, description="Auth token for direct browser downloads"),
+    url: str = Query(
+        ..., description="Media URL or relative path of the document to download"
+    ),
+    token: Optional[str] = Query(
+        None, description="Auth token for direct browser downloads"
+    ),
     current_user: User = Depends(get_current_user_from_header_or_query),
 ):
     """
@@ -252,7 +280,9 @@ def download_document(
     if filename.lower().endswith(".zip"):
         media_type = "application/zip"
     elif filename.lower().endswith(".docx"):
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        media_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
     elif filename.lower().endswith(".doc"):
         media_type = "application/msword"
 

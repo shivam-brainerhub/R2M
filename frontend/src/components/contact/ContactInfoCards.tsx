@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { contentApi, CompanyContent } from '@/lib/api';
-import { DEFAULT_COMPANY } from '@/lib/constants';
+import { CompanyContent, contentApi } from "@/lib/api";
+import { DEFAULT_COMPANY } from "@/lib/constants";
+import { useEffect, useState } from "react";
 
 export default function ContactInfoCards() {
   const [company, setCompany] = useState<CompanyContent>(DEFAULT_COMPANY);
@@ -13,12 +13,24 @@ export default function ContactInfoCards() {
       .then((data) => {
         if (data.company) {
           setCompany({
-            companyName: data.company.companyName || data.company.company_name || DEFAULT_COMPANY.companyName,
+            companyName:
+              data.company.companyName ||
+              data.company.company_name ||
+              DEFAULT_COMPANY.companyName,
             phone: data.company.phone || DEFAULT_COMPANY.phone,
-            tollFree: data.company.tollFree || data.company.toll_free || DEFAULT_COMPANY.tollFree,
+            tollFree:
+              data.company.tollFree ||
+              data.company.toll_free ||
+              DEFAULT_COMPANY.tollFree,
             email: data.company.email || DEFAULT_COMPANY.email,
-            salesEmail: data.company.salesEmail || data.company.sales_email || DEFAULT_COMPANY.salesEmail,
-            physicalAddress: data.company.physicalAddress || data.company.physical_address || DEFAULT_COMPANY.physicalAddress,
+            salesEmail:
+              data.company.salesEmail ||
+              data.company.sales_email ||
+              DEFAULT_COMPANY.salesEmail,
+            physicalAddress:
+              data.company.physicalAddress ||
+              data.company.physical_address ||
+              DEFAULT_COMPANY.physicalAddress,
             hours: data.company.hours || DEFAULT_COMPANY.hours,
           });
         }
@@ -31,39 +43,61 @@ export default function ContactInfoCards() {
       <h3 className="text-xl font-bold text-navy mb-6">Contact Information</h3>
       <div className="space-y-6">
         <div className="flex items-start gap-4">
-          <span className="material-symbols-outlined text-gold text-2xl!">location_on</span>
+          <span className="material-symbols-outlined text-gold text-2xl!">
+            location_on
+          </span>
           <div>
             <h4 className="font-semibold text-navy">Head Office</h4>
-            <p className="text-gray-600 mt-1 whitespace-pre-line">{company.physicalAddress}</p>
+            <p className="text-gray-600 mt-1 whitespace-pre-line">
+              {company.physicalAddress}
+            </p>
           </div>
         </div>
 
         <div className="flex items-start gap-4">
-          <span className="material-symbols-outlined text-gold text-2xl!">phone</span>
+          <span className="material-symbols-outlined text-gold text-2xl!">
+            phone
+          </span>
           <div>
             <h4 className="font-semibold text-navy">Phone</h4>
             <p className="text-gray-600 mt-1">
-              <a href={`tel:${company.phone.replace(/\s+/g, '')}`} className="hover:text-blue-600 transition-colors">
+              <a
+                href={`tel:${company.phone.replace(/\s+/g, "")}`}
+                className="hover:text-blue-600 transition-colors"
+              >
                 {company.phone}
               </a>
               {company.tollFree && (
-                <span className="block text-xs text-gray-500 mt-0.5">Toll-free: {company.tollFree}</span>
+                <span className="block text-xs text-gray-500 mt-0.5">
+                  Toll-free: {company.tollFree}
+                </span>
               )}
             </p>
           </div>
         </div>
 
         <div className="flex items-start gap-4">
-          <span className="material-symbols-outlined text-gold text-2xl!">mail</span>
+          <span className="material-symbols-outlined text-gold text-2xl!">
+            mail
+          </span>
           <div>
             <h4 className="font-semibold text-navy">Email</h4>
             <p className="text-gray-600 mt-1">
-              <a href={`mailto:${company.email}`} className="hover:text-blue-600 transition-colors block">
+              <a
+                href={`mailto:${company.email}`}
+                className="hover:text-blue-600 transition-colors block"
+              >
                 {company.email}
               </a>
               {company.salesEmail && company.salesEmail !== company.email && (
                 <span className="block text-xs text-gray-500 mt-0.5">
-                  Quotations: <a href={`mailto:${company.salesEmail}`} className="hover:text-blue-600">{company.salesEmail}</a>
+                  Quotations:{" "}
+                  <a
+                    href={`mailto:${company.salesEmail}`}
+                    className="hover:text-blue-600"
+                  >
+                    {company.salesEmail}
+                  </a>
                 </span>
               )}
             </p>
@@ -72,7 +106,9 @@ export default function ContactInfoCards() {
 
         {company.hours && (
           <div className="flex items-start gap-4 pt-2 border-t border-gray-100">
-            <span className="material-symbols-outlined text-gold text-2xl!">schedule</span>
+            <span className="material-symbols-outlined text-gold text-2xl!">
+              schedule
+            </span>
             <div>
               <h4 className="font-semibold text-navy">Operating Hours</h4>
               <p className="text-gray-600 mt-1 text-sm">{company.hours}</p>

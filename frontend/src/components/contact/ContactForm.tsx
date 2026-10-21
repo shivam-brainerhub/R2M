@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { inquiriesApi, ApiError } from '@/lib/api';
+import { ApiError, inquiriesApi } from "@/lib/api";
+import React, { useState } from "react";
 
 interface FormState {
   firstName: string;
@@ -20,11 +20,11 @@ interface FormErrors {
 
 export default function ContactForm() {
   const [formData, setFormData] = useState<FormState>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    organization: '',
-    message: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    organization: "",
+    message: "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -36,26 +36,26 @@ export default function ContactForm() {
     const newErrors: FormErrors = {};
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
+      newErrors.firstName = "First name is required";
     }
 
     if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
+      newErrors.lastName = "Last name is required";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email address is required';
+      newErrors.email = "Email address is required";
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = 'Please enter a valid email address';
+        newErrors.email = "Please enter a valid email address";
       }
     }
 
     if (!formData.message.trim()) {
-      newErrors.message = 'Please provide a message or inquiry details';
+      newErrors.message = "Please provide a message or inquiry details";
     } else if (formData.message.trim().length < 10) {
-      newErrors.message = 'Message must be at least 10 characters long';
+      newErrors.message = "Message must be at least 10 characters long";
     }
 
     setErrors(newErrors);
@@ -90,7 +90,7 @@ export default function ContactForm() {
       } else if (err instanceof Error) {
         setSubmitError(err.message);
       } else {
-        setSubmitError('Failed to send message. Please try again.');
+        setSubmitError("Failed to send message. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -101,21 +101,27 @@ export default function ContactForm() {
     return (
       <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center animate-fadeIn space-y-4">
         <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center">
-          <span className="material-symbols-outlined text-4xl">check_circle</span>
+          <span className="material-symbols-outlined text-4xl">
+            check_circle
+          </span>
         </div>
         <h3 className="text-2xl font-bold text-navy">Message Received!</h3>
         <p className="text-gray-600 max-w-md mx-auto text-sm leading-relaxed">
-          Thank you for reaching out, <span className="font-semibold text-navy">{formData.firstName}</span>. A representative from our healthcare solutions team will contact you shortly at <span className="font-semibold text-navy">{formData.email}</span>.
+          Thank you for reaching out,{" "}
+          <span className="font-semibold text-navy">{formData.firstName}</span>.
+          A representative from our healthcare solutions team will contact you
+          shortly at{" "}
+          <span className="font-semibold text-navy">{formData.email}</span>.
         </p>
         <button
           onClick={() => {
             setIsSubmitted(false);
             setFormData({
-              firstName: '',
-              lastName: '',
-              email: '',
-              organization: '',
-              message: '',
+              firstName: "",
+              lastName: "",
+              email: "",
+              organization: "",
+              message: "",
             });
             setErrors({});
           }}
@@ -138,11 +144,11 @@ export default function ContactForm() {
             type="text"
             placeholder="John"
             value={formData.firstName}
-            onChange={(e) => handleChange('firstName', e.target.value)}
+            onChange={(e) => handleChange("firstName", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs transition-colors outline-none ${
               errors.firstName
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.firstName && (
@@ -161,11 +167,11 @@ export default function ContactForm() {
             type="text"
             placeholder="Doe"
             value={formData.lastName}
-            onChange={(e) => handleChange('lastName', e.target.value)}
+            onChange={(e) => handleChange("lastName", e.target.value)}
             className={`p-3 bg-white border rounded-lg shadow-xs transition-colors outline-none ${
               errors.lastName
-                ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-                : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+                ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+                : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
             }`}
           />
           {errors.lastName && (
@@ -185,11 +191,11 @@ export default function ContactForm() {
           type="email"
           placeholder="john@example.com"
           value={formData.email}
-          onChange={(e) => handleChange('email', e.target.value)}
+          onChange={(e) => handleChange("email", e.target.value)}
           className={`p-3 bg-white border rounded-lg shadow-xs transition-colors outline-none ${
             errors.email
-              ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-              : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+              ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+              : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
           }`}
         />
         {errors.email && (
@@ -206,7 +212,7 @@ export default function ContactForm() {
           type="text"
           placeholder="Your Hospital or Clinic"
           value={formData.organization}
-          onChange={(e) => handleChange('organization', e.target.value)}
+          onChange={(e) => handleChange("organization", e.target.value)}
           className="p-3 bg-white border border-gray-200 rounded-lg shadow-xs focus:border-gold focus:ring-2 focus:ring-gold/20 outline-none transition-colors"
         />
       </div>
@@ -219,11 +225,11 @@ export default function ContactForm() {
           placeholder="How can we help you?"
           rows={5}
           value={formData.message}
-          onChange={(e) => handleChange('message', e.target.value)}
+          onChange={(e) => handleChange("message", e.target.value)}
           className={`p-3 bg-white border rounded-lg shadow-xs transition-colors outline-none ${
             errors.message
-              ? 'border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20'
-              : 'border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20'
+              ? "border-red-400 focus:ring-2 focus:ring-red-400/30 focus:border-red-500 bg-red-50/20"
+              : "border-gray-200 focus:border-gold focus:ring-2 focus:ring-gold/20"
           }`}
         />
         {errors.message && (
@@ -246,7 +252,7 @@ export default function ContactForm() {
         disabled={isSubmitting}
         className="bg-gold text-navy font-bold py-3 rounded-full hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 mt-2 flex justify-center items-center cursor-pointer disabled:opacity-60 shadow-md"
       >
-        {isSubmitting ? 'Sending...' : 'Send Message'}
+        {isSubmitting ? "Sending..." : "Send Message"}
         <span className="material-symbols-outlined ml-2 text-sm!">send</span>
       </button>
     </form>

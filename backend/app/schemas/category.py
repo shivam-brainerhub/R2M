@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -64,4 +65,3 @@ class CategoryResponse(BaseModel):
     subcategories: list[SubcategoryResponse] = []
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-

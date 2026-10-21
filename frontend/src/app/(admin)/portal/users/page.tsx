@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import CustomSelect from "@/components/CustomSelect";
+import { useAuth } from "@/context/AuthContext";
 import {
-  adminUsersApi,
-  adminRolesApi,
-  UserProfile,
-  Role,
-  PermissionSection,
-  PermissionLevel,
   AdminCreateUserPayload,
+  adminRolesApi,
   AdminUpdateUserPayload,
+  adminUsersApi,
   ApiError,
-} from '@/lib/api';
-import CustomSelect from '@/components/CustomSelect';
-import { getUserInitials } from '@/lib/utils';
+  PermissionLevel,
+  PermissionSection,
+  Role,
+  UserProfile,
+} from "@/lib/api";
+import { getUserInitials } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-type StatusFilter = 'all' | 'active' | 'suspended';
-type VerificationFilter = 'all' | 'verified' | 'unverified';
-type SortField = 'id' | 'username' | 'email' | 'created_at' | 'last_login_at';
-type SortDirection = 'asc' | 'desc';
+type StatusFilter = "all" | "active" | "suspended";
+type VerificationFilter = "all" | "verified" | "unverified";
+type SortField = "id" | "username" | "email" | "created_at" | "last_login_at";
+type SortDirection = "asc" | "desc";
 
 interface SectionInfo {
   id: PermissionSection;
@@ -29,18 +29,53 @@ interface SectionInfo {
 }
 
 const PERMISSION_SECTIONS: SectionInfo[] = [
-  { id: 'quotes', label: 'Quotation Requests', icon: 'request_quote', description: 'Review RFQs, issue quotes, update pricing & notes' },
-  { id: 'products', label: 'Products Catalogue', icon: 'inventory_2', description: 'Manage products, specs, photos, and brochures' },
-  { id: 'categories', label: 'Categories & Brands', icon: 'category', description: 'Manage medical equipment categories, brands, specifications' },
-  { id: 'inquiries', label: 'Inquiries & Leads', icon: 'mark_email_unread', description: 'Contact messages and supplier applications' },
-  { id: 'content', label: 'Site Content & CMS', icon: 'web', description: 'Homepage copy, banners, about section, policy text' },
-  { id: 'users', label: 'User Accounts', icon: 'manage_accounts', description: 'Manage system users, hospital accounts, and credentials' },
-  { id: 'roles', label: 'Roles & IAM', icon: 'shield_person', description: 'Define roles and system permission profiles' },
+  {
+    id: "quotes",
+    label: "Quotation Requests",
+    icon: "request_quote",
+    description: "Review RFQs, issue quotes, update pricing & notes",
+  },
+  {
+    id: "products",
+    label: "Products Catalogue",
+    icon: "inventory_2",
+    description: "Manage products, specs, photos, and brochures",
+  },
+  {
+    id: "categories",
+    label: "Categories & Brands",
+    icon: "category",
+    description: "Manage medical equipment categories, brands, specifications",
+  },
+  {
+    id: "inquiries",
+    label: "Inquiries & Leads",
+    icon: "mark_email_unread",
+    description: "Contact messages and supplier applications",
+  },
+  {
+    id: "content",
+    label: "Site Content & CMS",
+    icon: "web",
+    description: "Homepage copy, banners, about section, policy text",
+  },
+  {
+    id: "users",
+    label: "User Accounts",
+    icon: "manage_accounts",
+    description: "Manage system users, hospital accounts, and credentials",
+  },
+  {
+    id: "roles",
+    label: "Roles & IAM",
+    icon: "shield_person",
+    description: "Define roles and system permission profiles",
+  },
 ];
 
 export default function AdminUsersPage() {
   const { user: currentAdmin, token, hasPermission, isAdmin } = useAuth();
-  const canWriteUsers = hasPermission('users', 'write');
+  const canWriteUsers = hasPermission("users", "write");
 
   // Data & State
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -49,19 +84,20 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filters & Search
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [verifiedFilter, setVerifiedFilter] = useState<VerificationFilter>('all');
-  const [sortField, setSortField] = useState<SortField>('id');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [verifiedFilter, setVerifiedFilter] =
+    useState<VerificationFilter>("all");
+  const [sortField, setSortField] = useState<SortField>("id");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Modals & Action States
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -80,17 +116,19 @@ export default function AdminUsersPage() {
     role: string;
     role_id?: number | null;
   }>({
-    email: '',
-    username: '',
-    full_name: '',
-    phone: '',
-    organization: '',
-    password: '',
-    role: 'user',
+    email: "",
+    username: "",
+    full_name: "",
+    phone: "",
+    organization: "",
+    password: "",
+    role: "user",
     role_id: null,
   });
   const [showCreateCustomPerms, setShowCreateCustomPerms] = useState(false);
-  const [createCustomPerms, setCreateCustomPerms] = useState<Partial<Record<PermissionSection, PermissionLevel>>>({});
+  const [createCustomPerms, setCreateCustomPerms] = useState<
+    Partial<Record<PermissionSection, PermissionLevel>>
+  >({});
   const [createUserError, setCreateUserError] = useState<string | null>(null);
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
 
@@ -112,10 +150,16 @@ export default function AdminUsersPage() {
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   // Notifications / Toast
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
@@ -138,7 +182,8 @@ export default function AdminUsersPage() {
       setUsers(usersData);
       setRoles(rolesData);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to load users';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to load users";
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -164,7 +209,8 @@ export default function AdminUsersPage() {
       })
       .catch((err) => {
         if (!isMounted) return;
-        const msg = err instanceof ApiError ? err.message : 'Failed to load users';
+        const msg =
+          err instanceof ApiError ? err.message : "Failed to load users";
         setError(msg);
         setIsLoading(false);
       });
@@ -185,7 +231,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if (isAnyModalOpen) {
       const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = originalOverflow;
       };
@@ -200,28 +246,35 @@ export default function AdminUsersPage() {
         const query = searchQuery.toLowerCase().trim();
         const matchesUsername = u.username.toLowerCase().includes(query);
         const matchesEmail = u.email.toLowerCase().includes(query);
-        const matchesName = u.full_name ? u.full_name.toLowerCase().includes(query) : false;
-        const matchesOrg = u.organization ? u.organization.toLowerCase().includes(query) : false;
-        if (!matchesUsername && !matchesEmail && !matchesName && !matchesOrg) return false;
+        const matchesName = u.full_name
+          ? u.full_name.toLowerCase().includes(query)
+          : false;
+        const matchesOrg = u.organization
+          ? u.organization.toLowerCase().includes(query)
+          : false;
+        if (!matchesUsername && !matchesEmail && !matchesName && !matchesOrg)
+          return false;
       }
 
       // Role filter
-      if (roleFilter !== 'all') {
+      if (roleFilter !== "all") {
         const matchesSlug = u.role === roleFilter;
-        const matchesName = u.role_name && u.role_name.toLowerCase() === roleFilter.toLowerCase();
-        const matchesId = u.role_id !== undefined && String(u.role_id) === roleFilter;
+        const matchesName =
+          u.role_name && u.role_name.toLowerCase() === roleFilter.toLowerCase();
+        const matchesId =
+          u.role_id !== undefined && String(u.role_id) === roleFilter;
         if (!matchesSlug && !matchesName && !matchesId) {
           return false;
         }
       }
 
       // Status filter
-      if (statusFilter === 'active' && !u.is_active) return false;
-      if (statusFilter === 'suspended' && u.is_active) return false;
+      if (statusFilter === "active" && !u.is_active) return false;
+      if (statusFilter === "suspended" && u.is_active) return false;
 
       // Verification filter
-      if (verifiedFilter === 'verified' && !u.is_email_verified) return false;
-      if (verifiedFilter === 'unverified' && u.is_email_verified) return false;
+      if (verifiedFilter === "verified" && !u.is_email_verified) return false;
+      if (verifiedFilter === "unverified" && u.is_email_verified) return false;
 
       return true;
     });
@@ -230,10 +283,10 @@ export default function AdminUsersPage() {
   // Sorting Handler
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
@@ -242,17 +295,23 @@ export default function AdminUsersPage() {
     if (!token || !selectedUser) return;
     setActionLoadingId(selectedUser.id);
     try {
-      const updated = await adminUsersApi.toggleStatus(token, selectedUser.id, targetSuspendState);
+      const updated = await adminUsersApi.toggleStatus(
+        token,
+        selectedUser.id,
+        targetSuspendState,
+      );
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       showToast(
-        `User ${selectedUser.username} has been ${targetSuspendState ? 'reactivated' : 'suspended'}.`,
-        'success'
+        `User ${selectedUser.username} has been ${
+          targetSuspendState ? "reactivated" : "suspended"
+        }.`,
+        "success",
       );
       setSuspendModalOpen(false);
       setSelectedUser(null);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Action failed';
-      showToast(msg, 'error');
+      const msg = err instanceof ApiError ? err.message : "Action failed";
+      showToast(msg, "error");
     } finally {
       setActionLoadingId(null);
     }
@@ -265,12 +324,16 @@ export default function AdminUsersPage() {
     try {
       await adminUsersApi.deleteUser(token, selectedUser.id);
       setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
-      showToast(`User ${selectedUser.username} was permanently deleted.`, 'success');
+      showToast(
+        `User ${selectedUser.username} was permanently deleted.`,
+        "success",
+      );
       setDeleteModalOpen(false);
       setSelectedUser(null);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete user';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to delete user";
+      showToast(msg, "error");
     } finally {
       setActionLoadingId(null);
     }
@@ -281,11 +344,11 @@ export default function AdminUsersPage() {
     e.preventDefault();
     if (!token || !selectedUser) return;
     if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters long.');
+      setPasswordError("Password must be at least 6 characters long.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match.');
+      setPasswordError("Passwords do not match.");
       return;
     }
 
@@ -293,13 +356,17 @@ export default function AdminUsersPage() {
     setActionLoadingId(selectedUser.id);
     try {
       await adminUsersApi.setPassword(token, selectedUser.id, newPassword);
-      showToast(`Password updated successfully for ${selectedUser.username}.`, 'success');
+      showToast(
+        `Password updated successfully for ${selectedUser.username}.`,
+        "success",
+      );
       setIsPasswordModalOpen(false);
       setSelectedUser(null);
-      setNewPassword('');
-      setConfirmPassword('');
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to set password';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to set password";
       setPasswordError(msg);
     } finally {
       setActionLoadingId(null);
@@ -312,10 +379,13 @@ export default function AdminUsersPage() {
     setActionLoadingId(u.id);
     try {
       const res = await adminUsersApi.resendConfirmation(token, u.id);
-      showToast(res.message, 'success');
+      showToast(res.message, "success");
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to resend confirmation email';
-      showToast(msg, 'error');
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to resend confirmation email";
+      showToast(msg, "error");
     } finally {
       setActionLoadingId(null);
     }
@@ -327,7 +397,8 @@ export default function AdminUsersPage() {
     let matchedRoleId = u.role_id;
     if (!matchedRoleId && roles.length > 0) {
       const found = roles.find(
-        (r) => r.slug === u.role || r.name.toLowerCase() === u.role.toLowerCase()
+        (r) =>
+          r.slug === u.role || r.name.toLowerCase() === u.role.toLowerCase(),
       );
       if (found) matchedRoleId = found.id;
     }
@@ -336,14 +407,22 @@ export default function AdminUsersPage() {
       id: u.id,
       email: u.email,
       username: u.username,
-      full_name: u.full_name || '',
-      phone: u.phone || '',
-      organization: u.organization || '',
+      full_name: u.full_name || "",
+      phone: u.phone || "",
+      organization: u.organization || "",
       role: u.role,
       role_id: matchedRoleId,
-      custom_permissions: u.custom_permissions ? { ...u.custom_permissions } : {},
+      custom_permissions: u.custom_permissions
+        ? { ...u.custom_permissions }
+        : {},
     });
-    setShowEditCustomPerms(Boolean(u.has_custom_permissions || (u.custom_permissions && Object.keys(u.custom_permissions).length > 0)));
+    setShowEditCustomPerms(
+      Boolean(
+        u.has_custom_permissions ||
+          (u.custom_permissions &&
+            Object.keys(u.custom_permissions).length > 0),
+      ),
+    );
     setEditUserError(null);
     setEditUserModalOpen(true);
   };
@@ -367,13 +446,18 @@ export default function AdminUsersPage() {
           : {},
       };
 
-      const updated = await adminUsersApi.updateUser(token, editUserData.id, payload);
+      const updated = await adminUsersApi.updateUser(
+        token,
+        editUserData.id,
+        payload,
+      );
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-      showToast(`User ${updated.username} updated successfully.`, 'success');
+      showToast(`User ${updated.username} updated successfully.`, "success");
       setEditUserModalOpen(false);
       setEditUserData(null);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to update user';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to update user";
       setEditUserError(msg);
     } finally {
       setIsSubmittingEdit(false);
@@ -387,7 +471,7 @@ export default function AdminUsersPage() {
     setCreateUserError(null);
 
     if (!newUserData.email || !newUserData.username || !newUserData.password) {
-      setCreateUserError('Please fill in all required fields.');
+      setCreateUserError("Please fill in all required fields.");
       return;
     }
 
@@ -402,29 +486,31 @@ export default function AdminUsersPage() {
         organization: newUserData.organization.trim() || undefined,
         role: newUserData.role,
         role_id: newUserData.role_id || undefined,
-        custom_permissions: showCreateCustomPerms && Object.keys(createCustomPerms).length > 0
-          ? createCustomPerms
-          : null,
+        custom_permissions:
+          showCreateCustomPerms && Object.keys(createCustomPerms).length > 0
+            ? createCustomPerms
+            : null,
       };
 
       const created = await adminUsersApi.createUser(token, payload);
       setUsers((prev) => [created, ...prev]);
-      showToast(`User ${created.username} created successfully.`, 'success');
+      showToast(`User ${created.username} created successfully.`, "success");
       setCreateUserModalOpen(false);
       setNewUserData({
-        email: '',
-        username: '',
-        full_name: '',
-        phone: '',
-        organization: '',
-        password: '',
-        role: 'user',
+        email: "",
+        username: "",
+        full_name: "",
+        phone: "",
+        organization: "",
+        password: "",
+        role: "user",
         role_id: null,
       });
       setCreateCustomPerms({});
       setShowCreateCustomPerms(false);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to create user';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to create user";
       setCreateUserError(msg);
     } finally {
       setIsSubmittingCreate(false);
@@ -465,13 +551,13 @@ export default function AdminUsersPage() {
         <div className="fixed top-6 right-6 z-100 animate-scale-in">
           <div
             className={`px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 text-sm font-semibold ${
-              toast.type === 'success'
-                ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-950/20'
-                : 'bg-rose-600 text-white border-rose-500 shadow-rose-950/20'
+              toast.type === "success"
+                ? "bg-emerald-600 text-white border-emerald-500 shadow-emerald-950/20"
+                : "bg-rose-600 text-white border-rose-500 shadow-rose-950/20"
             }`}
           >
             <span className="material-symbols-outlined text-white text-lg!">
-              {toast.type === 'success' ? 'check_circle' : 'error'}
+              {toast.type === "success" ? "check_circle" : "error"}
             </span>
             <span>{toast.message}</span>
             <button
@@ -496,7 +582,9 @@ export default function AdminUsersPage() {
             User Accounts &amp; Permissions
           </h1>
           <p className="text-gray-300 text-xs sm:text-sm mt-1 font-light max-w-2xl">
-            Manage system administrators, staff roles, and healthcare clients. Configure individual section permissions, reset credentials, and govern access.
+            Manage system administrators, staff roles, and healthcare clients.
+            Configure individual section permissions, reset credentials, and
+            govern access.
           </p>
         </div>
 
@@ -511,7 +599,9 @@ export default function AdminUsersPage() {
               }}
               className="bg-gold text-navy font-bold px-4 py-2.5 rounded-xl hover:bg-gold-bright transition-all duration-200 hover:scale-105 active:scale-95 text-xs sm:text-sm flex items-center gap-1.5 shadow-md cursor-pointer"
             >
-              <span className="material-symbols-outlined text-lg!">person_add</span>
+              <span className="material-symbols-outlined text-lg!">
+                person_add
+              </span>
               Create User
             </button>
           )}
@@ -521,7 +611,11 @@ export default function AdminUsersPage() {
             className="bg-white/10 hover:bg-white/20 text-white font-medium px-3.5 py-2.5 rounded-xl transition-all border border-white/15 text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             title="Refresh user list"
           >
-            <span className={`material-symbols-outlined text-lg! ${isLoading ? 'animate-spin' : ''}`}>
+            <span
+              className={`material-symbols-outlined text-lg! ${
+                isLoading ? "animate-spin" : ""
+              }`}
+            >
               refresh
             </span>
             <span className="hidden sm:inline">Refresh</span>
@@ -531,9 +625,13 @@ export default function AdminUsersPage() {
 
       {!canWriteUsers && (
         <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
-          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">
+            visibility
+          </span>
           <div>
-            <p className="font-bold text-amber-950">Read-Only User Directory View</p>
+            <p className="font-bold text-amber-950">
+              Read-Only User Directory View
+            </p>
             <p className="text-amber-800/90 mt-0.5">
               Your account has read-only access to user accounts.
             </p>
@@ -544,33 +642,57 @@ export default function AdminUsersPage() {
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-white rounded-xl p-4 border border-gray-200/80 shadow-xs">
-          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Total Users</p>
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+            Total Users
+          </p>
           <p className="text-2xl font-black text-navy mt-1">{stats.total}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">Platform members</p>
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-gray-200/80 shadow-xs">
-          <p className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">Active</p>
-          <p className="text-2xl font-black text-emerald-700 mt-1">{stats.active}</p>
-          <p className="text-[11px] text-emerald-600/80 mt-0.5">Authorized logins</p>
+          <p className="text-[11px] font-semibold text-emerald-600 uppercase tracking-wider">
+            Active
+          </p>
+          <p className="text-2xl font-black text-emerald-700 mt-1">
+            {stats.active}
+          </p>
+          <p className="text-[11px] text-emerald-600/80 mt-0.5">
+            Authorized logins
+          </p>
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-gray-200/80 shadow-xs">
-          <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider">Suspended</p>
-          <p className="text-2xl font-black text-amber-700 mt-1">{stats.suspended}</p>
+          <p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider">
+            Suspended
+          </p>
+          <p className="text-2xl font-black text-amber-700 mt-1">
+            {stats.suspended}
+          </p>
           <p className="text-[11px] text-amber-600/80 mt-0.5">Blocked access</p>
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-gray-200/80 shadow-xs">
-          <p className="text-[11px] font-semibold text-purple-600 uppercase tracking-wider">Unconfirmed</p>
-          <p className="text-2xl font-black text-purple-700 mt-1">{stats.unconfirmed}</p>
-          <p className="text-[11px] text-purple-600/80 mt-0.5">Pending verification</p>
+          <p className="text-[11px] font-semibold text-purple-600 uppercase tracking-wider">
+            Unconfirmed
+          </p>
+          <p className="text-2xl font-black text-purple-700 mt-1">
+            {stats.unconfirmed}
+          </p>
+          <p className="text-[11px] text-purple-600/80 mt-0.5">
+            Pending verification
+          </p>
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-gray-200/80 shadow-xs">
-          <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Custom Perms</p>
-          <p className="text-2xl font-black text-amber-700 mt-1">{stats.customPerms}</p>
-          <p className="text-[11px] text-amber-600/80 mt-0.5">User-level overrides</p>
+          <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">
+            Custom Perms
+          </p>
+          <p className="text-2xl font-black text-amber-700 mt-1">
+            {stats.customPerms}
+          </p>
+          <p className="text-[11px] text-amber-600/80 mt-0.5">
+            User-level overrides
+          </p>
         </div>
       </div>
 
@@ -591,26 +713,33 @@ export default function AdminUsersPage() {
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => setSearchQuery("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer p-0.5"
               >
-                <span className="material-symbols-outlined text-base!">cancel</span>
+                <span className="material-symbols-outlined text-base!">
+                  cancel
+                </span>
               </button>
             )}
           </div>
 
           {/* Quick Clear All Filters */}
-          {(roleFilter !== 'all' || statusFilter !== 'all' || verifiedFilter !== 'all' || searchQuery) && (
+          {(roleFilter !== "all" ||
+            statusFilter !== "all" ||
+            verifiedFilter !== "all" ||
+            searchQuery) && (
             <button
               onClick={() => {
-                setRoleFilter('all');
-                setStatusFilter('all');
-                setVerifiedFilter('all');
-                setSearchQuery('');
+                setRoleFilter("all");
+                setStatusFilter("all");
+                setVerifiedFilter("all");
+                setSearchQuery("");
               }}
               className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-800 font-semibold self-start lg:self-center cursor-pointer transition-colors"
             >
-              <span className="material-symbols-outlined text-sm!">filter_alt_off</span>
+              <span className="material-symbols-outlined text-sm!">
+                filter_alt_off
+              </span>
               Reset filters
             </button>
           )}
@@ -625,7 +754,7 @@ export default function AdminUsersPage() {
               value={roleFilter}
               onChange={(val) => setRoleFilter(val)}
               options={[
-                { value: 'all', label: 'All Roles' },
+                { value: "all", label: "All Roles" },
                 ...roles.map((r) => ({ value: r.slug, label: r.name })),
               ]}
               size="sm"
@@ -639,25 +768,31 @@ export default function AdminUsersPage() {
             <span className="text-gray-500 font-medium">Status:</span>
             <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50">
               <button
-                onClick={() => setStatusFilter('all')}
+                onClick={() => setStatusFilter("all")}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  statusFilter === 'all' ? 'bg-white text-navy shadow-xs' : 'text-gray-600 hover:text-navy'
+                  statusFilter === "all"
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-gray-600 hover:text-navy"
                 }`}
               >
                 All
               </button>
               <button
-                onClick={() => setStatusFilter('active')}
+                onClick={() => setStatusFilter("active")}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  statusFilter === 'active' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
+                  statusFilter === "active"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-gray-600 hover:text-navy"
                 }`}
               >
                 Active
               </button>
               <button
-                onClick={() => setStatusFilter('suspended')}
+                onClick={() => setStatusFilter("suspended")}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  statusFilter === 'suspended' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
+                  statusFilter === "suspended"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "text-gray-600 hover:text-navy"
                 }`}
               >
                 Suspended
@@ -670,25 +805,31 @@ export default function AdminUsersPage() {
             <span className="text-gray-500 font-medium">Email:</span>
             <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50">
               <button
-                onClick={() => setVerifiedFilter('all')}
+                onClick={() => setVerifiedFilter("all")}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  verifiedFilter === 'all' ? 'bg-white text-navy shadow-xs' : 'text-gray-600 hover:text-navy'
+                  verifiedFilter === "all"
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-gray-600 hover:text-navy"
                 }`}
               >
                 All
               </button>
               <button
-                onClick={() => setVerifiedFilter('verified')}
+                onClick={() => setVerifiedFilter("verified")}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                  verifiedFilter === 'verified' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
+                  verifiedFilter === "verified"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-gray-600 hover:text-navy"
                 }`}
               >
                 Verified
               </button>
               <button
-                onClick={() => setVerifiedFilter('unverified')}
+                onClick={() => setVerifiedFilter("unverified")}
                 className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                  verifiedFilter === 'unverified' ? 'bg-purple-600 text-white shadow-xs' : 'text-gray-600 hover:text-navy'
+                  verifiedFilter === "unverified"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "text-gray-600 hover:text-navy"
                 }`}
               >
                 Unverified
@@ -697,7 +838,9 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="ml-auto text-xs text-gray-500 font-medium">
-            Showing <span className="font-bold text-navy">{filteredUsers.length}</span> of {users.length} users
+            Showing{" "}
+            <span className="font-bold text-navy">{filteredUsers.length}</span>{" "}
+            of {users.length} users
           </div>
         </div>
       </div>
@@ -707,11 +850,15 @@ export default function AdminUsersPage() {
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 border-3 border-navy/20 border-t-navy rounded-full animate-spin" />
-            <p className="text-xs text-gray-500 font-medium">Loading user database...</p>
+            <p className="text-xs text-gray-500 font-medium">
+              Loading user database...
+            </p>
           </div>
         ) : error ? (
           <div className="py-16 text-center px-4">
-            <span className="material-symbols-outlined text-4xl text-rose-500 mb-2">error</span>
+            <span className="material-symbols-outlined text-4xl text-rose-500 mb-2">
+              error
+            </span>
             <p className="text-sm font-bold text-navy">{error}</p>
             <button
               onClick={fetchUsers}
@@ -722,10 +869,13 @@ export default function AdminUsersPage() {
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="py-16 text-center px-4">
-            <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">person_off</span>
+            <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">
+              person_off
+            </span>
             <h3 className="text-sm font-bold text-navy">No users found</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Try adjusting your search query or clear the active status/role filters.
+              Try adjusting your search query or clear the active status/role
+              filters.
             </p>
           </div>
         ) : (
@@ -735,26 +885,30 @@ export default function AdminUsersPage() {
                 <tr>
                   <th
                     className="px-5 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => handleSort('username')}
+                    onClick={() => handleSort("username")}
                   >
                     <div className="flex items-center gap-1">
                       <span>User Details</span>
-                      {sortField === 'username' && (
+                      {sortField === "username" && (
                         <span className="material-symbols-outlined text-xs!">
-                          {sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+                          {sortDirection === "asc"
+                            ? "arrow_upward"
+                            : "arrow_downward"}
                         </span>
                       )}
                     </div>
                   </th>
                   <th
                     className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => handleSort('email')}
+                    onClick={() => handleSort("email")}
                   >
                     <div className="flex items-center gap-1">
                       <span>Email &amp; Verification</span>
-                      {sortField === 'email' && (
+                      {sortField === "email" && (
                         <span className="material-symbols-outlined text-xs!">
-                          {sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+                          {sortDirection === "asc"
+                            ? "arrow_upward"
+                            : "arrow_downward"}
                         </span>
                       )}
                     </div>
@@ -763,13 +917,15 @@ export default function AdminUsersPage() {
                   <th className="px-4 py-3">Status</th>
                   <th
                     className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => handleSort('created_at')}
+                    onClick={() => handleSort("created_at")}
                   >
                     <div className="flex items-center gap-1">
                       <span>Joined</span>
-                      {sortField === 'created_at' && (
+                      {sortField === "created_at" && (
                         <span className="material-symbols-outlined text-xs!">
-                          {sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+                          {sortDirection === "asc"
+                            ? "arrow_upward"
+                            : "arrow_downward"}
                         </span>
                       )}
                     </div>
@@ -781,19 +937,24 @@ export default function AdminUsersPage() {
                 {filteredUsers.map((u) => {
                   const isCurrentAdmin = currentAdmin?.id === u.id;
                   const isActionLoading = actionLoadingId === u.id;
-                  const targetIsAdmin = u.is_admin || u.role?.toLowerCase() === 'admin';
-                  const canManageThisUser = canWriteUsers && (isAdmin || !targetIsAdmin);
+                  const targetIsAdmin =
+                    u.is_admin || u.role?.toLowerCase() === "admin";
+                  const canManageThisUser =
+                    canWriteUsers && (isAdmin || !targetIsAdmin);
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr
+                      key={u.id}
+                      className="hover:bg-slate-50/70 transition-colors"
+                    >
                       {/* User Info */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                              u.is_admin || u.role?.toLowerCase() === 'admin'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-200 text-slate-700'
+                              u.is_admin || u.role?.toLowerCase() === "admin"
+                                ? "bg-blue-600 text-white"
+                                : "bg-slate-200 text-slate-700"
                             }`}
                           >
                             {getUserInitials(u.full_name, u.username)}
@@ -808,11 +969,17 @@ export default function AdminUsersPage() {
                               )}
                             </div>
                             <div className="text-xs text-gray-500 truncate">
-                              {u.full_name || <span className="italic text-gray-400">No name specified</span>}
+                              {u.full_name || (
+                                <span className="italic text-gray-400">
+                                  No name specified
+                                </span>
+                              )}
                             </div>
                             {u.organization && (
                               <div className="text-[11px] text-gray-600 font-medium truncate flex items-center gap-1 mt-0.5">
-                                <span className="material-symbols-outlined text-[12px] text-gray-400">corporate_fare</span>
+                                <span className="material-symbols-outlined text-[12px] text-gray-400">
+                                  corporate_fare
+                                </span>
                                 <span>{u.organization}</span>
                               </div>
                             )}
@@ -822,16 +989,22 @@ export default function AdminUsersPage() {
 
                       {/* Email & Verified */}
                       <td className="px-4 py-4">
-                        <div className="font-medium text-gray-800 text-xs sm:text-sm">{u.email}</div>
+                        <div className="font-medium text-gray-800 text-xs sm:text-sm">
+                          {u.email}
+                        </div>
                         <div className="mt-1 flex items-center gap-1.5">
                           {u.is_email_verified ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                              <span className="material-symbols-outlined text-[12px]!">check_circle</span>
+                              <span className="material-symbols-outlined text-[12px]!">
+                                check_circle
+                              </span>
                               Confirmed
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                              <span className="material-symbols-outlined text-[12px]!">pending</span>
+                              <span className="material-symbols-outlined text-[12px]!">
+                                pending
+                              </span>
                               Unconfirmed
                             </span>
                           )}
@@ -843,9 +1016,9 @@ export default function AdminUsersPage() {
                         <div className="flex flex-col items-start gap-1">
                           <span
                             className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide border ${
-                              u.is_admin || u.role?.toLowerCase() === 'admin'
-                                ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                : 'bg-slate-100 text-slate-700 border-slate-200'
+                              u.is_admin || u.role?.toLowerCase() === "admin"
+                                ? "bg-blue-100 text-blue-800 border-blue-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
                             }`}
                           >
                             {u.role_name || u.role}
@@ -855,7 +1028,9 @@ export default function AdminUsersPage() {
                               className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full"
                               title="User has customized section permission overrides"
                             >
-                              <span className="material-symbols-outlined text-[10px]!">tune</span>
+                              <span className="material-symbols-outlined text-[10px]!">
+                                tune
+                              </span>
                               Custom Overrides
                             </span>
                           )}
@@ -879,7 +1054,9 @@ export default function AdminUsersPage() {
 
                       {/* Date Joined */}
                       <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
+                        {u.created_at
+                          ? new Date(u.created_at).toLocaleDateString()
+                          : "N/A"}
                       </td>
 
                       {/* Action buttons */}
@@ -893,7 +1070,9 @@ export default function AdminUsersPage() {
                                 title="Edit user profile and section permissions"
                                 className="p-1.5 text-blue-700 hover:bg-blue-100/70 rounded-lg transition-all border border-blue-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                               >
-                                <span className="material-symbols-outlined text-base!">edit</span>
+                                <span className="material-symbols-outlined text-base!">
+                                  edit
+                                </span>
                               </button>
 
                               {/* Resend Confirmation Email (Only if not verified) */}
@@ -904,7 +1083,9 @@ export default function AdminUsersPage() {
                                   title="Resend verification email"
                                   className="p-1.5 text-purple-700 hover:bg-purple-100/70 rounded-lg transition-all border border-purple-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                                 >
-                                  <span className="material-symbols-outlined text-base!">mark_email_read</span>
+                                  <span className="material-symbols-outlined text-base!">
+                                    mark_email_read
+                                  </span>
                                 </button>
                               )}
 
@@ -912,15 +1093,17 @@ export default function AdminUsersPage() {
                               <button
                                 onClick={() => {
                                   setSelectedUser(u);
-                                  setNewPassword('');
-                                  setConfirmPassword('');
+                                  setNewPassword("");
+                                  setConfirmPassword("");
                                   setPasswordError(null);
                                   setIsPasswordModalOpen(true);
                                 }}
                                 title="Set / Reset Password"
                                 className="p-1.5 text-indigo-700 hover:bg-indigo-100/70 rounded-lg transition-all border border-indigo-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                               >
-                                <span className="material-symbols-outlined text-base!">lock_reset</span>
+                                <span className="material-symbols-outlined text-base!">
+                                  lock_reset
+                                </span>
                               </button>
 
                               {/* Suspend / Reactivate */}
@@ -931,15 +1114,21 @@ export default function AdminUsersPage() {
                                     setTargetSuspendState(!u.is_active);
                                     setSuspendModalOpen(true);
                                   }}
-                                  title={u.is_active ? 'Suspend account' : 'Reactivate account'}
+                                  title={
+                                    u.is_active
+                                      ? "Suspend account"
+                                      : "Reactivate account"
+                                  }
                                   className={`p-1.5 rounded-lg transition-all border cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs ${
                                     u.is_active
-                                      ? 'text-amber-700 hover:bg-amber-100/70 border-amber-200'
-                                      : 'text-emerald-700 hover:bg-emerald-100/70 border-emerald-200'
+                                      ? "text-amber-700 hover:bg-amber-100/70 border-amber-200"
+                                      : "text-emerald-700 hover:bg-emerald-100/70 border-emerald-200"
                                   }`}
                                 >
                                   <span className="material-symbols-outlined text-base!">
-                                    {u.is_active ? 'pause_circle' : 'play_circle'}
+                                    {u.is_active
+                                      ? "pause_circle"
+                                      : "play_circle"}
                                   </span>
                                 </button>
                               )}
@@ -954,7 +1143,9 @@ export default function AdminUsersPage() {
                                   title="Permanently delete suspended account"
                                   className="p-1.5 text-rose-700 hover:bg-rose-100/70 rounded-lg transition-all border border-rose-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                                 >
-                                  <span className="material-symbols-outlined text-base!">delete</span>
+                                  <span className="material-symbols-outlined text-base!">
+                                    delete
+                                  </span>
                                 </button>
                               )}
 
@@ -967,7 +1158,9 @@ export default function AdminUsersPage() {
                                 title="View user details and effective permissions"
                                 className="p-1.5 text-gray-600 hover:text-navy hover:bg-slate-100 rounded-lg transition-all border border-gray-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                               >
-                                <span className="material-symbols-outlined text-base!">visibility</span>
+                                <span className="material-symbols-outlined text-base!">
+                                  visibility
+                                </span>
                               </button>
                             </>
                           ) : (
@@ -980,7 +1173,9 @@ export default function AdminUsersPage() {
                               title="View user details and effective permissions"
                               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy border border-gray-200 transition-colors cursor-pointer shadow-2xs"
                             >
-                              <span className="material-symbols-outlined text-sm!">visibility</span>
+                              <span className="material-symbols-outlined text-sm!">
+                                visibility
+                              </span>
                               <span>View Details</span>
                             </button>
                           )}
@@ -1001,14 +1196,20 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-600 text-xl!">account_circle</span>
-                <h3 className="font-bold text-navy text-lg">User Profile &amp; Access</h3>
+                <span className="material-symbols-outlined text-blue-600 text-xl!">
+                  account_circle
+                </span>
+                <h3 className="font-bold text-navy text-lg">
+                  User Profile &amp; Access
+                </h3>
               </div>
               <button
                 onClick={() => setViewDetailsModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg!">close</span>
+                <span className="material-symbols-outlined text-lg!">
+                  close
+                </span>
               </button>
             </div>
 
@@ -1016,32 +1217,52 @@ export default function AdminUsersPage() {
               <div className="space-y-2">
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
                   <span className="text-gray-500 font-medium">User ID</span>
-                  <span className="font-mono font-bold text-navy">#{selectedUser.id}</span>
+                  <span className="font-mono font-bold text-navy">
+                    #{selectedUser.id}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
                   <span className="text-gray-500 font-medium">Username</span>
-                  <span className="font-bold text-navy">{selectedUser.username}</span>
+                  <span className="font-bold text-navy">
+                    {selectedUser.username}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
                   <span className="text-gray-500 font-medium">Full Name</span>
-                  <span className="text-gray-800">{selectedUser.full_name || 'N/A'}</span>
+                  <span className="text-gray-800">
+                    {selectedUser.full_name || "N/A"}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Organization / Facility</span>
-                  <span className="text-gray-800">{selectedUser.organization || 'N/A'}</span>
+                  <span className="text-gray-500 font-medium">
+                    Organization / Facility
+                  </span>
+                  <span className="text-gray-800">
+                    {selectedUser.organization || "N/A"}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Telephone / Mobile</span>
-                  <span className="text-gray-800">{selectedUser.phone || 'N/A'}</span>
+                  <span className="text-gray-500 font-medium">
+                    Telephone / Mobile
+                  </span>
+                  <span className="text-gray-800">
+                    {selectedUser.phone || "N/A"}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Email Address</span>
+                  <span className="text-gray-500 font-medium">
+                    Email Address
+                  </span>
                   <span className="text-gray-800">{selectedUser.email}</span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Assigned Role</span>
+                  <span className="text-gray-500 font-medium">
+                    Assigned Role
+                  </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-navy">{selectedUser.role_name || selectedUser.role}</span>
+                    <span className="font-bold text-navy">
+                      {selectedUser.role_name || selectedUser.role}
+                    </span>
                     {selectedUser.has_custom_permissions && (
                       <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded-full">
                         Customized
@@ -1050,27 +1271,49 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Account Status</span>
-                  <span className={selectedUser.is_active ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>
-                    {selectedUser.is_active ? 'Active' : 'Suspended'}
+                  <span className="text-gray-500 font-medium">
+                    Account Status
+                  </span>
+                  <span
+                    className={
+                      selectedUser.is_active
+                        ? "text-emerald-700 font-bold"
+                        : "text-rose-700 font-bold"
+                    }
+                  >
+                    {selectedUser.is_active ? "Active" : "Suspended"}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
-                  <span className="text-gray-500 font-medium">Email Verification</span>
-                  <span className={selectedUser.is_email_verified ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
-                    {selectedUser.is_email_verified ? 'Verified' : 'Pending Confirmation'}
+                  <span className="text-gray-500 font-medium">
+                    Email Verification
+                  </span>
+                  <span
+                    className={
+                      selectedUser.is_email_verified
+                        ? "text-emerald-700 font-bold"
+                        : "text-amber-700 font-bold"
+                    }
+                  >
+                    {selectedUser.is_email_verified
+                      ? "Verified"
+                      : "Pending Confirmation"}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
                   <span className="text-gray-500 font-medium">Created On</span>
                   <span className="text-gray-600">
-                    {selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleString() : 'N/A'}
+                    {selectedUser.created_at
+                      ? new Date(selectedUser.created_at).toLocaleString()
+                      : "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-gray-50">
                   <span className="text-gray-500 font-medium">Last Login</span>
                   <span className="text-gray-600">
-                    {selectedUser.last_login_at ? new Date(selectedUser.last_login_at).toLocaleString() : 'Never logged in'}
+                    {selectedUser.last_login_at
+                      ? new Date(selectedUser.last_login_at).toLocaleString()
+                      : "Never logged in"}
                   </span>
                 </div>
               </div>
@@ -1078,13 +1321,18 @@ export default function AdminUsersPage() {
               {/* Effective Section Permissions Breakdown */}
               <div className="pt-2">
                 <h4 className="text-xs font-bold text-navy uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-sm! text-blue-600">verified_user</span>
+                  <span className="material-symbols-outlined text-sm! text-blue-600">
+                    verified_user
+                  </span>
                   Effective Permissions Matrix
                 </h4>
                 <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-xl border border-gray-200">
                   {PERMISSION_SECTIONS.map((sec) => {
-                    const effectiveLevel = selectedUser.permissions?.[sec.id] || 'none';
-                    const isCustomized = selectedUser.custom_permissions && sec.id in selectedUser.custom_permissions;
+                    const effectiveLevel =
+                      selectedUser.permissions?.[sec.id] || "none";
+                    const isCustomized =
+                      selectedUser.custom_permissions &&
+                      sec.id in selectedUser.custom_permissions;
 
                     return (
                       <div
@@ -1092,8 +1340,12 @@ export default function AdminUsersPage() {
                         className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white border border-gray-100"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-gray-500 text-sm!">{sec.icon}</span>
-                          <span className="font-semibold text-gray-800">{sec.label}</span>
+                          <span className="material-symbols-outlined text-gray-500 text-sm!">
+                            {sec.icon}
+                          </span>
+                          <span className="font-semibold text-gray-800">
+                            {sec.label}
+                          </span>
                           {isCustomized && (
                             <span className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1 py-0.2 rounded">
                               Overridden
@@ -1102,14 +1354,18 @@ export default function AdminUsersPage() {
                         </div>
                         <span
                           className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                            effectiveLevel === 'read_write'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : effectiveLevel === 'read'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : 'bg-gray-100 text-gray-500 border-gray-200'
+                            effectiveLevel === "read_write"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : effectiveLevel === "read"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-gray-100 text-gray-500 border-gray-200"
                           }`}
                         >
-                          {effectiveLevel === 'read_write' ? 'Read & Write' : effectiveLevel === 'read' ? 'Read-Only' : 'None'}
+                          {effectiveLevel === "read_write"
+                            ? "Read & Write"
+                            : effectiveLevel === "read"
+                              ? "Read-Only"
+                              : "None"}
                         </span>
                       </div>
                     );
@@ -1146,20 +1402,33 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 animate-scale-in">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-600 text-xl!">lock_reset</span>
-                <h3 className="font-bold text-navy text-lg">Set User Password</h3>
+                <span className="material-symbols-outlined text-blue-600 text-xl!">
+                  lock_reset
+                </span>
+                <h3 className="font-bold text-navy text-lg">
+                  Set User Password
+                </h3>
               </div>
               <button
                 onClick={() => setIsPasswordModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer rounded-lg"
               >
-                <span className="material-symbols-outlined text-lg!">close</span>
+                <span className="material-symbols-outlined text-lg!">
+                  close
+                </span>
               </button>
             </div>
 
-            <form onSubmit={handleSetPasswordSubmit} className="pt-4 space-y-4 text-xs sm:text-sm">
+            <form
+              onSubmit={handleSetPasswordSubmit}
+              className="pt-4 space-y-4 text-xs sm:text-sm"
+            >
               <p className="text-gray-600">
-                Directly configure a new password for <span className="font-bold text-navy">{selectedUser.username}</span> ({selectedUser.email}).
+                Directly configure a new password for{" "}
+                <span className="font-bold text-navy">
+                  {selectedUser.username}
+                </span>{" "}
+                ({selectedUser.email}).
               </p>
 
               {passwordError && (
@@ -1169,7 +1438,9 @@ export default function AdminUsersPage() {
               )}
 
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">New Password</label>
+                <label className="block text-gray-700 font-semibold mb-1">
+                  New Password
+                </label>
                 <input
                   type="password"
                   required
@@ -1182,7 +1453,9 @@ export default function AdminUsersPage() {
               </div>
 
               <div>
-                <label className="block text-gray-700 font-semibold mb-1">Confirm New Password</label>
+                <label className="block text-gray-700 font-semibold mb-1">
+                  Confirm New Password
+                </label>
                 <input
                   type="password"
                   required
@@ -1208,9 +1481,13 @@ export default function AdminUsersPage() {
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {actionLoadingId === selectedUser.id ? (
-                    <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
+                    <span className="material-symbols-outlined text-sm! animate-spin">
+                      refresh
+                    </span>
                   ) : (
-                    <span className="material-symbols-outlined text-sm!">save</span>
+                    <span className="material-symbols-outlined text-sm!">
+                      save
+                    </span>
                   )}
                   Save New Password
                 </button>
@@ -1227,18 +1504,24 @@ export default function AdminUsersPage() {
             <div className="flex items-center gap-3 mb-4">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  targetSuspendState ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  targetSuspendState
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-amber-100 text-amber-700"
                 }`}
               >
                 <span className="material-symbols-outlined text-2xl!">
-                  {targetSuspendState ? 'check_circle' : 'pause_circle'}
+                  {targetSuspendState ? "check_circle" : "pause_circle"}
                 </span>
               </div>
               <div>
                 <h3 className="font-bold text-navy text-lg">
-                  {targetSuspendState ? 'Reactivate Account' : 'Suspend Account'}
+                  {targetSuspendState
+                    ? "Reactivate Account"
+                    : "Suspend Account"}
                 </h3>
-                <p className="text-xs text-gray-500">Confirm access state change</p>
+                <p className="text-xs text-gray-500">
+                  Confirm access state change
+                </p>
               </div>
             </div>
 
@@ -1260,14 +1543,18 @@ export default function AdminUsersPage() {
                 disabled={actionLoadingId === selectedUser.id}
                 className={`px-4 py-2 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-colors ${
                   targetSuspendState
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-amber-600 hover:bg-amber-700'
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-amber-600 hover:bg-amber-700"
                 }`}
               >
                 {actionLoadingId === selectedUser.id && (
-                  <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
+                  <span className="material-symbols-outlined text-sm! animate-spin">
+                    refresh
+                  </span>
                 )}
-                {targetSuspendState ? 'Confirm Reactivation' : 'Confirm Suspension'}
+                {targetSuspendState
+                  ? "Confirm Reactivation"
+                  : "Confirm Suspension"}
               </button>
             </div>
           </div>
@@ -1280,16 +1567,27 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 animate-scale-in">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl!">warning</span>
+                <span className="material-symbols-outlined text-2xl!">
+                  warning
+                </span>
               </div>
               <div>
-                <h3 className="font-bold text-navy text-lg">Delete User Account</h3>
-                <p className="text-xs text-rose-600 font-semibold">Irreversible action</p>
+                <h3 className="font-bold text-navy text-lg">
+                  Delete User Account
+                </h3>
+                <p className="text-xs text-rose-600 font-semibold">
+                  Irreversible action
+                </p>
               </div>
             </div>
 
             <p className="text-gray-600 text-xs sm:text-sm mb-6">
-              Are you sure you want to permanently delete user <span className="font-bold text-navy">{selectedUser.username}</span> ({selectedUser.email})? All account records will be permanently removed.
+              Are you sure you want to permanently delete user{" "}
+              <span className="font-bold text-navy">
+                {selectedUser.username}
+              </span>{" "}
+              ({selectedUser.email})? All account records will be permanently
+              removed.
             </p>
 
             <div className="flex items-center justify-end gap-2">
@@ -1305,7 +1603,9 @@ export default function AdminUsersPage() {
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-colors"
               >
                 {actionLoadingId === selectedUser.id && (
-                  <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
+                  <span className="material-symbols-outlined text-sm! animate-spin">
+                    refresh
+                  </span>
                 )}
                 Permanently Delete
               </button>
@@ -1320,18 +1620,25 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-600 text-xl!">person_add</span>
+                <span className="material-symbols-outlined text-blue-600 text-xl!">
+                  person_add
+                </span>
                 <h3 className="font-bold text-navy text-lg">Add New User</h3>
               </div>
               <button
                 onClick={() => setCreateUserModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer rounded-lg"
               >
-                <span className="material-symbols-outlined text-lg!">close</span>
+                <span className="material-symbols-outlined text-lg!">
+                  close
+                </span>
               </button>
             </div>
 
-            <form onSubmit={handleCreateUserSubmit} className="pt-4 flex flex-col flex-1 min-h-0 overflow-hidden">
+            <form
+              onSubmit={handleCreateUserSubmit}
+              className="pt-4 flex flex-col flex-1 min-h-0 overflow-hidden"
+            >
               <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-1 text-xs sm:text-sm overscroll-contain">
                 {createUserError && (
                   <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs">
@@ -1348,7 +1655,12 @@ export default function AdminUsersPage() {
                       type="email"
                       required
                       value={newUserData.email}
-                      onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                      onChange={(e) =>
+                        setNewUserData({
+                          ...newUserData,
+                          email: e.target.value,
+                        })
+                      }
                       placeholder="e.g. purchaser@hospital.co.za"
                       className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
                     />
@@ -1362,7 +1674,12 @@ export default function AdminUsersPage() {
                       type="text"
                       required
                       value={newUserData.username}
-                      onChange={(e) => setNewUserData({ ...newUserData, username: e.target.value })}
+                      onChange={(e) =>
+                        setNewUserData({
+                          ...newUserData,
+                          username: e.target.value,
+                        })
+                      }
                       placeholder="e.g. dr_smith"
                       className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
                     />
@@ -1371,22 +1688,36 @@ export default function AdminUsersPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-gray-700 font-semibold mb-1">Full Name</label>
+                    <label className="block text-gray-700 font-semibold mb-1">
+                      Full Name
+                    </label>
                     <input
                       type="text"
                       value={newUserData.full_name}
-                      onChange={(e) => setNewUserData({ ...newUserData, full_name: e.target.value })}
+                      onChange={(e) =>
+                        setNewUserData({
+                          ...newUserData,
+                          full_name: e.target.value,
+                        })
+                      }
                       placeholder="e.g. Dr. John Smith"
                       className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 font-semibold mb-1">Telephone / Mobile</label>
+                    <label className="block text-gray-700 font-semibold mb-1">
+                      Telephone / Mobile
+                    </label>
                     <input
                       type="tel"
                       value={newUserData.phone}
-                      onChange={(e) => setNewUserData({ ...newUserData, phone: e.target.value })}
+                      onChange={(e) =>
+                        setNewUserData({
+                          ...newUserData,
+                          phone: e.target.value,
+                        })
+                      }
                       placeholder="e.g. +27 21 555 0100"
                       className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
                     />
@@ -1394,11 +1725,18 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-semibold mb-1">Organisation / Facility</label>
+                  <label className="block text-gray-700 font-semibold mb-1">
+                    Organisation / Facility
+                  </label>
                   <input
                     type="text"
                     value={newUserData.organization}
-                    onChange={(e) => setNewUserData({ ...newUserData, organization: e.target.value })}
+                    onChange={(e) =>
+                      setNewUserData({
+                        ...newUserData,
+                        organization: e.target.value,
+                      })
+                    }
                     placeholder="e.g. Mediclinic Panorama / Public Hospital"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
                   />
@@ -1413,18 +1751,31 @@ export default function AdminUsersPage() {
                     required
                     minLength={6}
                     value={newUserData.password}
-                    onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                    onChange={(e) =>
+                      setNewUserData({
+                        ...newUserData,
+                        password: e.target.value,
+                      })
+                    }
                     placeholder="At least 6 characters"
                     className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 font-semibold mb-1">Assigned Role</label>
+                  <label className="block text-gray-700 font-semibold mb-1">
+                    Assigned Role
+                  </label>
                   <CustomSelect
-                    value={newUserData.role_id ? String(newUserData.role_id) : newUserData.role}
+                    value={
+                      newUserData.role_id
+                        ? String(newUserData.role_id)
+                        : newUserData.role
+                    }
                     onChange={(val) => {
-                      const matchedRole = roles.find((r) => String(r.id) === val || r.slug === val);
+                      const matchedRole = roles.find(
+                        (r) => String(r.id) === val || r.slug === val,
+                      );
                       if (matchedRole) {
                         setNewUserData({
                           ...newUserData,
@@ -1442,17 +1793,30 @@ export default function AdminUsersPage() {
                     options={
                       roles.length > 0
                         ? roles
-                            .filter((r) => isAdmin || r.slug.toLowerCase() !== 'admin')
+                            .filter(
+                              (r) =>
+                                isAdmin || r.slug.toLowerCase() !== "admin",
+                            )
                             .map((r) => ({
                               value: String(r.id),
-                              label: `${r.name} ${r.is_system ? '(System)' : ''}`,
+                              label: `${r.name} ${
+                                r.is_system ? "(System)" : ""
+                              }`,
                             }))
                         : isAdmin
-                        ? [
-                            { value: 'user', label: 'User (Healthcare Client)' },
-                            { value: 'admin', label: 'Admin (Full Control)' },
-                          ]
-                        : [{ value: 'user', label: 'User (Healthcare Client)' }]
+                          ? [
+                              {
+                                value: "user",
+                                label: "User (Healthcare Client)",
+                              },
+                              { value: "admin", label: "Admin (Full Control)" },
+                            ]
+                          : [
+                              {
+                                value: "user",
+                                label: "User (Healthcare Client)",
+                              },
+                            ]
                     }
                     size="md"
                     variant="slate"
@@ -1469,21 +1833,28 @@ export default function AdminUsersPage() {
                 <div className="pt-2 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-navy">Customize Section Permissions</span>
+                      <span className="text-xs font-bold text-navy">
+                        Customize Section Permissions
+                      </span>
                       <p className="text-[11px] text-gray-500">
-                        Override specific section permissions just for this user.
+                        Override specific section permissions just for this
+                        user.
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowCreateCustomPerms(!showCreateCustomPerms)}
+                      onClick={() =>
+                        setShowCreateCustomPerms(!showCreateCustomPerms)
+                      }
                       className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                         showCreateCustomPerms
-                          ? 'bg-amber-50 text-amber-800 border-amber-300'
-                          : 'bg-slate-100 text-gray-600 border-gray-200 hover:text-navy'
+                          ? "bg-amber-50 text-amber-800 border-amber-300"
+                          : "bg-slate-100 text-gray-600 border-gray-200 hover:text-navy"
                       }`}
                     >
-                      {showCreateCustomPerms ? 'Hide Customizer' : 'Customize Permissions'}
+                      {showCreateCustomPerms
+                        ? "Hide Customizer"
+                        : "Customize Permissions"}
                     </button>
                   </div>
 
@@ -1493,10 +1864,15 @@ export default function AdminUsersPage() {
                         <span>Backend Section</span>
                         <span>User Access Level</span>
                       </div>
-                      {PERMISSION_SECTIONS.filter((sec) => isAdmin || sec.id !== 'roles').map((sec) => {
-                        const roleDefault = (createSelectedRoleObj?.permissions?.[sec.id] || 'none') as PermissionLevel;
+                      {PERMISSION_SECTIONS.filter(
+                        (sec) => isAdmin || sec.id !== "roles",
+                      ).map((sec) => {
+                        const roleDefault = (createSelectedRoleObj
+                          ?.permissions?.[sec.id] || "none") as PermissionLevel;
                         const hasOverride = sec.id in createCustomPerms;
-                        const currentVal = hasOverride ? createCustomPerms[sec.id] : 'inherit';
+                        const currentVal = hasOverride
+                          ? createCustomPerms[sec.id]
+                          : "inherit";
 
                         return (
                           <div
@@ -1508,9 +1884,14 @@ export default function AdminUsersPage() {
                                 {sec.icon}
                               </span>
                               <div>
-                                <span className="font-bold text-navy text-xs">{sec.label}</span>
+                                <span className="font-bold text-navy text-xs">
+                                  {sec.label}
+                                </span>
                                 <span className="text-[10px] text-gray-400 block">
-                                  Role default: <strong className="uppercase">{roleDefault}</strong>
+                                  Role default:{" "}
+                                  <strong className="uppercase">
+                                    {roleDefault}
+                                  </strong>
                                 </span>
                               </div>
                             </div>
@@ -1525,8 +1906,8 @@ export default function AdminUsersPage() {
                                 }}
                                 className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
                                   !hasOverride
-                                    ? 'bg-navy text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
+                                    ? "bg-navy text-white shadow-xs"
+                                    : "text-gray-600 hover:text-navy"
                                 }`}
                               >
                                 Inherit
@@ -1534,12 +1915,15 @@ export default function AdminUsersPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setCreateCustomPerms({ ...createCustomPerms, [sec.id]: 'none' });
+                                  setCreateCustomPerms({
+                                    ...createCustomPerms,
+                                    [sec.id]: "none",
+                                  });
                                 }}
                                 className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  hasOverride && currentVal === 'none'
-                                    ? 'bg-rose-600 text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
+                                  hasOverride && currentVal === "none"
+                                    ? "bg-rose-600 text-white shadow-xs"
+                                    : "text-gray-600 hover:text-navy"
                                 }`}
                               >
                                 None
@@ -1547,12 +1931,15 @@ export default function AdminUsersPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setCreateCustomPerms({ ...createCustomPerms, [sec.id]: 'read' });
+                                  setCreateCustomPerms({
+                                    ...createCustomPerms,
+                                    [sec.id]: "read",
+                                  });
                                 }}
                                 className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  hasOverride && currentVal === 'read'
-                                    ? 'bg-blue-600 text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
+                                  hasOverride && currentVal === "read"
+                                    ? "bg-blue-600 text-white shadow-xs"
+                                    : "text-gray-600 hover:text-navy"
                                 }`}
                               >
                                 Read
@@ -1560,12 +1947,15 @@ export default function AdminUsersPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setCreateCustomPerms({ ...createCustomPerms, [sec.id]: 'read_write' });
+                                  setCreateCustomPerms({
+                                    ...createCustomPerms,
+                                    [sec.id]: "read_write",
+                                  });
                                 }}
                                 className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  hasOverride && currentVal === 'read_write'
-                                    ? 'bg-emerald-600 text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
+                                  hasOverride && currentVal === "read_write"
+                                    ? "bg-emerald-600 text-white shadow-xs"
+                                    : "text-gray-600 hover:text-navy"
                                 }`}
                               >
                                 Read &amp; Write
@@ -1593,9 +1983,13 @@ export default function AdminUsersPage() {
                   className="px-4 py-2 bg-navy hover:bg-navy-light text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors disabled:opacity-50"
                 >
                   {isSubmittingCreate ? (
-                    <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
+                    <span className="material-symbols-outlined text-sm! animate-spin">
+                      refresh
+                    </span>
                   ) : (
-                    <span className="material-symbols-outlined text-sm!">check</span>
+                    <span className="material-symbols-outlined text-sm!">
+                      check
+                    </span>
                   )}
                   Create Account
                 </button>
@@ -1611,7 +2005,9 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-600 text-xl!">manage_accounts</span>
+                <span className="material-symbols-outlined text-blue-600 text-xl!">
+                  manage_accounts
+                </span>
                 <h3 className="font-bold text-navy text-lg">
                   Edit User: {editUserData.username}
                 </h3>
@@ -1625,276 +2021,377 @@ export default function AdminUsersPage() {
                 onClick={() => setEditUserModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer rounded-lg"
               >
-                <span className="material-symbols-outlined text-lg!">close</span>
+                <span className="material-symbols-outlined text-lg!">
+                  close
+                </span>
               </button>
             </div>
 
-            <form onSubmit={handleEditUserSubmit} className="pt-4 flex flex-col flex-1 min-h-0 overflow-hidden">
+            <form
+              onSubmit={handleEditUserSubmit}
+              className="pt-4 flex flex-col flex-1 min-h-0 overflow-hidden"
+            >
               <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-1 text-xs sm:text-sm overscroll-contain">
-                <fieldset disabled={!canWriteUsers} className="space-y-3.5 border-0 p-0 m-0 min-w-0">
-                {!canWriteUsers && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-700 text-sm!">lock</span>
-                    <span>You are in view-only mode. Write permission is required to save changes.</span>
-                  </div>
-                )}
-                {editUserError && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs">
-                    {editUserError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-500 font-semibold mb-1">Email</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={editUserData.email}
-                      className="w-full px-3.5 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-500 font-semibold mb-1">Username</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={editUserData.username}
-                      className="w-full px-3.5 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl cursor-not-allowed"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-1">Full Name</label>
-                    <input
-                      type="text"
-                      value={editUserData.full_name}
-                      onChange={(e) => setEditUserData({ ...editUserData, full_name: e.target.value })}
-                      placeholder="e.g. Dr. John Smith"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-1">Telephone / Mobile</label>
-                    <input
-                      type="tel"
-                      value={editUserData.phone}
-                      onChange={(e) => setEditUserData({ ...editUserData, phone: e.target.value })}
-                      placeholder="e.g. +27 21 555 0100"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-1">Organisation / Facility</label>
-                  <input
-                    type="text"
-                    value={editUserData.organization}
-                    onChange={(e) => setEditUserData({ ...editUserData, organization: e.target.value })}
-                    placeholder="e.g. Mediclinic Panorama / Public Hospital"
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-1">Assigned Role</label>
-                  <CustomSelect
-                    value={editUserData.role_id ? String(editUserData.role_id) : editUserData.role}
-                    onChange={(val) => {
-                      const matchedRole = roles.find((r) => String(r.id) === val || r.slug === val);
-                      if (matchedRole) {
-                        setEditUserData({
-                          ...editUserData,
-                          role_id: matchedRole.id,
-                          role: matchedRole.slug,
-                        });
-                      } else {
-                        setEditUserData({
-                          ...editUserData,
-                          role_id: null,
-                          role: val,
-                        });
-                      }
-                    }}
-                    options={
-                      roles.length > 0
-                        ? roles
-                            .filter((r) => isAdmin || r.slug.toLowerCase() !== 'admin')
-                            .map((r) => ({
-                              value: String(r.id),
-                              label: `${r.name} ${r.is_system ? '(System)' : ''}`,
-                            }))
-                        : isAdmin
-                        ? [
-                            { value: 'user', label: 'User (Healthcare Client)' },
-                            { value: 'admin', label: 'Admin (Full Control)' },
-                          ]
-                        : [{ value: 'user', label: 'User (Healthcare Client)' }]
-                    }
-                    size="md"
-                    variant="slate"
-                    className="w-full"
-                  />
-                  {editSelectedRoleObj?.description && (
-                    <p className="text-[11px] text-gray-500 mt-1 italic">
-                      {editSelectedRoleObj.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Custom Permissions Overrides Section */}
-                <div className="pt-2 border-t border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-navy">Section Permissions Overrides</span>
-                      <p className="text-[11px] text-gray-500">
-                        Customize or override access permissions for individual sections for this user.
-                      </p>
+                <fieldset
+                  disabled={!canWriteUsers}
+                  className="space-y-3.5 border-0 p-0 m-0 min-w-0"
+                >
+                  {!canWriteUsers && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-700 text-sm!">
+                        lock
+                      </span>
+                      <span>
+                        You are in view-only mode. Write permission is required
+                        to save changes.
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {canWriteUsers && showEditCustomPerms && Object.keys(editUserData.custom_permissions).length > 0 && (
+                  )}
+                  {editUserError && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs">
+                      {editUserError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-500 font-semibold mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={editUserData.email}
+                        className="w-full px-3.5 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-500 font-semibold mb-1">
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={editUserData.username}
+                        className="w-full px-3.5 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-gray-700 font-semibold mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editUserData.full_name}
+                        onChange={(e) =>
+                          setEditUserData({
+                            ...editUserData,
+                            full_name: e.target.value,
+                          })
+                        }
+                        placeholder="e.g. Dr. John Smith"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-gray-700 font-semibold mb-1">
+                        Telephone / Mobile
+                      </label>
+                      <input
+                        type="tel"
+                        value={editUserData.phone}
+                        onChange={(e) =>
+                          setEditUserData({
+                            ...editUserData,
+                            phone: e.target.value,
+                          })
+                        }
+                        placeholder="e.g. +27 21 555 0100"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-1">
+                      Organisation / Facility
+                    </label>
+                    <input
+                      type="text"
+                      value={editUserData.organization}
+                      onChange={(e) =>
+                        setEditUserData({
+                          ...editUserData,
+                          organization: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. Mediclinic Panorama / Public Hospital"
+                      className="w-full px-3.5 py-2 bg-slate-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-navy"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-1">
+                      Assigned Role
+                    </label>
+                    <CustomSelect
+                      value={
+                        editUserData.role_id
+                          ? String(editUserData.role_id)
+                          : editUserData.role
+                      }
+                      onChange={(val) => {
+                        const matchedRole = roles.find(
+                          (r) => String(r.id) === val || r.slug === val,
+                        );
+                        if (matchedRole) {
+                          setEditUserData({
+                            ...editUserData,
+                            role_id: matchedRole.id,
+                            role: matchedRole.slug,
+                          });
+                        } else {
+                          setEditUserData({
+                            ...editUserData,
+                            role_id: null,
+                            role: val,
+                          });
+                        }
+                      }}
+                      options={
+                        roles.length > 0
+                          ? roles
+                              .filter(
+                                (r) =>
+                                  isAdmin || r.slug.toLowerCase() !== "admin",
+                              )
+                              .map((r) => ({
+                                value: String(r.id),
+                                label: `${r.name} ${
+                                  r.is_system ? "(System)" : ""
+                                }`,
+                              }))
+                          : isAdmin
+                            ? [
+                                {
+                                  value: "user",
+                                  label: "User (Healthcare Client)",
+                                },
+                                {
+                                  value: "admin",
+                                  label: "Admin (Full Control)",
+                                },
+                              ]
+                            : [
+                                {
+                                  value: "user",
+                                  label: "User (Healthcare Client)",
+                                },
+                              ]
+                      }
+                      size="md"
+                      variant="slate"
+                      className="w-full"
+                    />
+                    {editSelectedRoleObj?.description && (
+                      <p className="text-[11px] text-gray-500 mt-1 italic">
+                        {editSelectedRoleObj.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Custom Permissions Overrides Section */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-navy">
+                          Section Permissions Overrides
+                        </span>
+                        <p className="text-[11px] text-gray-500">
+                          Customize or override access permissions for
+                          individual sections for this user.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {canWriteUsers &&
+                          showEditCustomPerms &&
+                          Object.keys(editUserData.custom_permissions).length >
+                            0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditUserData({
+                                  ...editUserData,
+                                  custom_permissions: {},
+                                });
+                              }}
+                              className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+                            >
+                              Clear All Overrides
+                            </button>
+                          )}
                         <button
                           type="button"
-                          onClick={() => {
-                            setEditUserData({ ...editUserData, custom_permissions: {} });
-                          }}
-                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+                          onClick={() =>
+                            setShowEditCustomPerms(!showEditCustomPerms)
+                          }
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                            showEditCustomPerms
+                              ? "bg-amber-50 text-amber-800 border-amber-300"
+                              : "bg-slate-100 text-gray-600 border-gray-200 hover:text-navy"
+                          }`}
                         >
-                          Clear All Overrides
+                          {showEditCustomPerms
+                            ? "Hide Controls"
+                            : "Edit Overrides"}
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setShowEditCustomPerms(!showEditCustomPerms)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
-                          showEditCustomPerms
-                            ? 'bg-amber-50 text-amber-800 border-amber-300'
-                            : 'bg-slate-100 text-gray-600 border-gray-200 hover:text-navy'
-                        }`}
-                      >
-                        {showEditCustomPerms ? 'Hide Controls' : 'Edit Overrides'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {showEditCustomPerms && (
-                    <div className="mt-3 p-3 bg-slate-50 border border-gray-200 rounded-xl space-y-2">
-                      <div className="flex items-center justify-between pb-1 border-b border-gray-200 text-[11px] text-gray-500 font-semibold">
-                        <span>Backend Section</span>
-                        <span>Access Level</span>
                       </div>
-                      {PERMISSION_SECTIONS.filter((sec) => isAdmin || sec.id !== 'roles').map((sec) => {
-                        const roleDefault = (editSelectedRoleObj?.permissions?.[sec.id] || 'none') as PermissionLevel;
-                        const hasOverride = sec.id in editUserData.custom_permissions;
-                        const currentVal = hasOverride ? editUserData.custom_permissions[sec.id] : 'inherit';
+                    </div>
 
-                        return (
-                          <div
-                            key={sec.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 py-1.5 px-2 bg-white rounded-lg border border-gray-200/60"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-gray-500 text-base!">
-                                {sec.icon}
-                              </span>
-                              <div>
-                                <span className="font-bold text-navy text-xs">{sec.label}</span>
-                                <span className="text-[10px] text-gray-400 block">
-                                  Role default: <strong className="uppercase">{roleDefault}</strong>
+                    {showEditCustomPerms && (
+                      <div className="mt-3 p-3 bg-slate-50 border border-gray-200 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between pb-1 border-b border-gray-200 text-[11px] text-gray-500 font-semibold">
+                          <span>Backend Section</span>
+                          <span>Access Level</span>
+                        </div>
+                        {PERMISSION_SECTIONS.filter(
+                          (sec) => isAdmin || sec.id !== "roles",
+                        ).map((sec) => {
+                          const roleDefault = (editSelectedRoleObj
+                            ?.permissions?.[sec.id] ||
+                            "none") as PermissionLevel;
+                          const hasOverride =
+                            sec.id in editUserData.custom_permissions;
+                          const currentVal = hasOverride
+                            ? editUserData.custom_permissions[sec.id]
+                            : "inherit";
+
+                          return (
+                            <div
+                              key={sec.id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 py-1.5 px-2 bg-white rounded-lg border border-gray-200/60"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-gray-500 text-base!">
+                                  {sec.icon}
                                 </span>
+                                <div>
+                                  <span className="font-bold text-navy text-xs">
+                                    {sec.label}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 block">
+                                    Role default:{" "}
+                                    <strong className="uppercase">
+                                      {roleDefault}
+                                    </strong>
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50 text-[11px] shrink-0 self-start sm:self-auto">
+                                <button
+                                  type="button"
+                                  disabled={!canWriteUsers}
+                                  onClick={() => {
+                                    const updated = {
+                                      ...editUserData.custom_permissions,
+                                    };
+                                    delete updated[sec.id];
+                                    setEditUserData({
+                                      ...editUserData,
+                                      custom_permissions: updated,
+                                    });
+                                  }}
+                                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                    !hasOverride
+                                      ? "bg-navy text-white shadow-xs"
+                                      : "text-gray-600 hover:text-navy"
+                                  }`}
+                                >
+                                  Inherit
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!canWriteUsers}
+                                  onClick={() => {
+                                    setEditUserData({
+                                      ...editUserData,
+                                      custom_permissions: {
+                                        ...editUserData.custom_permissions,
+                                        [sec.id]: "none",
+                                      },
+                                    });
+                                  }}
+                                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                    hasOverride && currentVal === "none"
+                                      ? "bg-rose-600 text-white shadow-xs"
+                                      : "text-gray-600 hover:text-navy"
+                                  }`}
+                                >
+                                  None
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!canWriteUsers}
+                                  onClick={() => {
+                                    setEditUserData({
+                                      ...editUserData,
+                                      custom_permissions: {
+                                        ...editUserData.custom_permissions,
+                                        [sec.id]: "read",
+                                      },
+                                    });
+                                  }}
+                                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                    hasOverride && currentVal === "read"
+                                      ? "bg-blue-600 text-white shadow-xs"
+                                      : "text-gray-600 hover:text-navy"
+                                  }`}
+                                >
+                                  Read
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!canWriteUsers}
+                                  onClick={() => {
+                                    setEditUserData({
+                                      ...editUserData,
+                                      custom_permissions: {
+                                        ...editUserData.custom_permissions,
+                                        [sec.id]: "read_write",
+                                      },
+                                    });
+                                  }}
+                                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                    hasOverride && currentVal === "read_write"
+                                      ? "bg-emerald-600 text-white shadow-xs"
+                                      : "text-gray-600 hover:text-navy"
+                                  }`}
+                                >
+                                  Read &amp; Write
+                                </button>
                               </div>
                             </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </fieldset>
+              </div>
 
-                            <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-slate-50 text-[11px] shrink-0 self-start sm:self-auto">
-                              <button
-                                type="button"
-                                disabled={!canWriteUsers}
-                                onClick={() => {
-                                  const updated = { ...editUserData.custom_permissions };
-                                  delete updated[sec.id];
-                                  setEditUserData({ ...editUserData, custom_permissions: updated });
-                                }}
-                                className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  !hasOverride
-                                    ? 'bg-navy text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
-                                }`}
-                              >
-                                Inherit
-                              </button>
-                              <button
-                                type="button"
-                                disabled={!canWriteUsers}
-                                onClick={() => {
-                                  setEditUserData({
-                                    ...editUserData,
-                                    custom_permissions: { ...editUserData.custom_permissions, [sec.id]: 'none' },
-                                  });
-                                }}
-                                className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  hasOverride && currentVal === 'none'
-                                    ? 'bg-rose-600 text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
-                                }`}
-                              >
-                                None
-                              </button>
-                              <button
-                                type="button"
-                                disabled={!canWriteUsers}
-                                onClick={() => {
-                                  setEditUserData({
-                                    ...editUserData,
-                                    custom_permissions: { ...editUserData.custom_permissions, [sec.id]: 'read' },
-                                  });
-                                }}
-                                className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  hasOverride && currentVal === 'read'
-                                    ? 'bg-blue-600 text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
-                                }`}
-                              >
-                                Read
-                              </button>
-                              <button
-                                type="button"
-                                disabled={!canWriteUsers}
-                                onClick={() => {
-                                  setEditUserData({
-                                    ...editUserData,
-                                    custom_permissions: { ...editUserData.custom_permissions, [sec.id]: 'read_write' },
-                                  });
-                                }}
-                                className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                  hasOverride && currentVal === 'read_write'
-                                    ? 'bg-emerald-600 text-white shadow-xs'
-                                    : 'text-gray-600 hover:text-navy'
-                                }`}
-                              >
-                                Read &amp; Write
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </fieldset>
-            </div>
-
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2 shrink-0 bg-white">
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2 shrink-0 bg-white">
                 <button
                   type="button"
                   onClick={() => setEditUserModalOpen(false)}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-navy font-semibold rounded-xl text-xs cursor-pointer transition-colors"
                 >
-                  {canWriteUsers ? 'Cancel' : 'Close'}
+                  {canWriteUsers ? "Cancel" : "Close"}
                 </button>
                 {canWriteUsers && (
                   <button
@@ -1903,9 +2400,13 @@ export default function AdminUsersPage() {
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors disabled:opacity-50"
                   >
                     {isSubmittingEdit ? (
-                      <span className="material-symbols-outlined text-sm! animate-spin">refresh</span>
+                      <span className="material-symbols-outlined text-sm! animate-spin">
+                        refresh
+                      </span>
                     ) : (
-                      <span className="material-symbols-outlined text-sm!">save</span>
+                      <span className="material-symbols-outlined text-sm!">
+                        save
+                      </span>
                     )}
                     Save Changes
                   </button>

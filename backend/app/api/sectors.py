@@ -1,11 +1,11 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy import asc, func
-from sqlalchemy.orm import Session
+from typing import List
 
 from app.database import get_db
 from app.models import Product, Sector, product_sector_association
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import asc, func
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/sectors",
@@ -31,7 +31,10 @@ def list_sectors(
     """
     sectors = db.query(Sector).order_by(asc(Sector.id)).all()
     sector_counts = dict(
-        db.query(product_sector_association.c.sector_id, func.count(func.distinct(Product.id)))
+        db.query(
+            product_sector_association.c.sector_id,
+            func.count(func.distinct(Product.id)),
+        )
         .join(Product, product_sector_association.c.product_id == Product.id)
         .filter(Product.status == "Active")
         .group_by(product_sector_association.c.sector_id)
@@ -64,7 +67,10 @@ def get_sector(
         )
     count = (
         db.query(func.count(func.distinct(Product.id)))
-        .join(product_sector_association, product_sector_association.c.product_id == Product.id)
+        .join(
+            product_sector_association,
+            product_sector_association.c.product_id == Product.id,
+        )
         .filter(
             product_sector_association.c.sector_id == sector.id,
             Product.status == "Active",

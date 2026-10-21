@@ -1,12 +1,12 @@
 import enum
-from app.database import Base
 from typing import Optional
+
+from app.database import Base
 from sqlalchemy import (
     JSON,
     Boolean,
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     String,
@@ -17,9 +17,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+
 class TimestampMixin:
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
 
 product_sector_association = Table(
     "product_sector",
@@ -38,7 +40,9 @@ class Category(TimestampMixin, Base):
     description = Column(String, nullable=True)
     icon = Column(String, nullable=True)
 
-    subcategories = relationship("Subcategory", back_populates="category", cascade="all, delete-orphan")
+    subcategories = relationship(
+        "Subcategory", back_populates="category", cascade="all, delete-orphan"
+    )
     products = relationship("Product", back_populates="category")
 
 
@@ -87,7 +91,9 @@ class Product(TimestampMixin, Base):
     category = relationship("Category", back_populates="products")
     subcategory = relationship("Subcategory", back_populates="products")
     brand = relationship("Brand", back_populates="products")
-    documents = relationship("Document", back_populates="product", cascade="all, delete-orphan")
+    documents = relationship(
+        "Document", back_populates="product", cascade="all, delete-orphan"
+    )
     sectors = relationship(
         "Sector", secondary=product_sector_association, back_populates="products"
     )
@@ -116,7 +122,12 @@ class Product(TimestampMixin, Base):
 class ProductImage(TimestampMixin, Base):
     __tablename__ = "product_images"
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     image_url = Column(String, nullable=False)
     alt_text = Column(String, nullable=True)
     is_primary = Column(Boolean, default=False, nullable=False)
@@ -129,19 +140,35 @@ class Property(TimestampMixin, Base):
     __tablename__ = "properties"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
-    group = Column(String, nullable=True)  # e.g. "General", "Display", "Technical", "Features"
+    category_id = Column(
+        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+    )
+    group = Column(
+        String, nullable=True
+    )  # e.g. "General", "Display", "Technical", "Features"
     description = Column(String, nullable=True)
 
     category = relationship("Category")
-    values = relationship("ProductPropertyValue", back_populates="property", cascade="all, delete-orphan")
+    values = relationship(
+        "ProductPropertyValue", back_populates="property", cascade="all, delete-orphan"
+    )
 
 
 class ProductPropertyValue(TimestampMixin, Base):
     __tablename__ = "product_property_values"
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
-    property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    property_id = Column(
+        Integer,
+        ForeignKey("properties.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     value = Column(String, nullable=False)
 
     product = relationship("Product", back_populates="property_values")
@@ -222,7 +249,9 @@ class User(TimestampMixin, Base):
     phone = Column(String, nullable=True)
     organization = Column(String, nullable=True)
     role = Column(String(64), default="user", nullable=False)
-    role_id = Column(Integer, ForeignKey("roles.id", ondelete="SET NULL"), nullable=True, index=True)
+    role_id = Column(
+        Integer, ForeignKey("roles.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     custom_permissions = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_email_verified = Column(Boolean, default=False, nullable=False)
@@ -232,7 +261,11 @@ class User(TimestampMixin, Base):
 
     @property
     def is_admin(self) -> bool:
-        role_str = str(self.role.value if hasattr(self.role, "value") else self.role).lower() if self.role else ""
+        role_str = (
+            str(self.role.value if hasattr(self.role, "value") else self.role).lower()
+            if self.role
+            else ""
+        )
         if role_str == "admin":
             return True
         if self.role_rel and self.role_rel.slug.lower() == "admin":
@@ -285,7 +318,9 @@ class ContactMessage(TimestampMixin, Base):
     email = Column(String, index=True, nullable=False)
     organization = Column(String, nullable=True)
     message = Column(Text, nullable=False)
-    status = Column(String, default="New", nullable=False, index=True)  # New, In Progress, Responded, Archived
+    status = Column(
+        String, default="New", nullable=False, index=True
+    )  # New, In Progress, Responded, Archived
     notes = Column(Text, nullable=True)
 
 
@@ -301,7 +336,9 @@ class SupplierApplication(TimestampMixin, Base):
     phone = Column(String, nullable=False)
     category = Column(String, index=True, nullable=False)
     overview = Column(Text, nullable=False)
-    status = Column(String, default="New", nullable=False, index=True)  # New, Under Review, Approved, Declined
+    status = Column(
+        String, default="New", nullable=False, index=True
+    )  # New, Under Review, Approved, Declined
     notes = Column(Text, nullable=True)
 
 
@@ -309,10 +346,16 @@ class QuoteRequest(TimestampMixin, Base):
     __tablename__ = "quote_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    quote_number = Column(String, unique=True, index=True, nullable=False)  # e.g. "QR-2026-0001"
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    quote_number = Column(
+        String, unique=True, index=True, nullable=False
+    )  # e.g. "QR-2026-0001"
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
-    facility_name = Column(String, index=True, nullable=False)  # Hospital, Clinic, Surgery Centre
+    facility_name = Column(
+        String, index=True, nullable=False
+    )  # Hospital, Clinic, Surgery Centre
     contact_name = Column(String, nullable=False)
     email = Column(String, index=True, nullable=False)
     phone = Column(String, nullable=False)
@@ -322,23 +365,43 @@ class QuoteRequest(TimestampMixin, Base):
     address = Column(String, nullable=True)
     postal_code = Column(String, nullable=True)
 
-    urgency = Column(String, default="Standard", nullable=False)  # "Standard", "Urgent", "Procurement Tender"
-    status = Column(String, default="New", nullable=False, index=True)  # "New", "In Review", "Quoted", "Approved", "Declined"
+    urgency = Column(
+        String, default="Standard", nullable=False
+    )  # "Standard", "Urgent", "Procurement Tender"
+    status = Column(
+        String, default="New", nullable=False, index=True
+    )  # "New", "In Review", "Quoted", "Approved", "Declined"
 
-    notes = Column(Text, nullable=True)  # Client clinical specifications, PO number, tender specs
+    notes = Column(
+        Text, nullable=True
+    )  # Client clinical specifications, PO number, tender specs
     internal_notes = Column(Text, nullable=True)  # Sales / Admin internal notes
-    quoted_amount = Column(String, nullable=True)  # Pricing entered by admin upon quote generation
+    quoted_amount = Column(
+        String, nullable=True
+    )  # Pricing entered by admin upon quote generation
 
     user = relationship("User")
-    items = relationship("QuoteRequestItem", back_populates="quote_request", cascade="all, delete-orphan")
+    items = relationship(
+        "QuoteRequestItem", back_populates="quote_request", cascade="all, delete-orphan"
+    )
 
 
 class QuoteRequestItem(TimestampMixin, Base):
     __tablename__ = "quote_request_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    quote_request_id = Column(Integer, ForeignKey("quote_requests.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+    quote_request_id = Column(
+        Integer,
+        ForeignKey("quote_requests.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     product_name = Column(String, nullable=False)
     product_sku = Column(String, nullable=True)
@@ -358,6 +421,3 @@ class QuoteRequestItem(TimestampMixin, Base):
             if len(self.product.images) > 0:
                 return self.product.images[0].image_url
         return None
-
-
-

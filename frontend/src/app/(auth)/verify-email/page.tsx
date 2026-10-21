@@ -1,10 +1,11 @@
+import VerifyEmailContent from "@/components/auth/VerifyEmailContent";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import VerifyEmailContent from "@/components/auth/VerifyEmailContent";
 
 export const metadata: Metadata = {
   title: "Verify Email - SA Healthcare",
-  description: "Confirm your email address to activate your SA Healthcare account.",
+  description:
+    "Confirm your email address to activate your SA Healthcare account.",
 };
 
 export default function VerifyEmailPage() {

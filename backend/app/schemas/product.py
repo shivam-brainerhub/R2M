@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -79,7 +80,9 @@ class PaginatedResourcesResponse(BaseModel):
 class ProductPropertyInput(BaseModel):
     property_id: Optional[int] = None
     name: str = Field(..., description="Property name e.g. 'Display Size'")
-    value: str = Field(..., description="Value for this product e.g. '12.1\" Touchscreen'")
+    value: str = Field(
+        ..., description="Value for this product e.g. '12.1\" Touchscreen'"
+    )
     group: Optional[str] = None
 
 
@@ -270,5 +273,3 @@ class SearchSuggestionsResponse(BaseModel):
     products: List[SearchSuggestionProduct] = []
     categories: List[SearchSuggestionCategory] = []
     brands: List[SearchSuggestionBrand] = []
-
-

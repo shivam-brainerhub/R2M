@@ -1,104 +1,117 @@
-import { HeroContent, CompanyContent, WhyUsContent, CTAContent, LegalContent, ProductsPageContent } from './api';
+import {
+  CompanyContent,
+  CTAContent,
+  HeroContent,
+  LegalContent,
+  ProductsPageContent,
+  WhyUsContent,
+} from "./api";
 
 export const DEFAULT_HERO: HeroContent = {
-  headlinePart1: 'Healthcare',
-  headlinePart2: 'without',
-  headlineAccent: 'limits.',
+  headlinePart1: "Healthcare",
+  headlinePart2: "without",
+  headlineAccent: "limits.",
   subheading:
     "Explore SA Healthcare's growing digital healthcare catalogue. Search products, brochures and technical specifications from trusted global manufacturers.",
   showSearchBar: true,
   searchPlaceholder:
-    'Search by product, model number, manufacturer, brochure or technical specification...',
+    "Search by product, model number, manufacturer, brochure or technical specification...",
   popularSearches: [
-    'Patient Monitor',
-    'Hospital Bed',
-    'ECG',
-    'Pulse Oximeter',
-    'Infusion Pump',
-    'Defibrillator',
-    'Ultrasound',
+    "Patient Monitor",
+    "Hospital Bed",
+    "ECG",
+    "Pulse Oximeter",
+    "Infusion Pump",
+    "Defibrillator",
+    "Ultrasound",
   ],
-  badgeTitle: 'TRUST • ACCESS • INNOVATION • IMPACT',
-  badgeTagline: 'A HEALTHIER TOMORROW TOGETHER.',
+  badgeTitle: "TRUST • ACCESS • INNOVATION • IMPACT",
+  badgeTagline: "A HEALTHIER TOMORROW TOGETHER.",
 };
 
 export const DEFAULT_PRODUCTS_PAGE: ProductsPageContent = {
-  title: 'Browse the Catalogue',
-  subtitle: 'Explore our range of medical products from trusted global manufacturers.',
-  searchPlaceholder: 'Search by product, model number, manufacturer...',
+  title: "Browse the Catalogue",
+  subtitle:
+    "Explore our range of medical products from trusted global manufacturers.",
+  searchPlaceholder: "Search by product, model number, manufacturer...",
   popularSearches: [
-    'Patient Monitor',
-    'Hospital Bed',
-    'ECG',
-    'Pulse Oximeter',
-    'Infusion Pump',
-    'Defibrillator',
-    'Ultrasound',
+    "Patient Monitor",
+    "Hospital Bed",
+    "ECG",
+    "Pulse Oximeter",
+    "Infusion Pump",
+    "Defibrillator",
+    "Ultrasound",
   ],
 };
 
 export const DEFAULT_COMPANY: CompanyContent = {
-  companyName: 'SA Healthcare',
-  phone: '+27 11 555 0100',
-  tollFree: '0800 123 456',
-  email: 'info@sahealthcare.com',
-  salesEmail: 'quotes@sahealthcare.com',
-  physicalAddress: '15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa',
-  hours: 'Monday – Friday: 08:00 – 17:00 (SAST)',
+  companyName: "SA Healthcare",
+  phone: "+27 11 555 0100",
+  tollFree: "0800 123 456",
+  email: "info@sahealthcare.com",
+  salesEmail: "quotes@sahealthcare.com",
+  physicalAddress:
+    "15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa",
+  hours: "Monday – Friday: 08:00 – 17:00 (SAST)",
 };
 
 export const DEFAULT_WHY_US: WhyUsContent = {
-  sectionTag: 'WHY SA HEALTHCARE',
-  title: 'Why choose SA Healthcare',
+  sectionTag: "WHY SA HEALTHCARE",
+  title: "Why choose SA Healthcare",
   items: [
     {
-      id: '1',
-      icon: 'language',
-      title: 'Trusted Global Manufacturers',
-      description: 'A comprehensive range of products from leading brands worldwide.',
+      id: "1",
+      icon: "language",
+      title: "Trusted Global Manufacturers",
+      description:
+        "A comprehensive range of products from leading brands worldwide.",
     },
     {
-      id: '2',
-      icon: 'description',
-      title: 'Brochures & Technical Information',
-      description: 'Every product includes brochures and technical specifications.',
+      id: "2",
+      icon: "description",
+      title: "Brochures & Technical Information",
+      description:
+        "Every product includes brochures and technical specifications.",
     },
     {
-      id: '3',
-      icon: 'chat',
-      title: 'Request a Quote',
-      description: 'Receive personalised assistance from our healthcare specialists.',
+      id: "3",
+      icon: "chat",
+      title: "Request a Quote",
+      description:
+        "Receive personalised assistance from our healthcare specialists.",
     },
   ],
 };
 
 export const DEFAULT_CTA: CTAContent = {
-  heading: 'Need a quotation or product advice?',
+  heading: "Need a quotation or product advice?",
   subheading:
-    'Speak to our team for expert guidance and tailored solutions for your facility.',
-  buttonText: 'Request a Quote',
-  buttonLink: '/quote',
-  phone: '+27 11 555 0100',
-  email: 'info@sahealthcare.com',
+    "Speak to our team for expert guidance and tailored solutions for your facility.",
+  buttonText: "Request a Quote",
+  buttonLink: "/quote",
+  phone: "+27 11 555 0100",
+  email: "info@sahealthcare.com",
 };
 
 export const CATEGORY_ICON_MAP: Record<string, string> = {
-  'diagnostic-and-measure': 'monitor_heart',
-  'furniture': 'bed',
-  'disposables-and-care-supplies': 'clean_hands',
-  'hygiene-and-sterilisation': 'sanitizer',
-  'hygiene-disinfection-and-sterilisation': 'sanitizer',
-  'emergency-reanimation-and-surgery': 'medical_services',
-  'living-aid': 'accessible',
-  'instruments': 'content_cut',
-  'lab': 'science',
-  'veterinary': 'pets',
+  "diagnostic-and-measure": "monitor_heart",
+  furniture: "bed",
+  "disposables-and-care-supplies": "clean_hands",
+  "hygiene-and-sterilisation": "sanitizer",
+  "hygiene-disinfection-and-sterilisation": "sanitizer",
+  "emergency-reanimation-and-surgery": "medical_services",
+  "living-aid": "accessible",
+  instruments: "content_cut",
+  lab: "science",
+  veterinary: "pets",
 };
 
 export const DEFAULT_PRIVACY_POLICY: LegalContent = {
-  title: 'Privacy Policy',
-  subtitle: 'How SA Healthcare collects, protects, and handles your personal information in compliance with POPIA.',
-  lastUpdated: 'October 2026',
+  title: "Privacy Policy",
+  subtitle:
+    "How SA Healthcare collects, protects, and handles your personal information in compliance with POPIA.",
+  lastUpdated: "October 2026",
   content: `<h2>1. Commitment to Privacy</h2>
 <p>SA Healthcare ("we", "our", or "us") is committed to protecting the privacy and personal information of our healthcare clients, suppliers, and website visitors. This Privacy Policy outlines our practices regarding information collection, storage, and processing in accordance with the Protection of Personal Information Act (POPIA) of South Africa.</p>
 
@@ -119,9 +132,10 @@ export const DEFAULT_PRIVACY_POLICY: LegalContent = {
 };
 
 export const DEFAULT_TERMS_OF_USE: LegalContent = {
-  title: 'Terms of Use',
-  subtitle: 'Terms governing the use of the SA Healthcare digital equipment catalogue and quote request system.',
-  lastUpdated: 'October 2026',
+  title: "Terms of Use",
+  subtitle:
+    "Terms governing the use of the SA Healthcare digital equipment catalogue and quote request system.",
+  lastUpdated: "October 2026",
   content: `<h2>1. Acceptance of Terms</h2>
 <p>By accessing, browsing, or utilizing the SA Healthcare digital catalogue, requesting quotes, or downloading technical brochures, you agree to be bound by these Terms of Use. If you do not agree with any part of these terms, please refrain from using the platform.</p>
 

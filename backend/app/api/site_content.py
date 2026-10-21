@@ -1,8 +1,6 @@
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy.orm import Session
 
-from app.core.dependencies import require_admin, require_permission
+from app.core.dependencies import require_permission
 from app.database import get_db
 from app.init_db import DEFAULT_SITE_CONTENTS
 from app.models import SiteContent, User
@@ -12,6 +10,8 @@ from app.schemas.site_content import (
     SiteContentUpdate,
 )
 from app.services.storage import get_storage_service
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/content",
@@ -29,7 +29,9 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
     result = dict(data)
     if key == "hero":
         # headline_part1 <-> headlinePart1
-        val1 = result.get("headlinePart1") or result.get("headline_part1") or "Healthcare"
+        val1 = (
+            result.get("headlinePart1") or result.get("headline_part1") or "Healthcare"
+        )
         result["headlinePart1"] = val1
         result["headline_part1"] = val1
 
@@ -39,7 +41,9 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["headline_part2"] = val2
 
         # headline_accent <-> headlineAccent
-        val3 = result.get("headlineAccent") or result.get("headline_accent") or "limits."
+        val3 = (
+            result.get("headlineAccent") or result.get("headline_accent") or "limits."
+        )
         result["headlineAccent"] = val3
         result["headline_accent"] = val3
 
@@ -54,7 +58,11 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["show_search_bar"] = bool(sb_val)
 
         # search_placeholder <-> searchPlaceholder
-        sp = result.get("searchPlaceholder") or result.get("search_placeholder") or "Search products, models, brochures..."
+        sp = (
+            result.get("searchPlaceholder")
+            or result.get("search_placeholder")
+            or "Search products, models, brochures..."
+        )
         result["searchPlaceholder"] = sp
         result["search_placeholder"] = sp
 
@@ -76,12 +84,20 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["popular_searches"] = pops
 
         # badge_title <-> badgeTitle
-        bt = result.get("badgeTitle") or result.get("badge_title") or "TRUST • ACCESS • INNOVATION • IMPACT"
+        bt = (
+            result.get("badgeTitle")
+            or result.get("badge_title")
+            or "TRUST • ACCESS • INNOVATION • IMPACT"
+        )
         result["badgeTitle"] = bt
         result["badge_title"] = bt
 
         # badge_tagline <-> badgeTagline
-        btg = result.get("badgeTagline") or result.get("badge_tagline") or "A HEALTHIER TOMORROW TOGETHER."
+        btg = (
+            result.get("badgeTagline")
+            or result.get("badge_tagline")
+            or "A HEALTHIER TOMORROW TOGETHER."
+        )
         result["badgeTagline"] = btg
         result["badge_tagline"] = btg
 
@@ -98,27 +114,46 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
 
         result["email"] = result.get("email") or "info@sahealthcare.com"
 
-        se = result.get("salesEmail") or result.get("sales_email") or "quotes@sahealthcare.com"
+        se = (
+            result.get("salesEmail")
+            or result.get("sales_email")
+            or "quotes@sahealthcare.com"
+        )
         result["salesEmail"] = se
         result["sales_email"] = se
 
-        pa = result.get("physicalAddress") or result.get("physical_address") or "15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa"
+        pa = (
+            result.get("physicalAddress")
+            or result.get("physical_address")
+            or "15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa"
+        )
         result["physicalAddress"] = pa
         result["physical_address"] = pa
 
         result["hours"] = result.get("hours") or "Monday – Friday: 08:00 – 17:00 (SAST)"
 
     elif key == "why_us":
-        st = result.get("sectionTag") or result.get("section_tag") or "WHY SA HEALTHCARE"
+        st = (
+            result.get("sectionTag") or result.get("section_tag") or "WHY SA HEALTHCARE"
+        )
         result["sectionTag"] = st
         result["section_tag"] = st
         result["title"] = result.get("title") or "Why choose SA Healthcare"
         if "items" not in result:
-            result["items"] = DEFAULT_SITE_CONTENTS.get("why_us", {}).get("content", {}).get("items", [])
+            result["items"] = (
+                DEFAULT_SITE_CONTENTS.get("why_us", {})
+                .get("content", {})
+                .get("items", [])
+            )
 
     elif key == "cta":
-        result["heading"] = result.get("heading") or "Need a quotation or product advice?"
-        result["subheading"] = result.get("subheading") or "Speak to our team for expert guidance and tailored solutions for your facility."
+        result["heading"] = (
+            result.get("heading") or "Need a quotation or product advice?"
+        )
+        result["subheading"] = (
+            result.get("subheading")
+            or "Speak to our team for expert guidance and tailored solutions for your facility."
+        )
         bt = result.get("buttonText") or result.get("button_text") or "Request a Quote"
         result["buttonText"] = bt
         bl = result.get("buttonLink") or result.get("button_link") or "/quote"
@@ -131,7 +166,10 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
 
     elif key in ("privacy_policy", "privacy"):
         result["title"] = result.get("title") or "Privacy Policy"
-        result["subtitle"] = result.get("subtitle") or "How SA Healthcare collects, protects, and handles your personal information in compliance with POPIA."
+        result["subtitle"] = (
+            result.get("subtitle")
+            or "How SA Healthcare collects, protects, and handles your personal information in compliance with POPIA."
+        )
         lu = result.get("lastUpdated") or result.get("last_updated") or "October 2026"
         result["lastUpdated"] = lu
         result["last_updated"] = lu
@@ -146,12 +184,17 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
                         parts.append(f"<h2>{h}</h2>\n<p>{c}</p>")
                 result["content"] = "\n\n".join(parts)
             else:
-                default_content = DEFAULT_SITE_CONTENTS.get("privacy_policy", {}).get("content", {})
+                default_content = DEFAULT_SITE_CONTENTS.get("privacy_policy", {}).get(
+                    "content", {}
+                )
                 result["content"] = default_content.get("content", "")
 
     elif key in ("terms_of_use", "terms"):
         result["title"] = result.get("title") or "Terms of Use"
-        result["subtitle"] = result.get("subtitle") or "Terms governing the use of the SA Healthcare digital equipment catalogue and quote request system."
+        result["subtitle"] = (
+            result.get("subtitle")
+            or "Terms governing the use of the SA Healthcare digital equipment catalogue and quote request system."
+        )
         lu = result.get("lastUpdated") or result.get("last_updated") or "October 2026"
         result["lastUpdated"] = lu
         result["last_updated"] = lu
@@ -166,7 +209,9 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
                         parts.append(f"<h2>{h}</h2>\n<p>{c}</p>")
                 result["content"] = "\n\n".join(parts)
             else:
-                default_content = DEFAULT_SITE_CONTENTS.get("terms_of_use", {}).get("content", {})
+                default_content = DEFAULT_SITE_CONTENTS.get("terms_of_use", {}).get(
+                    "content", {}
+                )
                 result["content"] = default_content.get("content", "")
 
     elif key in ("products_page", "products", "catalogue"):
@@ -253,7 +298,9 @@ def get_site_content_section(key: str, db: Session = Depends(get_db)):
         if key in DEFAULT_SITE_CONTENTS:
             default_info = DEFAULT_SITE_CONTENTS[key]
             normalized = normalize_section_dict(key, default_info["content"])
-            record = SiteContent(key=key, title=default_info["title"], content=normalized)
+            record = SiteContent(
+                key=key, title=default_info["title"], content=normalized
+            )
             db.add(record)
             db.commit()
             db.refresh(record)
@@ -281,7 +328,9 @@ def update_site_content_section(
     record = db.query(SiteContent).filter(SiteContent.key == key).first()
 
     if not record:
-        default_title = DEFAULT_SITE_CONTENTS.get(key, {}).get("title", key.replace("_", " ").title())
+        default_title = DEFAULT_SITE_CONTENTS.get(key, {}).get(
+            "title", key.replace("_", " ").title()
+        )
         record = SiteContent(
             key=key,
             title=payload.title or default_title,
@@ -311,7 +360,9 @@ def batch_update_site_content(
         normalized = normalize_section_dict(section_key, section_data)
         record = db.query(SiteContent).filter(SiteContent.key == section_key).first()
         if not record:
-            default_title = DEFAULT_SITE_CONTENTS.get(section_key, {}).get("title", section_key.replace("_", " ").title())
+            default_title = DEFAULT_SITE_CONTENTS.get(section_key, {}).get(
+                "title", section_key.replace("_", " ").title()
+            )
             record = SiteContent(
                 key=section_key,
                 title=default_title,
@@ -327,7 +378,10 @@ def batch_update_site_content(
 
 @router.post("/reset", response_model=Dict[str, Any])
 def reset_site_content(
-    key: Optional[str] = Query(None, description="Optional key of section to reset, e.g. hero, company. If omitted, resets all sections."),
+    key: Optional[str] = Query(
+        None,
+        description="Optional key of section to reset, e.g. hero, company. If omitted, resets all sections.",
+    ),
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_permission("content", "write")),
 ):
@@ -345,7 +399,9 @@ def reset_site_content(
                 record.title = default_info["title"]
                 record.content = normalized
             else:
-                db.add(SiteContent(key=k, title=default_info["title"], content=normalized))
+                db.add(
+                    SiteContent(key=k, title=default_info["title"], content=normalized)
+                )
 
     db.commit()
     return get_all_site_content(db=db)

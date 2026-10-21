@@ -1,4 +1,5 @@
 import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,10 +20,10 @@ class Settings(BaseSettings):
     )
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
-    INITIAL_ADMIN_EMAIL: str = os.getenv("INITIAL_ADMIN_EMAIL", "admin@route2marketsolutions.com")
-    INITIAL_ADMIN_PASSWORD: str = os.getenv(
-        "INITIAL_ADMIN_PASSWORD", "Admin@R2M!"
+    INITIAL_ADMIN_EMAIL: str = os.getenv(
+        "INITIAL_ADMIN_EMAIL", "admin@route2marketsolutions.com"
     )
+    INITIAL_ADMIN_PASSWORD: str = os.getenv("INITIAL_ADMIN_PASSWORD", "Admin@R2M!")
     INITIAL_ADMIN_USERNAME: str = os.getenv("INITIAL_ADMIN_USERNAME", "admin")
 
     # Email / SMTP configuration
@@ -30,7 +31,9 @@ class Settings(BaseSettings):
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: str = os.getenv("SMTP_USER", "").strip("'\"")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").strip("'\"")
-    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "no-reply@yopmail.com").strip("'\"")
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "no-reply@yopmail.com").strip(
+        "'\""
+    )
     SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "SA Healthcare").strip("'\"")
     SMTP_TLS: bool = os.getenv("SMTP_TLS", "true").lower() in ("true", "1", "yes")
     SMTP_SSL: bool = os.getenv("SMTP_SSL", "false").lower() in ("true", "1", "yes")
@@ -42,7 +45,9 @@ class Settings(BaseSettings):
     STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local")
     MEDIA_DIR: str = os.getenv(
         "MEDIA_DIR",
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media"),
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "media"
+        ),
     )
     S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "")
     S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "")

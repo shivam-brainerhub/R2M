@@ -1,5 +1,4 @@
 import io
-import pytest
 
 
 def test_get_all_site_content_public(client):
@@ -199,7 +198,10 @@ def test_admin_update_privacy_policy(client, admin_token_headers):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["content"]["subtitle"] == "Updated POPIA Privacy Notice for Healthcare Clients"
+    assert (
+        data["content"]["subtitle"]
+        == "Updated POPIA Privacy Notice for Healthcare Clients"
+    )
     assert data["content"]["lastUpdated"] == "November 2026"
     assert "Updated content describing patient" in data["content"]["content"]
 
@@ -233,13 +235,23 @@ def test_admin_update_products_page(client, admin_token_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["content"]["title"] == "Specialized Medical Equipment Catalogue"
-    assert data["content"]["searchPlaceholder"] == "Search diagnostics, monitors, MRI..."
-    assert data["content"]["popularSearches"] == ["MRI Scanner", "Surgical Table", "Endoscope"]
+    assert (
+        data["content"]["searchPlaceholder"] == "Search diagnostics, monitors, MRI..."
+    )
+    assert data["content"]["popularSearches"] == [
+        "MRI Scanner",
+        "Surgical Table",
+        "Endoscope",
+    ]
 
     # Verify persisted via GET
     get_res = client.get("/api/content/products_page")
     assert get_res.status_code == 200
-    assert get_res.json()["content"]["popularSearches"] == ["MRI Scanner", "Surgical Table", "Endoscope"]
+    assert get_res.json()["content"]["popularSearches"] == [
+        "MRI Scanner",
+        "Surgical Table",
+        "Endoscope",
+    ]
 
 
 def test_admin_update_products_page_empty_searches(client, admin_token_headers):
@@ -274,4 +286,3 @@ def test_admin_reset_products_page(client, admin_token_headers):
     assert "products_page" in data
     assert data["products_page"]["title"] == "Browse the Catalogue"
     assert len(data["products_page"]["popularSearches"]) == 7
-

@@ -1,13 +1,11 @@
 import logging
-from sqlalchemy.orm import Session
+
 from app.core.config import settings
 from app.core.security import get_password_hash
 from app.models import (
     Brand,
     Category,
     Product,
-    ProductImage,
-    ProductPropertyValue,
     Property,
     Role,
     Sector,
@@ -17,32 +15,142 @@ from app.models import (
     UserRole,
     product_sector_association,
 )
-
+from sqlalchemy.orm import Session
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SEED_CATEGORIES = [
-    {"name": "Diagnostic and Measure", "code": "01", "slug": "diagnostic-and-measure", "icon": "monitor_heart", "description": "Patient monitors, ECG, ultrasound, thermometers, scales."},
-    {"name": "Furniture", "code": "02", "slug": "furniture", "icon": "bed", "description": "Hospital beds, operating tables and medical furniture."},
-    {"name": "Disposables and Care Supplies", "code": "03", "slug": "disposables-and-care-supplies", "icon": "clean_hands", "description": "Gloves, gowns, bandages, dressings, tubes, syringes."},
-    {"name": "Hygiene and Sterilisation", "code": "04", "slug": "hygiene-and-sterilisation", "icon": "sanitizer", "description": "Autoclaves, UV sterilisers, cleaning products, disinfectants."},
-    {"name": "Emergency, Reanimation and Surgery", "code": "05", "slug": "emergency-reanimation-and-surgery", "icon": "medical_services", "description": "Defibrillators, AEDs, resuscitation, stretchers."},
-    {"name": "Living Aid", "code": "06", "slug": "living-aid", "icon": "accessible", "description": "Wheelchairs, crutches, walkers, patient transfer aids."},
-    {"name": "Instruments", "code": "07", "slug": "instruments", "icon": "content_cut", "description": "Scissors, forceps, speculums, laryngoscopes, otoscopes."},
-    {"name": "Lab", "code": "08", "slug": "lab", "icon": "science", "description": "Laboratory equipment, fridges, containers, petri dishes."},
-    {"name": "Veterinary", "code": "09", "slug": "veterinary", "icon": "pets", "description": "Veterinary equipment, instruments and consumables."},
+    {
+        "name": "Diagnostic and Measure",
+        "code": "01",
+        "slug": "diagnostic-and-measure",
+        "icon": "monitor_heart",
+        "description": "Patient monitors, ECG, ultrasound, thermometers, scales.",
+    },
+    {
+        "name": "Furniture",
+        "code": "02",
+        "slug": "furniture",
+        "icon": "bed",
+        "description": "Hospital beds, operating tables and medical furniture.",
+    },
+    {
+        "name": "Disposables and Care Supplies",
+        "code": "03",
+        "slug": "disposables-and-care-supplies",
+        "icon": "clean_hands",
+        "description": "Gloves, gowns, bandages, dressings, tubes, syringes.",
+    },
+    {
+        "name": "Hygiene and Sterilisation",
+        "code": "04",
+        "slug": "hygiene-and-sterilisation",
+        "icon": "sanitizer",
+        "description": "Autoclaves, UV sterilisers, cleaning products, disinfectants.",
+    },
+    {
+        "name": "Emergency, Reanimation and Surgery",
+        "code": "05",
+        "slug": "emergency-reanimation-and-surgery",
+        "icon": "medical_services",
+        "description": "Defibrillators, AEDs, resuscitation, stretchers.",
+    },
+    {
+        "name": "Living Aid",
+        "code": "06",
+        "slug": "living-aid",
+        "icon": "accessible",
+        "description": "Wheelchairs, crutches, walkers, patient transfer aids.",
+    },
+    {
+        "name": "Instruments",
+        "code": "07",
+        "slug": "instruments",
+        "icon": "content_cut",
+        "description": "Scissors, forceps, speculums, laryngoscopes, otoscopes.",
+    },
+    {
+        "name": "Lab",
+        "code": "08",
+        "slug": "lab",
+        "icon": "science",
+        "description": "Laboratory equipment, fridges, containers, petri dishes.",
+    },
+    {
+        "name": "Veterinary",
+        "code": "09",
+        "slug": "veterinary",
+        "icon": "pets",
+        "description": "Veterinary equipment, instruments and consumables.",
+    },
 ]
 
 SEED_BRANDS = [
-    {"name": "Mindray", "slug": "mindray", "country": "Global / Shenzhen", "description": "Pioneering patient monitoring, life support and diagnostic solutions.", "logo_url": "/media/brands/mindray.png", "featured_in_slider": True},
-    {"name": "Philips", "slug": "philips", "country": "Netherlands", "description": "Advanced clinical patient surveillance, imaging and acute monitoring.", "logo_url": "/media/brands/philips.png", "featured_in_slider": True},
-    {"name": "Dräger", "slug": "draeger", "country": "Germany", "description": "Medical technology specialist in acute point-of-care and anaesthesia.", "logo_url": "/media/brands/draeger.png", "featured_in_slider": True},
-    {"name": "Contec", "slug": "contec", "country": "Global", "description": "Specialised electronic patient monitoring, pulse oximetry and ECG.", "logo_url": "/media/brands/contec.png", "featured_in_slider": True},
-    {"name": "Baxter", "slug": "baxter", "country": "USA", "description": "Essential hospital healthcare products and fluid management systems.", "logo_url": "/media/brands/baxter.png", "featured_in_slider": True},
-    {"name": "Welch Allyn", "slug": "welch-allyn", "country": "USA", "description": "Leading frontline diagnostic equipment and physical assessment instruments.", "logo_url": "/media/brands/welch_allyn.png", "featured_in_slider": True},
-    {"name": "BD", "slug": "bd", "country": "USA", "description": "Medical technology improving drug delivery, vaccine delivery and diagnostics.", "logo_url": "/media/brands/bd.png", "featured_in_slider": True},
-    {"name": "3M", "slug": "3m", "country": "USA", "description": "Critical infection prevention, wound care, Littmann stethoscopes and PPE.", "logo_url": "/media/brands/3m.png", "featured_in_slider": True},
+    {
+        "name": "Mindray",
+        "slug": "mindray",
+        "country": "Global / Shenzhen",
+        "description": "Pioneering patient monitoring, life support and diagnostic solutions.",
+        "logo_url": "/media/brands/mindray.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "Philips",
+        "slug": "philips",
+        "country": "Netherlands",
+        "description": "Advanced clinical patient surveillance, imaging and acute monitoring.",
+        "logo_url": "/media/brands/philips.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "Dräger",
+        "slug": "draeger",
+        "country": "Germany",
+        "description": "Medical technology specialist in acute point-of-care and anaesthesia.",
+        "logo_url": "/media/brands/draeger.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "Contec",
+        "slug": "contec",
+        "country": "Global",
+        "description": "Specialised electronic patient monitoring, pulse oximetry and ECG.",
+        "logo_url": "/media/brands/contec.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "Baxter",
+        "slug": "baxter",
+        "country": "USA",
+        "description": "Essential hospital healthcare products and fluid management systems.",
+        "logo_url": "/media/brands/baxter.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "Welch Allyn",
+        "slug": "welch-allyn",
+        "country": "USA",
+        "description": "Leading frontline diagnostic equipment and physical assessment instruments.",
+        "logo_url": "/media/brands/welch_allyn.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "BD",
+        "slug": "bd",
+        "country": "USA",
+        "description": "Medical technology improving drug delivery, vaccine delivery and diagnostics.",
+        "logo_url": "/media/brands/bd.png",
+        "featured_in_slider": True,
+    },
+    {
+        "name": "3M",
+        "slug": "3m",
+        "country": "USA",
+        "description": "Critical infection prevention, wound care, Littmann stethoscopes and PPE.",
+        "logo_url": "/media/brands/3m.png",
+        "featured_in_slider": True,
+    },
 ]
 
 SEED_SECTORS = [
@@ -289,11 +397,11 @@ DEFAULT_SITE_CONTENTS = {
 }
 
 
-
 def init_db(db: Session) -> None:
     # Ensure users.role column is VARCHAR(64) to prevent StringDataRightTruncation
     try:
         from sqlalchemy import text
+
         db.execute(text("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(64);"))
         db.commit()
     except Exception:
@@ -357,12 +465,12 @@ def init_db(db: Session) -> None:
     if admin_role:
         db.query(User).filter(
             (User.role == "admin") | (User.role == UserRole.ADMIN),
-            User.role_id == None,
+            User.role_id.is_(None),
         ).update({User.role_id: admin_role.id}, synchronize_session=False)
     if user_role:
         db.query(User).filter(
             (User.role == "user") | (User.role == UserRole.USER),
-            User.role_id == None,
+            User.role_id.is_(None),
         ).update({User.role_id: user_role.id}, synchronize_session=False)
     db.commit()
 
@@ -378,7 +486,9 @@ def init_db(db: Session) -> None:
     # 2b. Seed initial subcategories if empty
     if db.query(Subcategory).count() == 0:
         logger.info("Seeding initial subcategories...")
-        diag_cat = db.query(Category).filter(Category.slug == "diagnostic-and-measure").first()
+        diag_cat = (
+            db.query(Category).filter(Category.slug == "diagnostic-and-measure").first()
+        )
         furn_cat = db.query(Category).filter(Category.slug == "furniture").first()
         if diag_cat:
             diag_subs = [
@@ -468,16 +578,34 @@ def init_db(db: Session) -> None:
                 if cat_code in ["01", "02", "04", "05", "07"]:
                     if "Hospitals & Healthcare Groups" in all_sectors:
                         p_sectors.append(all_sectors["Hospitals & Healthcare Groups"])
-                if cat_code in ["01", "03", "06"] or "clinic" in prod_name or "vital signs" in prod_name:
+                if (
+                    cat_code in ["01", "03", "06"]
+                    or "clinic" in prod_name
+                    or "vital signs" in prod_name
+                ):
                     if "Clinics & Primary Care" in all_sectors:
                         p_sectors.append(all_sectors["Clinics & Primary Care"])
-                if cat_code in ["01", "03", "06"] and ("blood pressure" in prod_name or "thermometer" in prod_name or "bandage" in prod_name or "pulse oximeter" in prod_name or "wheelchair" in prod_name):
+                if cat_code in ["01", "03", "06"] and (
+                    "blood pressure" in prod_name
+                    or "thermometer" in prod_name
+                    or "bandage" in prod_name
+                    or "pulse oximeter" in prod_name
+                    or "wheelchair" in prod_name
+                ):
                     if "Pharmacies & Retail Healthcare" in all_sectors:
                         p_sectors.append(all_sectors["Pharmacies & Retail Healthcare"])
                 if cat_code in ["01", "02", "03", "04", "05", "06"]:
                     if "Public Healthcare" in all_sectors:
                         p_sectors.append(all_sectors["Public Healthcare"])
-                if cat_code in ["01", "05", "07"] and ("ecg" in prod_name or "defibrillator" in prod_name or "suction" in prod_name or "ventilator" in prod_name or "surgical" in prod_name or "holter" in prod_name or "doppler" in prod_name):
+                if cat_code in ["01", "05", "07"] and (
+                    "ecg" in prod_name
+                    or "defibrillator" in prod_name
+                    or "suction" in prod_name
+                    or "ventilator" in prod_name
+                    or "surgical" in prod_name
+                    or "holter" in prod_name
+                    or "doppler" in prod_name
+                ):
                     if "Specialist Care" in all_sectors:
                         p_sectors.append(all_sectors["Specialist Care"])
 
@@ -487,13 +615,14 @@ def init_db(db: Session) -> None:
         db.commit()
         logger.info("Catalogue products associated with initial sectors successfully.")
 
-
-
     # 5. Seed initial Site Content CMS records if not present
     for sc_key, sc_data in DEFAULT_SITE_CONTENTS.items():
         existing_sc = db.query(SiteContent).filter(SiteContent.key == sc_key).first()
         if not existing_sc:
-            db.add(SiteContent(key=sc_key, title=sc_data["title"], content=sc_data["content"]))
+            db.add(
+                SiteContent(
+                    key=sc_key, title=sc_data["title"], content=sc_data["content"]
+                )
+            )
     db.commit()
     logger.info("Site content CMS sections verified/seeded successfully.")
-

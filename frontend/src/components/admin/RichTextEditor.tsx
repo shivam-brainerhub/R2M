@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface RichTextEditorProps {
   value: string;
@@ -13,8 +13,8 @@ interface RichTextEditorProps {
 export default function RichTextEditor({
   value,
   onChange,
-  placeholder = 'Compose content here...',
-  minHeight = 'min-h-96',
+  placeholder = "Compose content here...",
+  minHeight = "min-h-96",
   readOnly = false,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -23,8 +23,8 @@ export default function RichTextEditor({
 
   // Link dialog modal state
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkText, setLinkText] = useState('');
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkText, setLinkText] = useState("");
   const [linkOpenInNewTab, setLinkOpenInNewTab] = useState(true);
   const [isEditingExistingLink, setIsEditingExistingLink] = useState(false);
 
@@ -35,8 +35,8 @@ export default function RichTextEditor({
   // Sync external value changes (e.g. initial fetch or reset) when not actively editing
   useEffect(() => {
     if (!isCodeView && editorRef.current && !isFocusedRef.current) {
-      if (editorRef.current.innerHTML !== (value || '')) {
-        editorRef.current.innerHTML = value || '';
+      if (editorRef.current.innerHTML !== (value || "")) {
+        editorRef.current.innerHTML = value || "";
       }
     }
   }, [value, isCodeView]);
@@ -56,15 +56,15 @@ export default function RichTextEditor({
   useEffect(() => {
     if (!isLinkModalOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setIsLinkModalOpen(false);
         existingAnchorRef.current = null;
         savedRangeRef.current = null;
         editorRef.current?.focus();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isLinkModalOpen]);
 
   const handleInput = useCallback(() => {
@@ -101,7 +101,7 @@ export default function RichTextEditor({
     if (range) {
       let node: Node | null = range.commonAncestorContainer;
       while (node && node !== editorRef.current) {
-        if (node.nodeName === 'A') {
+        if (node.nodeName === "A") {
           anchor = node as HTMLAnchorElement;
           break;
         }
@@ -113,13 +113,13 @@ export default function RichTextEditor({
 
     if (anchor) {
       setIsEditingExistingLink(true);
-      setLinkUrl(anchor.getAttribute('href') || '');
-      setLinkText(anchor.textContent || '');
-      setLinkOpenInNewTab(anchor.target === '_blank');
+      setLinkUrl(anchor.getAttribute("href") || "");
+      setLinkText(anchor.textContent || "");
+      setLinkOpenInNewTab(anchor.target === "_blank");
     } else {
       setIsEditingExistingLink(false);
-      setLinkUrl('');
-      const selectedStr = range ? range.toString().trim() : '';
+      setLinkUrl("");
+      const selectedStr = range ? range.toString().trim() : "";
       setLinkText(selectedStr);
       setLinkOpenInNewTab(true);
     }
@@ -137,12 +137,12 @@ export default function RichTextEditor({
 
     // Normalize URL
     const finalUrl =
-      rawUrl.startsWith('http://') ||
-      rawUrl.startsWith('https://') ||
-      rawUrl.startsWith('mailto:') ||
-      rawUrl.startsWith('tel:') ||
-      rawUrl.startsWith('/') ||
-      rawUrl.startsWith('#')
+      rawUrl.startsWith("http://") ||
+      rawUrl.startsWith("https://") ||
+      rawUrl.startsWith("mailto:") ||
+      rawUrl.startsWith("tel:") ||
+      rawUrl.startsWith("/") ||
+      rawUrl.startsWith("#")
         ? rawUrl
         : `https://${rawUrl}`;
 
@@ -153,11 +153,11 @@ export default function RichTextEditor({
       existingAnchorRef.current.href = finalUrl;
       existingAnchorRef.current.textContent = textToDisplay;
       if (linkOpenInNewTab) {
-        existingAnchorRef.current.target = '_blank';
-        existingAnchorRef.current.rel = 'noopener noreferrer';
+        existingAnchorRef.current.target = "_blank";
+        existingAnchorRef.current.rel = "noopener noreferrer";
       } else {
-        existingAnchorRef.current.removeAttribute('target');
-        existingAnchorRef.current.removeAttribute('rel');
+        existingAnchorRef.current.removeAttribute("target");
+        existingAnchorRef.current.removeAttribute("rel");
       }
     } else {
       // Restore range
@@ -168,12 +168,12 @@ export default function RichTextEditor({
       }
 
       // Create new anchor element
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = finalUrl;
       a.textContent = textToDisplay;
       if (linkOpenInNewTab) {
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
       }
 
       if (savedRangeRef.current) {
@@ -206,14 +206,17 @@ export default function RichTextEditor({
     if (existingAnchorRef.current) {
       const parent = existingAnchorRef.current.parentNode;
       while (existingAnchorRef.current.firstChild) {
-        parent?.insertBefore(existingAnchorRef.current.firstChild, existingAnchorRef.current);
+        parent?.insertBefore(
+          existingAnchorRef.current.firstChild,
+          existingAnchorRef.current,
+        );
       }
       parent?.removeChild(existingAnchorRef.current);
     } else if (savedRangeRef.current) {
       const sel = window.getSelection();
       sel?.removeAllRanges();
       sel?.addRange(savedRangeRef.current);
-      document.execCommand('unlink');
+      document.execCommand("unlink");
     }
 
     handleInput();
@@ -237,12 +240,15 @@ export default function RichTextEditor({
 
   const handleHeading = (tag: string) => {
     if (isCodeView) return;
-    exec('formatBlock', `<${tag}>`);
+    exec("formatBlock", `<${tag}>`);
   };
 
   // Word & character stats
-  const cleanText = (value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  const wordCount = cleanText ? cleanText.split(' ').length : 0;
+  const cleanText = (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const wordCount = cleanText ? cleanText.split(" ").length : 0;
   const charCount = cleanText.length;
 
   return (
@@ -260,235 +266,263 @@ export default function RichTextEditor({
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-gray-600 hover:text-navy hover:bg-slate-200 transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-base! leading-none">
-              {isCodeView ? 'visibility' : 'code'}
+              {isCodeView ? "visibility" : "code"}
             </span>
-            <span>{isCodeView ? 'Visual Mode' : 'HTML Code'}</span>
+            <span>{isCodeView ? "Visual Mode" : "HTML Code"}</span>
           </button>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-1 p-2.5 bg-slate-50 border-b border-gray-200">
           <div className="flex flex-wrap items-center gap-1">
-          {/* Paragraph / Headings */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleHeading('p');
-            }}
-            disabled={isCodeView}
-            title="Normal Paragraph"
-            className="px-2.5 py-1 text-xs font-semibold rounded-lg text-gray-700 hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            Normal
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleHeading('h2');
-            }}
-            disabled={isCodeView}
-            title="Heading 2"
-            className="px-2.5 py-1 text-xs font-bold rounded-lg text-navy hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            H2
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleHeading('h3');
-            }}
-            disabled={isCodeView}
-            title="Heading 3"
-            className="px-2.5 py-1 text-xs font-bold rounded-lg text-navy hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            H3
-          </button>
+            {/* Paragraph / Headings */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleHeading("p");
+              }}
+              disabled={isCodeView}
+              title="Normal Paragraph"
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg text-gray-700 hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              Normal
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleHeading("h2");
+              }}
+              disabled={isCodeView}
+              title="Heading 2"
+              className="px-2.5 py-1 text-xs font-bold rounded-lg text-navy hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              H2
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleHeading("h3");
+              }}
+              disabled={isCodeView}
+              title="Heading 3"
+              className="px-2.5 py-1 text-xs font-bold rounded-lg text-navy hover:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              H3
+            </button>
 
-          <span className="w-px h-5 bg-gray-300 mx-1" />
+            <span className="w-px h-5 bg-gray-300 mx-1" />
 
-          {/* Inline Styles */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('bold');
-            }}
-            disabled={isCodeView}
-            title="Bold (Ctrl+B)"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_bold</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('italic');
-            }}
-            disabled={isCodeView}
-            title="Italic (Ctrl+I)"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_italic</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('underline');
-            }}
-            disabled={isCodeView}
-            title="Underline (Ctrl+U)"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_underlined</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('strikeThrough');
-            }}
-            disabled={isCodeView}
-            title="Strikethrough"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">strikethrough_s</span>
-          </button>
+            {/* Inline Styles */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("bold");
+              }}
+              disabled={isCodeView}
+              title="Bold (Ctrl+B)"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_bold
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("italic");
+              }}
+              disabled={isCodeView}
+              title="Italic (Ctrl+I)"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_italic
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("underline");
+              }}
+              disabled={isCodeView}
+              title="Underline (Ctrl+U)"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_underlined
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("strikeThrough");
+              }}
+              disabled={isCodeView}
+              title="Strikethrough"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                strikethrough_s
+              </span>
+            </button>
 
-          <span className="w-px h-5 bg-gray-300 mx-1" />
+            <span className="w-px h-5 bg-gray-300 mx-1" />
 
-          {/* Lists */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('insertUnorderedList');
-            }}
-            disabled={isCodeView}
-            title="Bulleted List"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_list_bulleted</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('insertOrderedList');
-            }}
-            disabled={isCodeView}
-            title="Numbered List"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_list_numbered</span>
-          </button>
+            {/* Lists */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("insertUnorderedList");
+              }}
+              disabled={isCodeView}
+              title="Bulleted List"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_list_bulleted
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("insertOrderedList");
+              }}
+              disabled={isCodeView}
+              title="Numbered List"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_list_numbered
+              </span>
+            </button>
 
-          <span className="w-px h-5 bg-gray-300 mx-1" />
+            <span className="w-px h-5 bg-gray-300 mx-1" />
 
-          {/* Links & Quotes */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              openLinkModal();
-            }}
-            disabled={isCodeView}
-            title="Insert or Edit Link"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">link</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleHeading('blockquote');
-            }}
-            disabled={isCodeView}
-            title="Quote"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_quote</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('insertHorizontalRule');
-            }}
-            disabled={isCodeView}
-            title="Horizontal Divider"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">horizontal_rule</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('removeFormat');
-            }}
-            disabled={isCodeView}
-            title="Clear Formatting"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">format_clear</span>
-          </button>
+            {/* Links & Quotes */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                openLinkModal();
+              }}
+              disabled={isCodeView}
+              title="Insert or Edit Link"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                link
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleHeading("blockquote");
+              }}
+              disabled={isCodeView}
+              title="Quote"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_quote
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("insertHorizontalRule");
+              }}
+              disabled={isCodeView}
+              title="Horizontal Divider"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                horizontal_rule
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("removeFormat");
+              }}
+              disabled={isCodeView}
+              title="Clear Formatting"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                format_clear
+              </span>
+            </button>
 
-          <span className="w-px h-5 bg-gray-300 mx-1" />
+            <span className="w-px h-5 bg-gray-300 mx-1" />
 
-          {/* Undo / Redo */}
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('undo');
-            }}
-            disabled={isCodeView}
-            title="Undo (Ctrl+Z)"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">undo</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              exec('redo');
-            }}
-            disabled={isCodeView}
-            title="Redo (Ctrl+Y)"
-            className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-lg! leading-none">redo</span>
-          </button>
-        </div>
+            {/* Undo / Redo */}
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("undo");
+              }}
+              disabled={isCodeView}
+              title="Undo (Ctrl+Z)"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                undo
+              </span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("redo");
+              }}
+              disabled={isCodeView}
+              title="Redo (Ctrl+Y)"
+              className="p-1.5 text-gray-700 hover:bg-slate-200 rounded-lg disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg! leading-none">
+                redo
+              </span>
+            </button>
+          </div>
 
-        {/* View Toggle */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              if (isCodeView && editorRef.current) {
-                editorRef.current.innerHTML = value || '';
+          {/* View Toggle */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (isCodeView && editorRef.current) {
+                  editorRef.current.innerHTML = value || "";
+                }
+                setIsCodeView(!isCodeView);
+              }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                isCodeView
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-slate-200 border border-gray-200"
+              }`}
+              title={
+                isCodeView
+                  ? "Switch to Visual Editor"
+                  : "Switch to HTML Code View"
               }
-              setIsCodeView(!isCodeView);
-            }}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
-              isCodeView
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-slate-200 border border-gray-200'
-            }`}
-            title={isCodeView ? 'Switch to Visual Editor' : 'Switch to HTML Code View'}
-          >
-            <span className="material-symbols-outlined text-base! leading-none">
-              {isCodeView ? 'visibility' : 'code'}
-            </span>
-            <span>{isCodeView ? 'Visual Mode' : 'HTML Code'}</span>
-          </button>
+            >
+              <span className="material-symbols-outlined text-base! leading-none">
+                {isCodeView ? "visibility" : "code"}
+              </span>
+              <span>{isCodeView ? "Visual Mode" : "HTML Code"}</span>
+            </button>
           </div>
         </div>
       )}
@@ -497,14 +531,14 @@ export default function RichTextEditor({
       {isCodeView ? (
         <textarea
           rows={16}
-          value={value || ''}
+          value={value || ""}
           readOnly={readOnly}
           onChange={(e) => {
             if (!readOnly) onChange(e.target.value);
           }}
           placeholder="Enter or paste raw HTML markup..."
           className={`w-full p-4 font-mono text-xs bg-slate-900 text-emerald-400 focus:outline-none resize-y ${minHeight} ${
-            readOnly ? 'cursor-not-allowed opacity-90' : ''
+            readOnly ? "cursor-not-allowed opacity-90" : ""
           }`}
         />
       ) : (
@@ -526,7 +560,7 @@ export default function RichTextEditor({
           }}
           data-placeholder={placeholder}
           className={`w-full p-5 focus:outline-none text-slate-800 text-sm leading-relaxed overflow-y-auto ${minHeight} max-h-160 prose prose-slate max-w-none prose-headings:text-navy prose-h2:text-lg prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-base prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2 prose-p:mb-3 prose-ul:list-disc prose-ul:ml-6 prose-ol:list-decimal prose-ol:ml-6 prose-a:text-blue-600 prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic ${
-            readOnly ? 'bg-slate-50/50 cursor-default select-text' : ''
+            readOnly ? "bg-slate-50/50 cursor-default select-text" : ""
           }`}
         />
       )}
@@ -535,7 +569,9 @@ export default function RichTextEditor({
       <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-t border-gray-100 text-[11px] text-gray-400 font-medium">
         <div>
           {readOnly ? (
-            <span className="text-amber-800 font-semibold">View-only mode • Content edits disabled</span>
+            <span className="text-amber-800 font-semibold">
+              View-only mode • Content edits disabled
+            </span>
           ) : isCodeView ? (
             <span>Editing raw HTML markup directly</span>
           ) : (
@@ -562,11 +598,13 @@ export default function RichTextEditor({
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-lg!">link</span>
+                  <span className="material-symbols-outlined text-lg!">
+                    link
+                  </span>
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-navy">
-                    {isEditingExistingLink ? 'Edit Link' : 'Insert Link'}
+                    {isEditingExistingLink ? "Edit Link" : "Insert Link"}
                   </h3>
                   <p className="text-[11px] text-gray-500">
                     Add a web hyperlink, page link, or email address.
@@ -578,14 +616,17 @@ export default function RichTextEditor({
                 onClick={handleCloseLinkModal}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg!">close</span>
+                <span className="material-symbols-outlined text-lg!">
+                  close
+                </span>
               </button>
             </div>
 
             <form onSubmit={handleApplyLink} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  Destination URL or Path <span className="text-red-500">*</span>
+                  Destination URL or Path{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   ref={linkInputRef}
@@ -617,7 +658,9 @@ export default function RichTextEditor({
                   onChange={(e) => setLinkOpenInNewTab(e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                 />
-                <span className="text-xs text-gray-700 font-medium">Open in new tab</span>
+                <span className="text-xs text-gray-700 font-medium">
+                  Open in new tab
+                </span>
               </label>
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
@@ -627,7 +670,9 @@ export default function RichTextEditor({
                     onClick={handleRemoveLink}
                     className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-sm!">link_off</span>
+                    <span className="material-symbols-outlined text-sm!">
+                      link_off
+                    </span>
                     Remove Link
                   </button>
                 ) : (
@@ -646,8 +691,12 @@ export default function RichTextEditor({
                     type="submit"
                     className="text-xs font-semibold px-4 py-2 rounded-xl bg-navy text-white hover:bg-navy-light transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
                   >
-                    <span className="material-symbols-outlined text-sm!">check</span>
-                    <span>{isEditingExistingLink ? 'Update Link' : 'Insert Link'}</span>
+                    <span className="material-symbols-outlined text-sm!">
+                      check
+                    </span>
+                    <span>
+                      {isEditingExistingLink ? "Update Link" : "Insert Link"}
+                    </span>
                   </button>
                 </div>
               </div>

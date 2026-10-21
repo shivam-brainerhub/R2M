@@ -1,19 +1,19 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_, desc, asc, func
-from sqlalchemy.orm import Session
-from app.core.dependencies import require_admin, require_permission
+
+from app.core.dependencies import require_permission
 from app.core.security import create_email_verification_token, get_password_hash
 from app.database import get_db
-from app.models import (
-    VALID_PERMISSION_LEVELS,
-    ALL_PERMISSIONS_SECTIONS,
-    Role,
-    User,
-    UserRole,
+from app.models import ALL_PERMISSIONS_SECTIONS, VALID_PERMISSION_LEVELS, Role, User
+from app.schemas.user import (
+    AdminSetPasswordRequest,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
 )
-from app.schemas.user import AdminSetPasswordRequest, UserCreate, UserResponse, UserUpdate
 from app.services.email import send_verification_email
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import asc, desc, func, or_
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/admin/users",
@@ -41,11 +41,15 @@ def validate_custom_permissions(perms: Optional[dict]) -> None:
 def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
-    search: Optional[str] = Query(None, description="Search by username, email, or full name"),
+    search: Optional[str] = Query(
+        None, description="Search by username, email, or full name"
+    ),
     role: Optional[str] = None,
     is_active: Optional[bool] = None,
     is_email_verified: Optional[bool] = None,
-    sort_by: Optional[str] = Query("id", pattern="^(id|username|email|created_at|last_login_at)$"),
+    sort_by: Optional[str] = Query(
+        "id", pattern="^(id|username|email|created_at|last_login_at)$"
+    ),
     sort_order: Optional[str] = Query("desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("users", "read")),
@@ -117,9 +121,11 @@ def create_user(
             )
         role_slug = db_role.slug
     else:
-        db_role = db.query(Role).filter(
-            (Role.slug == role_slug) | (func.lower(Role.name) == role_slug)
-        ).first()
+        db_role = (
+            db.query(Role)
+            .filter((Role.slug == role_slug) | (func.lower(Role.name) == role_slug))
+            .first()
+        )
         if db_role:
             role_id = db_role.id
             role_slug = db_role.slug
@@ -213,7 +219,10 @@ def update_user(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="You cannot remove your own admin privileges",
                     )
-            elif user_update.role is not None and user_update.role.strip().lower() != "admin":
+            elif (
+                user_update.role is not None
+                and user_update.role.strip().lower() != "admin"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="You cannot remove your own admin privileges",
@@ -221,7 +230,11 @@ def update_user(
 
     # Check email uniqueness if changing
     if user_update.email and user_update.email.strip().lower() != user.email.lower():
-        if db.query(User).filter(func.lower(User.email) == user_update.email.strip().lower()).first():
+        if (
+            db.query(User)
+            .filter(func.lower(User.email) == user_update.email.strip().lower())
+            .first()
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email is already taken",
@@ -229,8 +242,15 @@ def update_user(
         user.email = user_update.email.strip().lower()
 
     # Check username uniqueness if changing
-    if user_update.username and user_update.username.strip().lower() != user.username.lower():
-        if db.query(User).filter(func.lower(User.username) == user_update.username.strip().lower()).first():
+    if (
+        user_update.username
+        and user_update.username.strip().lower() != user.username.lower()
+    ):
+        if (
+            db.query(User)
+            .filter(func.lower(User.username) == user_update.username.strip().lower())
+            .first()
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Username is already taken",
@@ -238,13 +258,17 @@ def update_user(
         user.username = user_update.username.strip()
 
     if user_update.full_name is not None:
-        user.full_name = user_update.full_name.strip() if user_update.full_name else None
+        user.full_name = (
+            user_update.full_name.strip() if user_update.full_name else None
+        )
 
     if user_update.phone is not None:
         user.phone = user_update.phone.strip() if user_update.phone else None
 
     if user_update.organization is not None:
-        user.organization = user_update.organization.strip() if user_update.organization else None
+        user.organization = (
+            user_update.organization.strip() if user_update.organization else None
+        )
 
     if user_update.role_id is not None:
         db_role = db.query(Role).filter(Role.id == user_update.role_id).first()
@@ -267,19 +291,27 @@ def update_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only platform administrators can promote users to administrator",
             )
-        db_role = db.query(Role).filter(
-            (Role.slug == role_input) | (func.lower(Role.name) == role_input)
-        ).first()
+        db_role = (
+            db.query(Role)
+            .filter((Role.slug == role_input) | (func.lower(Role.name) == role_input))
+            .first()
+        )
         if db_role:
             user.role_id = db_role.id
             user.role = db_role.slug
         else:
             user.role = role_input
 
-    fields_set = getattr(user_update, "model_fields_set", getattr(user_update, "__fields_set__", set()))
+    fields_set = getattr(
+        user_update, "model_fields_set", getattr(user_update, "__fields_set__", set())
+    )
     if "custom_permissions" in fields_set or user_update.custom_permissions is not None:
         validate_custom_permissions(user_update.custom_permissions)
-        if not current_user.is_admin and user_update.custom_permissions and "roles" in user_update.custom_permissions:
+        if (
+            not current_user.is_admin
+            and user_update.custom_permissions
+            and "roles" in user_update.custom_permissions
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only platform administrators can grant roles management permissions",

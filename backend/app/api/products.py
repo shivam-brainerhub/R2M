@@ -1,11 +1,7 @@
-import os
 import re
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import asc, case, desc, func, or_
-from sqlalchemy.orm import Session, joinedload
 
-from app.core.dependencies import require_admin, require_permission
+from app.core.dependencies import require_permission
 from app.database import get_db
 from app.models import (
     Brand,
@@ -25,7 +21,6 @@ from app.schemas.product import (
     ProductCompareResponse,
     ProductCreate,
     ProductFilterOptionsResponse,
-    ProductImageCreate,
     ProductImageResponse,
     ProductPropertyValueResponse,
     ProductResponse,
@@ -39,6 +34,18 @@ from app.schemas.product import (
 )
 from app.services.filter_cache import filter_cache_service
 from app.services.storage import get_storage_service
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from sqlalchemy import asc, case, desc, func, or_
+from sqlalchemy.orm import Session, joinedload
 
 router = APIRouter(
     prefix="/products",
@@ -98,7 +105,9 @@ def generate_slug(text: str) -> str:
     return slug or "product"
 
 
-def get_unique_slug(db: Session, base_slug: str, current_id: Optional[int] = None) -> str:
+def get_unique_slug(
+    db: Session, base_slug: str, current_id: Optional[int] = None
+) -> str:
     slug = base_slug
     counter = 1
     while True:
@@ -121,7 +130,9 @@ def build_product_response(product: Product) -> ProductResponse:
             is_primary=img.is_primary,
             display_order=img.display_order,
         )
-        for img in sorted(product.images, key=lambda x: (not x.is_primary, x.display_order))
+        for img in sorted(
+            product.images, key=lambda x: (not x.is_primary, x.display_order)
+        )
     ]
 
     # Build list of property values
@@ -155,7 +166,9 @@ def build_product_response(product: Product) -> ProductResponse:
         for doc in (product.documents or [])
     ]
     # If product has brochure_url but no document matches it, add it as default Brochure
-    if product.brochure_url and not any(d.file_url == product.brochure_url for d in doc_responses):
+    if product.brochure_url and not any(
+        d.file_url == product.brochure_url for d in doc_responses
+    ):
         doc_responses.insert(
             0,
             DocumentResponse(
@@ -244,8 +257,12 @@ def upload_product_image(
 
 @router.delete("/media")
 def delete_media_file(
-    file_url: str = Query(..., description="Public URL or path of the media file to delete"),
-    force: bool = Query(False, description="Force delete even if referenced in catalogue"),
+    file_url: str = Query(
+        ..., description="Public URL or path of the media file to delete"
+    ),
+    force: bool = Query(
+        False, description="Force delete even if referenced in catalogue"
+    ),
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_permission("products", "write")),
 ):
@@ -353,7 +370,9 @@ def get_product_filters(db: Session = Depends(get_db)):
 
 @router.get("/suggest", response_model=SearchSuggestionsResponse)
 def get_search_suggestions(
-    q: str = Query(..., min_length=1, description="Search term for predictive autocomplete"),
+    q: str = Query(
+        ..., min_length=1, description="Search term for predictive autocomplete"
+    ),
     limit: int = Query(6, ge=1, le=20, description="Max product suggestions to return"),
     db: Session = Depends(get_db),
 ):
@@ -576,12 +595,20 @@ def compare_products(
 
 @router.get("", response_model=List[ProductResponse])
 def list_products(
-    search: Optional[str] = Query(None, description="Search by name, SKU, or description"),
+    search: Optional[str] = Query(
+        None, description="Search by name, SKU, or description"
+    ),
     category: Optional[str] = Query(None, description="Filter by category slug or ID"),
-    subcategory: Optional[str] = Query(None, description="Filter by subcategory slug or ID"),
+    subcategory: Optional[str] = Query(
+        None, description="Filter by subcategory slug or ID"
+    ),
     brand: Optional[str] = Query(None, description="Filter by brand slug or ID"),
-    sector: Optional[str] = Query(None, description="Filter by healthcare sector name or ID"),
-    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status (Active, Draft)"),
+    sector: Optional[str] = Query(
+        None, description="Filter by healthcare sector name or ID"
+    ),
+    status_filter: Optional[str] = Query(
+        None, alias="status", description="Filter by status (Active, Draft)"
+    ),
     sort_by: Optional[str] = Query("name", pattern="^(id|name|sku|created_at)$"),
     sort_order: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
     limit: Optional[int] = Query(100, ge=1, le=500),
@@ -592,17 +619,14 @@ def list_products(
     List products with rich filtering by category, subcategory, brand, status, and full-text search.
     Public endpoint.
     """
-    query = (
-        db.query(Product)
-        .options(
-            joinedload(Product.category),
-            joinedload(Product.subcategory),
-            joinedload(Product.brand),
-            joinedload(Product.sectors),
-            joinedload(Product.images),
-            joinedload(Product.documents),
-            joinedload(Product.property_values).joinedload(ProductPropertyValue.property),
-        )
+    query = db.query(Product).options(
+        joinedload(Product.category),
+        joinedload(Product.subcategory),
+        joinedload(Product.brand),
+        joinedload(Product.sectors),
+        joinedload(Product.images),
+        joinedload(Product.documents),
+        joinedload(Product.property_values).joinedload(ProductPropertyValue.property),
     )
 
     if search:
@@ -649,7 +673,6 @@ def list_products(
     if status_filter and status_filter.lower() != "all":
         query = query.filter(Product.status.ilike(status_filter.strip()))
 
-
     sort_col = getattr(Product, sort_by, Product.name)
     if sort_order == "desc":
         query = query.order_by(desc(sort_col))
@@ -677,11 +700,7 @@ def get_related_products(
     5. Priority 3: Same brand_id across catalogue.
     6. Priority 4: Active catalogue products fallback if needed.
     """
-    target = (
-        db.query(Product)
-        .filter(Product.slug == slug_or_id.strip())
-        .first()
-    )
+    target = db.query(Product).filter(Product.slug == slug_or_id.strip()).first()
     if not target and slug_or_id.isdigit():
         target = db.query(Product).filter(Product.id == int(slug_or_id)).first()
 
@@ -706,7 +725,9 @@ def get_related_products(
                 joinedload(Product.category),
                 joinedload(Product.brand),
                 joinedload(Product.images),
-                joinedload(Product.property_values).joinedload(ProductPropertyValue.property),
+                joinedload(Product.property_values).joinedload(
+                    ProductPropertyValue.property
+                ),
             )
             .filter(Product.status == "Active")
             .filter(~Product.id.in_(list(collected_ids)))
@@ -809,7 +830,9 @@ def create_product(
 
     # Check SKU uniqueness if provided
     if payload.sku:
-        existing_sku = db.query(Product).filter(Product.sku == payload.sku.strip()).first()
+        existing_sku = (
+            db.query(Product).filter(Product.sku == payload.sku.strip()).first()
+        )
         if existing_sku:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -839,11 +862,15 @@ def create_product(
         subcategory_id=payload.subcategory_id,
         brand_id=payload.brand_id,
         description=payload.description.strip() if payload.description else None,
-        short_description=payload.short_description.strip() if payload.short_description else None,
+        short_description=(
+            payload.short_description.strip() if payload.short_description else None
+        ),
         brochure_url=payload.brochure_url.strip() if payload.brochure_url else None,
         status=payload.status or "Active",
         meta_title=payload.meta_title.strip() if payload.meta_title else clean_name,
-        meta_description=payload.meta_description.strip() if payload.meta_description else None,
+        meta_description=(
+            payload.meta_description.strip() if payload.meta_description else None
+        ),
         specifications={},
     )
     db.add(product)
@@ -860,7 +887,9 @@ def create_product(
             else:
                 image_url = img_input.image_url.strip()
                 alt_text = img_input.alt_text or f"{clean_name} image {idx + 1}"
-                is_primary = img_input.is_primary if img_input.is_primary else (idx == 0)
+                is_primary = (
+                    img_input.is_primary if img_input.is_primary else (idx == 0)
+                )
                 display_order = img_input.display_order or idx
 
             if image_url:
@@ -886,10 +915,16 @@ def create_product(
             # Look up or create canonical Property
             canonical_prop = None
             if prop_input.property_id:
-                canonical_prop = db.query(Property).filter(Property.id == prop_input.property_id).first()
+                canonical_prop = (
+                    db.query(Property)
+                    .filter(Property.id == prop_input.property_id)
+                    .first()
+                )
 
             if not canonical_prop:
-                canonical_prop = db.query(Property).filter(Property.name.ilike(prop_name)).first()
+                canonical_prop = (
+                    db.query(Property).filter(Property.name.ilike(prop_name)).first()
+                )
 
             if not canonical_prop:
                 # Create property on the fly
@@ -916,7 +951,11 @@ def create_product(
                 db.add(
                     Document(
                         product_id=product.id,
-                        title=doc_input.title.strip() if doc_input.title else f"{clean_name} Document",
+                        title=(
+                            doc_input.title.strip()
+                            if doc_input.title
+                            else f"{clean_name} Document"
+                        ),
                         file_url=doc_input.file_url.strip(),
                         type=doc_input.type.strip() if doc_input.type else "Brochure",
                     )
@@ -967,9 +1006,17 @@ def update_product(
         product.name = payload.name.strip()
 
     if payload.slug is not None and payload.slug.strip() != product.slug:
-        product.slug = get_unique_slug(db, generate_slug(payload.slug), current_id=product_id)
-    elif payload.name is not None and payload.slug is None and payload.name.strip() != product.name:
-        product.slug = get_unique_slug(db, generate_slug(payload.name), current_id=product_id)
+        product.slug = get_unique_slug(
+            db, generate_slug(payload.slug), current_id=product_id
+        )
+    elif (
+        payload.name is not None
+        and payload.slug is None
+        and payload.name.strip() != product.name
+    ):
+        product.slug = get_unique_slug(
+            db, generate_slug(payload.name), current_id=product_id
+        )
 
     if payload.sku is not None:
         clean_sku = payload.sku.strip() if payload.sku.strip() else None
@@ -990,7 +1037,11 @@ def update_product(
         if payload.category_id == 0:
             product.category_id = None
         else:
-            if not db.query(Category).filter(Category.id == payload.category_id).first():
+            if (
+                not db.query(Category)
+                .filter(Category.id == payload.category_id)
+                .first()
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Selected category does not exist",
@@ -1012,15 +1063,23 @@ def update_product(
             product.brand_id = payload.brand_id
 
     if payload.description is not None:
-        product.description = payload.description.strip() if payload.description.strip() else None
+        product.description = (
+            payload.description.strip() if payload.description.strip() else None
+        )
 
     if payload.short_description is not None:
-        product.short_description = payload.short_description.strip() if payload.short_description.strip() else None
+        product.short_description = (
+            payload.short_description.strip()
+            if payload.short_description.strip()
+            else None
+        )
 
     storage = get_storage_service()
 
     if payload.brochure_url is not None:
-        new_brochure = payload.brochure_url.strip() if payload.brochure_url.strip() else None
+        new_brochure = (
+            payload.brochure_url.strip() if payload.brochure_url.strip() else None
+        )
         old_brochure = product.brochure_url
         if old_brochure and old_brochure != new_brochure:
             if not is_media_in_use(db, old_brochure, exclude_product_id=product.id):
@@ -1031,15 +1090,23 @@ def update_product(
         product.status = payload.status
 
     if payload.meta_title is not None:
-        product.meta_title = payload.meta_title.strip() if payload.meta_title.strip() else None
+        product.meta_title = (
+            payload.meta_title.strip() if payload.meta_title.strip() else None
+        )
 
     if payload.meta_description is not None:
-        product.meta_description = payload.meta_description.strip() if payload.meta_description.strip() else None
+        product.meta_description = (
+            payload.meta_description.strip()
+            if payload.meta_description.strip()
+            else None
+        )
 
     # Update images if provided
     if payload.images is not None:
         # Detect images that were removed
-        old_images = db.query(ProductImage).filter(ProductImage.product_id == product.id).all()
+        old_images = (
+            db.query(ProductImage).filter(ProductImage.product_id == product.id).all()
+        )
         old_urls = {img.image_url.strip() for img in old_images if img.image_url}
 
         new_urls = set()
@@ -1068,7 +1135,9 @@ def update_product(
             else:
                 image_url = img_input.image_url.strip()
                 alt_text = img_input.alt_text or f"{product.name} image {idx + 1}"
-                is_primary = img_input.is_primary if img_input.is_primary else (idx == 0)
+                is_primary = (
+                    img_input.is_primary if img_input.is_primary else (idx == 0)
+                )
                 display_order = img_input.display_order or idx
 
             if image_url:
@@ -1085,7 +1154,9 @@ def update_product(
     # Update properties if provided
     if payload.properties is not None:
         # Remove existing property values
-        db.query(ProductPropertyValue).filter(ProductPropertyValue.product_id == product.id).delete()
+        db.query(ProductPropertyValue).filter(
+            ProductPropertyValue.product_id == product.id
+        ).delete()
         specs_dict = {}
 
         for prop_input in payload.properties:
@@ -1096,10 +1167,16 @@ def update_product(
 
             canonical_prop = None
             if prop_input.property_id:
-                canonical_prop = db.query(Property).filter(Property.id == prop_input.property_id).first()
+                canonical_prop = (
+                    db.query(Property)
+                    .filter(Property.id == prop_input.property_id)
+                    .first()
+                )
 
             if not canonical_prop:
-                canonical_prop = db.query(Property).filter(Property.name.ilike(prop_name)).first()
+                canonical_prop = (
+                    db.query(Property).filter(Property.name.ilike(prop_name)).first()
+                )
 
             if not canonical_prop:
                 canonical_prop = Property(
@@ -1137,7 +1214,11 @@ def update_product(
                 db.add(
                     Document(
                         product_id=product.id,
-                        title=doc_in.title.strip() if doc_in.title else f"{product.name} Document",
+                        title=(
+                            doc_in.title.strip()
+                            if doc_in.title
+                            else f"{product.name} Document"
+                        ),
                         file_url=doc_in.file_url.strip(),
                         type=doc_in.type.strip() if doc_in.type else "Brochure",
                     )

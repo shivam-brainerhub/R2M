@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import ClientProviders from '@/components/ClientProviders';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import ServerErrorView from '@/components/ServerErrorView';
+import ClientProviders from "@/components/ClientProviders";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import ServerErrorView from "@/components/ServerErrorView";
+import { useEffect } from "react";
 
 export default function ErrorBoundary({
   error,
@@ -14,7 +14,7 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Unhandled runtime error:', error);
+    console.error("Unhandled runtime error:", error);
   }, [error]);
 
   return (

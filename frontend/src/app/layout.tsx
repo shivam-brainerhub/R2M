@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import "./globals.css";
 import ClientProviders from "../components/ClientProviders";
+import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:8000";
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
@@ -23,16 +23,19 @@ export const metadata: Metadata = {
     : undefined,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html
-      lang="en"
-      className="h-full antialiased"
-      suppressHydrationWarning
-    >
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
         {/* eslint-disable-next-line @next/next/no-page-custom-font, @next/next/google-font-display */}
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+          rel="stylesheet"
+        />
 
         {/* Google Analytics (gtag.js) */}
         {gaId && (
@@ -41,10 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
             />
-            <Script
-              id="google-analytics"
-              strategy="afterInteractive"
-            >
+            <Script id="google-analytics" strategy="afterInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
@@ -70,7 +70,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Script>
         )}
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans" suppressHydrationWarning>
+      <body
+        className="min-h-full flex flex-col bg-background text-foreground font-sans"
+        suppressHydrationWarning
+      >
         {gtmId && (
           <noscript>
             <iframe
@@ -81,9 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             />
           </noscript>
         )}
-        <ClientProviders>
-          {children}
-        </ClientProviders>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

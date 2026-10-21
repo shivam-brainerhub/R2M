@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -40,9 +41,13 @@ class HeroContentSchema(BaseModel):
 class CompanyContentSchema(BaseModel):
     company_name: str = Field(default="SA Healthcare", validation_alias="companyName")
     phone: str = Field(default="+27 11 555 0100")
-    toll_free: Optional[str] = Field(default="0800 123 456", validation_alias="tollFree")
+    toll_free: Optional[str] = Field(
+        default="0800 123 456", validation_alias="tollFree"
+    )
     email: str = Field(default="info@sahealthcare.com")
-    sales_email: Optional[str] = Field(default="quotes@sahealthcare.com", validation_alias="salesEmail")
+    sales_email: Optional[str] = Field(
+        default="quotes@sahealthcare.com", validation_alias="salesEmail"
+    )
     physical_address: str = Field(
         default="15 Medical Boulevard, Sandton, Johannesburg, 2196, South Africa",
         validation_alias="physicalAddress",
@@ -62,7 +67,9 @@ class WhyUsItemSchema(BaseModel):
 
 
 class WhyUsContentSchema(BaseModel):
-    section_tag: Optional[str] = Field(default="WHY SA HEALTHCARE", validation_alias="sectionTag")
+    section_tag: Optional[str] = Field(
+        default="WHY SA HEALTHCARE", validation_alias="sectionTag"
+    )
     title: Optional[str] = Field(default="Why choose SA Healthcare")
     items: List[WhyUsItemSchema] = Field(
         default=[
@@ -95,7 +102,9 @@ class CTAContentSchema(BaseModel):
     subheading: str = Field(
         default="Speak to our team for expert guidance and tailored solutions for your facility."
     )
-    button_text: Optional[str] = Field(default="Request a Quote", validation_alias="buttonText")
+    button_text: Optional[str] = Field(
+        default="Request a Quote", validation_alias="buttonText"
+    )
     button_link: Optional[str] = Field(default="/quote", validation_alias="buttonLink")
     phone: Optional[str] = Field(default="+27 11 555 0100")
     email: Optional[str] = Field(default="info@sahealthcare.com")
@@ -114,7 +123,9 @@ class LegalSectionItemSchema(BaseModel):
 class LegalContentSchema(BaseModel):
     title: str = Field(default="Legal Document")
     subtitle: Optional[str] = Field(default="")
-    last_updated: Optional[str] = Field(default="October 2026", validation_alias="lastUpdated")
+    last_updated: Optional[str] = Field(
+        default="October 2026", validation_alias="lastUpdated"
+    )
     content: str = Field(default="")
     sections: Optional[List[LegalSectionItemSchema]] = Field(default=None)
 

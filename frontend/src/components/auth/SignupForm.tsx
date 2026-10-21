@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
-import { ApiError } from '@/lib/api';
+import { useAuth } from "@/context/AuthContext";
+import { ApiError } from "@/lib/api";
+import Link from "next/link";
+import React, { useState } from "react";
 
 export default function SignupForm() {
   const { register } = useAuth();
 
-  const [fullName, setFullName] = useState('');
-  const [organization, setOrganization] = useState('');
-  const [phone, setPhone] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [isRegistered, setIsRegistered] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
@@ -30,28 +30,29 @@ export default function SignupForm() {
     const errors: { [key: string]: string } = {};
 
     if (!username.trim()) {
-      errors.username = 'Please enter a username.';
+      errors.username = "Please enter a username.";
     } else if (username.trim().length < 3) {
-      errors.username = 'Username must be at least 3 characters long.';
+      errors.username = "Username must be at least 3 characters long.";
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
-      errors.email = 'Please enter your email address.';
+      errors.email = "Please enter your email address.";
     } else if (!emailRegex.test(email.trim())) {
-      errors.email = 'Please enter a valid email address (e.g. name@hospital.com).';
+      errors.email =
+        "Please enter a valid email address (e.g. name@hospital.com).";
     }
 
     if (!password) {
-      errors.password = 'Please create a password.';
+      errors.password = "Please create a password.";
     } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters long.';
+      errors.password = "Password must be at least 6 characters long.";
     }
 
     if (!confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password.';
+      errors.confirmPassword = "Please confirm your password.";
     } else if (password !== confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
+      errors.confirmPassword = "Passwords do not match.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -80,7 +81,7 @@ export default function SignupForm() {
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Failed to create account. Please try again.');
+        setErrorMessage("Failed to create account. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -92,7 +93,9 @@ export default function SignupForm() {
       <div className="flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-6 bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-gray-100 text-center animate-fadeIn">
           <div className="w-16 h-16 bg-gold/15 text-gold-dark border border-gold/30 rounded-2xl mx-auto flex items-center justify-center">
-            <span className="material-symbols-outlined text-3xl">mark_email_unread</span>
+            <span className="material-symbols-outlined text-3xl">
+              mark_email_unread
+            </span>
           </div>
 
           <div>
@@ -109,11 +112,15 @@ export default function SignupForm() {
 
           <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-4 text-xs text-amber-900 text-left space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold">
-              <span className="material-symbols-outlined text-base text-amber-600">info</span>
+              <span className="material-symbols-outlined text-base text-amber-600">
+                info
+              </span>
               <span>Important note</span>
             </div>
             <p>
-              Please check your inbox and click the verification link before logging in. You won&apos;t be able to sign in until your email is confirmed.
+              Please check your inbox and click the verification link before
+              logging in. You won&apos;t be able to sign in until your email is
+              confirmed.
             </p>
           </div>
 
@@ -168,7 +175,10 @@ export default function SignupForm() {
                 htmlFor="full-name"
                 className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1"
               >
-                Full Name <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                Full Name{" "}
+                <span className="text-gray-400 font-normal lowercase">
+                  (optional)
+                </span>
               </label>
               <div className="relative">
                 <input
@@ -193,7 +203,10 @@ export default function SignupForm() {
                 htmlFor="organization"
                 className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1"
               >
-                Organisation / Facility <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                Organisation / Facility{" "}
+                <span className="text-gray-400 font-normal lowercase">
+                  (optional)
+                </span>
               </label>
               <div className="relative">
                 <input
@@ -217,7 +230,10 @@ export default function SignupForm() {
                 htmlFor="phone"
                 className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-1"
               >
-                Telephone / Mobile <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                Telephone / Mobile{" "}
+                <span className="text-gray-400 font-normal lowercase">
+                  (optional)
+                </span>
               </label>
               <div className="relative">
                 <input
@@ -254,26 +270,30 @@ export default function SignupForm() {
                   onChange={(e) => {
                     setUsername(e.target.value);
                     if (fieldErrors.username) {
-                      setFieldErrors((prev) => ({ ...prev, username: '' }));
+                      setFieldErrors((prev) => ({ ...prev, username: "" }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.username
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="sarah_adams"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.username ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.username ? "text-red-400" : "text-gray-400"
+                  }`}
+                >
                   person
                 </span>
               </div>
               {fieldErrors.username && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.username}</span>
                 </p>
               )}
@@ -296,26 +316,30 @@ export default function SignupForm() {
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (fieldErrors.email) {
-                      setFieldErrors((prev) => ({ ...prev, email: '' }));
+                      setFieldErrors((prev) => ({ ...prev, email: "" }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.email
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="name@hospital.com"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.email ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.email ? "text-red-400" : "text-gray-400"
+                  }`}
+                >
                   mail
                 </span>
               </div>
               {fieldErrors.email && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.email}</span>
                 </p>
               )}
@@ -332,42 +356,46 @@ export default function SignupForm() {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (fieldErrors.password) {
-                      setFieldErrors((prev) => ({ ...prev, password: '' }));
+                      setFieldErrors((prev) => ({ ...prev, password: "" }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.password
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="At least 6 characters"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.password ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.password ? "text-red-400" : "text-gray-400"
+                  }`}
+                >
                   lock
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   <span className="material-symbols-outlined text-xl">
-                    {showPassword ? 'visibility_off' : 'visibility'}
+                    {showPassword ? "visibility_off" : "visibility"}
                   </span>
                 </button>
               </div>
               {fieldErrors.password && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.password}</span>
                 </p>
               )}
@@ -384,32 +412,41 @@ export default function SignupForm() {
                 <input
                   id="confirm-password"
                   name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     if (fieldErrors.confirmPassword) {
-                      setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        confirmPassword: "",
+                      }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.confirmPassword
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="Re-enter password"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.confirmPassword ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.confirmPassword
+                      ? "text-red-400"
+                      : "text-gray-400"
+                  }`}
+                >
                   lock_reset
                 </span>
               </div>
               {fieldErrors.confirmPassword && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.confirmPassword}</span>
                 </p>
               )}
@@ -428,12 +465,12 @@ export default function SignupForm() {
                   <span>Creating account...</span>
                 </div>
               ) : (
-                'Create Account'
+                "Create Account"
               )}
             </button>
 
             <p className="text-center text-sm text-gray-600 pt-2 border-t border-gray-100">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link
                 href="/login"
                 className="font-semibold text-navy underline decoration-2 underline-offset-2 hover:text-gold transition-colors"

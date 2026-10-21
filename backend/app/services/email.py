@@ -2,6 +2,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -25,15 +26,19 @@ def _send_smtp_message(msg: MIMEMultipart) -> None:
         server.send_message(msg)
 
 
-def send_verification_email(to_email: str, username: str, verification_token: str) -> bool:
+def send_verification_email(
+    to_email: str, username: str, verification_token: str
+) -> bool:
     """
     Sends an email verification link to newly registered users.
     If SMTP credentials are not configured, logs the verification link to the console.
     """
-    verification_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+    verification_url = (
+        f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+    )
 
     subject = "Verify your SA Healthcare account"
-    
+
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -60,7 +65,7 @@ def send_verification_email(to_email: str, username: str, verification_token: st
         <div class="body">
           <p>Hello <strong>{username}</strong>,</p>
           <p>Thank you for signing up for an account with SA Healthcare. Please click the button below to verify your email address and activate your account:</p>
-          
+
           <div style="text-align: center;">
             <a href="{verification_url}" class="button">Verify My Email</a>
           </div>
@@ -149,7 +154,7 @@ def send_password_reset_email(to_email: str, username: str, reset_token: str) ->
         <div class="body">
           <p>Hello <strong>{username}</strong>,</p>
           <p>We received a request to reset your password for your SA Healthcare account. Click the button below to choose a new password:</p>
-          
+
           <div style="text-align: center;">
             <a href="{reset_url}" class="button">Reset My Password</a>
           </div>

@@ -4,10 +4,10 @@
   --background: #ffffff;
   --foreground: #171717;
   --brand-navy: #002244;
-  --brand-gold: #F2A900; 
-  --brand-gold-bright: #FFB347; 
-  --brand-light-blue: #E1F0F8;
-  --brand-navy-light: #003366; 
+  --brand-gold: #f2a900;
+  --brand-gold-bright: #ffb347;
+  --brand-light-blue: #e1f0f8;
+  --brand-navy-light: #003366;
 }
 
 @theme inline {
@@ -101,7 +101,11 @@ body {
 }
 
 @media print {
-  header, nav, footer, .print-hidden, [data-print-hidden] {
+  header,
+  nav,
+  footer,
+  .print-hidden,
+  [data-print-hidden] {
     display: none !important;
   }
   body {
@@ -111,4 +115,3 @@ body {
     margin: 0 !important;
   }
 }
-

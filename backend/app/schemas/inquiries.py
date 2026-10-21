@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # ==============================================================================
 # Contact Message Schemas
 # ==============================================================================
+
 
 class ContactMessageCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
@@ -16,7 +17,9 @@ class ContactMessageCreate(BaseModel):
 
 
 class ContactMessageUpdate(BaseModel):
-    status: Optional[str] = Field(None, description="New, In Progress, Responded, Archived")
+    status: Optional[str] = Field(
+        None, description="New, In Progress, Responded, Archived"
+    )
     notes: Optional[str] = None
 
 
@@ -39,6 +42,7 @@ class ContactMessageResponse(BaseModel):
 # Supplier Application Schemas
 # ==============================================================================
 
+
 class SupplierApplicationCreate(BaseModel):
     company_name: str = Field(..., min_length=1, max_length=200)
     website: Optional[str] = Field(None, max_length=300)
@@ -51,7 +55,9 @@ class SupplierApplicationCreate(BaseModel):
 
 
 class SupplierApplicationUpdate(BaseModel):
-    status: Optional[str] = Field(None, description="New, Under Review, Approved, Declined")
+    status: Optional[str] = Field(
+        None, description="New, Under Review, Approved, Declined"
+    )
     notes: Optional[str] = None
 
 

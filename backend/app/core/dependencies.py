@@ -1,10 +1,11 @@
 from typing import List, Optional
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+
 from app.core.security import decode_token
 from app.database import get_db
 from app.models import User, UserRole
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/auth/login",
@@ -138,6 +139,7 @@ def require_permission(section: str, level: str = "read"):
     - level="write": Satisfied only if effective permission is 'read_write'
     Administrators (is_admin=True) always bypass checks.
     """
+
     def permission_checker(
         current_user: User = Depends(get_current_user),
     ) -> User:

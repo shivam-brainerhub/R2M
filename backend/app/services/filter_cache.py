@@ -1,8 +1,6 @@
 import logging
 import threading
-from typing import Any, Dict, List, Optional
-from sqlalchemy import asc, desc, func, or_
-from sqlalchemy.orm import Session, joinedload
+from typing import Any, Dict, Optional
 
 from app.database import SessionLocal
 from app.models import (
@@ -15,6 +13,8 @@ from app.models import (
     Subcategory,
     product_sector_association,
 )
+from sqlalchemy import asc, func, or_
+from sqlalchemy.orm import Session, joinedload
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,7 @@ class FilterCacheService:
         """
         # 1. Total Active Products
         total_products = (
-            db.query(func.count(Product.id))
-            .filter(Product.status == "Active")
-            .scalar()
+            db.query(func.count(Product.id)).filter(Product.status == "Active").scalar()
             or 0
         )
 
@@ -89,24 +87,28 @@ class FilterCacheService:
                         .scalar()
                         or 0
                     )
-                    subs_data.append({
-                        "id": sub.id,
-                        "category_id": sub.category_id,
-                        "name": sub.name,
-                        "slug": sub.slug,
-                        "product_count": sub_count,
-                    })
+                    subs_data.append(
+                        {
+                            "id": sub.id,
+                            "category_id": sub.category_id,
+                            "name": sub.name,
+                            "slug": sub.slug,
+                            "product_count": sub_count,
+                        }
+                    )
 
-            categories_data.append({
-                "id": cat.id,
-                "name": cat.name,
-                "slug": cat.slug,
-                "code": cat.code,
-                "description": cat.description,
-                "icon": cat.icon,
-                "product_count": cat_count,
-                "subcategories": subs_data,
-            })
+            categories_data.append(
+                {
+                    "id": cat.id,
+                    "name": cat.name,
+                    "slug": cat.slug,
+                    "code": cat.code,
+                    "description": cat.description,
+                    "icon": cat.icon,
+                    "product_count": cat_count,
+                    "subcategories": subs_data,
+                }
+            )
 
         # 3. Brands with active product counts
         brands = db.query(Brand).order_by(asc(Brand.name)).all()
@@ -120,19 +122,24 @@ class FilterCacheService:
         brands_data = []
         for b in brands:
             count = brand_counts.get(b.id, 0)
-            brands_data.append({
-                "id": b.id,
-                "name": b.name,
-                "slug": b.slug,
-                "count": count,
-            })
+            brands_data.append(
+                {
+                    "id": b.id,
+                    "name": b.name,
+                    "slug": b.slug,
+                    "count": count,
+                }
+            )
         # Sort descending by count, then alphabetical
         brands_data.sort(key=lambda x: (-x["count"], x["name"].lower()))
 
         # 3b. Healthcare Sectors with active product counts
         sectors = db.query(Sector).order_by(asc(Sector.id)).all()
         sector_counts = dict(
-            db.query(product_sector_association.c.sector_id, func.count(func.distinct(Product.id)))
+            db.query(
+                product_sector_association.c.sector_id,
+                func.count(func.distinct(Product.id)),
+            )
             .join(Product, product_sector_association.c.product_id == Product.id)
             .filter(Product.status == "Active")
             .group_by(product_sector_association.c.sector_id)
@@ -187,11 +194,13 @@ class FilterCacheService:
                 for val, cnt in p_info["options_dict"].items()
             ]
             opts.sort(key=lambda x: (-x["count"], x["value"]))
-            properties_data.append({
-                "name": p_info["name"],
-                "group": p_info["group"],
-                "options": opts,
-            })
+            properties_data.append(
+                {
+                    "name": p_info["name"],
+                    "group": p_info["group"],
+                    "options": opts,
+                }
+            )
 
         # 5. Availability Counts
         brochure_count = (
@@ -239,7 +248,9 @@ class FilterCacheService:
             finally:
                 db.close()
         except Exception as e:
-            logger.error("Failed to update product filter options cache in background: %s", e)
+            logger.error(
+                "Failed to update product filter options cache in background: %s", e
+            )
         finally:
             with self._lock:
                 self._is_refreshing = False

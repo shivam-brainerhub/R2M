@@ -1,31 +1,28 @@
 "use client";
 
-import { Suspense, useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  productsApi,
-  ProductCompareResponse,
-  ProductItem,
-  getMediaUrl,
-} from '@/lib/api';
-import BrochureDownloadButton from '@/components/BrochureDownloadButton';
-import AddCompareProductModal from '@/components/compare/AddCompareProductModal';
-import RelatedProducts from '@/components/RelatedProducts';
-import { useQuoteCart } from '@/context/QuoteCartContext';
+import BrochureDownloadButton from "@/components/BrochureDownloadButton";
+import AddCompareProductModal from "@/components/compare/AddCompareProductModal";
+import RelatedProducts from "@/components/RelatedProducts";
+import { useQuoteCart } from "@/context/QuoteCartContext";
+import { ProductCompareResponse, getMediaUrl, productsApi } from "@/lib/api";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 function CompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addItem } = useQuoteCart();
 
-  const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
+  const [compareData, setCompareData] = useState<ProductCompareResponse | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Read items from URL or fallback to default
-  const itemsParam = searchParams.get('items') || searchParams.get('ids');
+  const itemsParam = searchParams.get("items") || searchParams.get("ids");
 
   useEffect(() => {
     let ignore = false;
@@ -43,7 +40,7 @@ function CompareContent() {
         }
       } catch (err) {
         if (!ignore) {
-          console.error('Failed to load comparison data', err);
+          console.error("Failed to load comparison data", err);
           setCompareData({ products: [], properties: [] });
         }
       } finally {
@@ -62,11 +59,13 @@ function CompareContent() {
 
   const handleRemoveProduct = (slug: string) => {
     if (!compareData) return;
-    const remaining = compareData.products.filter((p) => p.slug !== slug).map((p) => p.slug);
+    const remaining = compareData.products
+      .filter((p) => p.slug !== slug)
+      .map((p) => p.slug);
     if (remaining.length > 0) {
-      router.push(`/compare?items=${remaining.join(',')}`);
+      router.push(`/compare?items=${remaining.join(",")}`);
     } else {
-      router.push('/compare?items=');
+      router.push("/compare?items=");
       setCompareData({ products: [], properties: [] });
     }
   };
@@ -77,12 +76,12 @@ function CompareContent() {
     const existing = compareData.products.map((p) => p.slug);
     if (!existing.includes(slug)) {
       const updated = [...existing, slug];
-      router.push(`/compare?items=${updated.join(',')}`);
+      router.push(`/compare?items=${updated.join(",")}`);
     }
   };
 
   const handleClearAll = () => {
-    router.push('/compare?items=');
+    router.push("/compare?items=");
     setCompareData({ products: [], properties: [] });
   };
 
@@ -94,9 +93,12 @@ function CompareContent() {
       {/* Page Header */}
       <div className="bg-navy text-white py-12 px-6">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3 tracking-tight">Compare Products</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 tracking-tight">
+            Compare Products
+          </h1>
           <p className="text-gray-300 text-sm sm:text-base">
-            Compare medical device features and clinical specifications side-by-side to determine the ideal clinical solution.
+            Compare medical device features and clinical specifications
+            side-by-side to determine the ideal clinical solution.
           </p>
         </div>
       </div>
@@ -116,7 +118,9 @@ function CompareContent() {
                 onClick={handleClearAll}
                 className="text-blue-600 hover:text-blue-800 font-semibold flex items-center text-xs sm:text-sm px-2 cursor-pointer"
               >
-                <span className="material-symbols-outlined mr-1 text-base!">delete</span>
+                <span className="material-symbols-outlined mr-1 text-base!">
+                  delete
+                </span>
                 Clear All
               </button>
             )}
@@ -124,7 +128,9 @@ function CompareContent() {
               onClick={() => setIsAddModalOpen(true)}
               className="bg-gold text-navy font-bold px-4 py-2 rounded-full hover:bg-gold-bright transition-all duration-300 active:scale-95 flex items-center text-xs sm:text-sm shadow-xs cursor-pointer"
             >
-              <span className="material-symbols-outlined mr-1 text-base!">add</span>
+              <span className="material-symbols-outlined mr-1 text-base!">
+                add
+              </span>
               Add Product to Compare
             </button>
           </div>
@@ -135,16 +141,21 @@ function CompareContent() {
             <span className="material-symbols-outlined text-4xl animate-spin text-blue-600 mb-2">
               progress_activity
             </span>
-            <p className="text-xs text-gray-500 font-semibold">Generating comparison matrix...</p>
+            <p className="text-xs text-gray-500 font-semibold">
+              Generating comparison matrix...
+            </p>
           </div>
         ) : productsList.length === 0 ? (
           <div className="py-20 text-center max-w-md mx-auto space-y-4">
             <span className="material-symbols-outlined text-6xl text-gray-300">
               compare_arrows
             </span>
-            <h2 className="text-xl font-bold text-navy">No Products Selected</h2>
+            <h2 className="text-xl font-bold text-navy">
+              No Products Selected
+            </h2>
             <p className="text-xs text-gray-500">
-              Select products from the catalogue or click &quot;Add Product to Compare&quot; to inspect specifications side-by-side.
+              Select products from the catalogue or click &quot;Add Product to
+              Compare&quot; to inspect specifications side-by-side.
             </p>
             <div className="pt-2">
               <button
@@ -181,7 +192,9 @@ function CompareContent() {
                             className="absolute top-2.5 right-2.5 text-gray-400 hover:text-red-500 p-1 rounded-full cursor-pointer transition-colors"
                             title="Remove from comparison"
                           >
-                            <span className="material-symbols-outlined text-base!">close</span>
+                            <span className="material-symbols-outlined text-base!">
+                              close
+                            </span>
                           </button>
 
                           {/* Brand */}
@@ -229,7 +242,9 @@ function CompareContent() {
                                 className="flex-1 bg-white border border-gray-300 hover:border-red-400 text-gray-700 hover:text-red-600 text-[11px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                 title="Download Brochure"
                               >
-                                <span className="material-symbols-outlined text-xs!">picture_as_pdf</span>
+                                <span className="material-symbols-outlined text-xs!">
+                                  picture_as_pdf
+                                </span>
                                 <span>PDF</span>
                               </BrochureDownloadButton>
                             ) : (
@@ -240,7 +255,9 @@ function CompareContent() {
                             <button
                               type="button"
                               onClick={() => {
-                                const primaryImg = p.primary_image_url || p.images?.[0]?.image_url;
+                                const primaryImg =
+                                  p.primary_image_url ||
+                                  p.images?.[0]?.image_url;
                                 addItem({
                                   productId: String(p.id),
                                   productName: p.name,
@@ -251,12 +268,14 @@ function CompareContent() {
                                   categoryName: p.category_name,
                                   quantity: 1,
                                 });
-                                router.push('/quote');
+                                router.push("/quote");
                               }}
                               className="flex-1 bg-gold text-navy text-[11px] font-bold py-2 rounded-lg hover:bg-gold-bright transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <span>Quote</span>
-                              <span className="material-symbols-outlined text-xs!">arrow_forward</span>
+                              <span className="material-symbols-outlined text-xs!">
+                                arrow_forward
+                              </span>
                             </button>
                           </div>
                         </div>
@@ -269,7 +288,10 @@ function CompareContent() {
               {/* Dynamic Property Rows */}
               <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
                 {propertiesList.map((prop, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                  <tr
+                    key={idx}
+                    className="hover:bg-slate-50/70 transition-colors"
+                  >
                     <td className="p-4 font-bold text-gray-700 bg-slate-50/40 whitespace-nowrap">
                       <span>{prop.name}</span>
                       {prop.group && (
@@ -282,22 +304,30 @@ function CompareContent() {
                       const val = prop.values[p.slug];
                       if (!val) {
                         return (
-                          <td key={p.id} className="p-4 text-gray-300 font-mono">
+                          <td
+                            key={p.id}
+                            className="p-4 text-gray-300 font-mono"
+                          >
                             &mdash;
                           </td>
                         );
                       }
-                      if (val.toLowerCase() === 'yes') {
+                      if (val.toLowerCase() === "yes") {
                         return (
-                          <td key={p.id} className="p-4 text-emerald-600 font-bold">
+                          <td
+                            key={p.id}
+                            className="p-4 text-emerald-600 font-bold"
+                          >
                             <span className="inline-flex items-center gap-1">
-                              <span className="material-symbols-outlined text-base!">check_circle</span>
+                              <span className="material-symbols-outlined text-base!">
+                                check_circle
+                              </span>
                               Yes
                             </span>
                           </td>
                         );
                       }
-                      if (val.toLowerCase() === 'no') {
+                      if (val.toLowerCase() === "no") {
                         return (
                           <td key={p.id} className="p-4 text-gray-400">
                             No
@@ -315,44 +345,82 @@ function CompareContent() {
 
                 {/* Documentation Section (Items 2 & 3) */}
                 <tr className="bg-light-blue font-bold text-navy">
-                  <td colSpan={productsList.length + 1} className="p-3 text-xs uppercase tracking-wider">
+                  <td
+                    colSpan={productsList.length + 1}
+                    className="p-3 text-xs uppercase tracking-wider"
+                  >
                     <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm text-blue-700">folder_open</span>
+                      <span className="material-symbols-outlined text-sm text-blue-700">
+                        folder_open
+                      </span>
                       <span>Official Manufacturer Documentation</span>
                     </div>
                   </td>
                 </tr>
 
                 {[
-                  { key: 'brochure', label: 'Product Brochure', icon: 'picture_as_pdf', color: 'text-red-500' },
-                  { key: 'spec', label: 'Technical Specifications', icon: 'analytics', color: 'text-blue-600' },
-                  { key: 'manual', label: 'User Manual & Instructions', icon: 'menu_book', color: 'text-teal-600' },
-                  { key: 'cert', label: 'Declaration of Conformity', icon: 'verified', color: 'text-amber-600' },
+                  {
+                    key: "brochure",
+                    label: "Product Brochure",
+                    icon: "picture_as_pdf",
+                    color: "text-red-500",
+                  },
+                  {
+                    key: "spec",
+                    label: "Technical Specifications",
+                    icon: "analytics",
+                    color: "text-blue-600",
+                  },
+                  {
+                    key: "manual",
+                    label: "User Manual & Instructions",
+                    icon: "menu_book",
+                    color: "text-teal-600",
+                  },
+                  {
+                    key: "cert",
+                    label: "Declaration of Conformity",
+                    icon: "verified",
+                    color: "text-amber-600",
+                  },
                 ].map((docType) => (
-                  <tr key={docType.key} className="hover:bg-slate-50/70 transition-colors">
+                  <tr
+                    key={docType.key}
+                    className="hover:bg-slate-50/70 transition-colors"
+                  >
                     <td className="p-4 font-bold text-gray-700 bg-slate-50/40">
                       <div className="flex items-center gap-1.5">
-                        <span className={`material-symbols-outlined text-base! ${docType.color}`}>
+                        <span
+                          className={`material-symbols-outlined text-base! ${docType.color}`}
+                        >
                           {docType.icon}
                         </span>
                         <span>{docType.label}</span>
                       </div>
                     </td>
                     {productsList.map((p) => {
-                      const matchedDocs: { title: string; file_url: string; type: string }[] = [];
+                      const matchedDocs: {
+                        title: string;
+                        file_url: string;
+                        type: string;
+                      }[] = [];
                       if (p.documents && p.documents.length > 0) {
                         const matching = p.documents.filter((d) =>
-                          d.type.toLowerCase().includes(docType.key.toLowerCase())
+                          d.type
+                            .toLowerCase()
+                            .includes(docType.key.toLowerCase()),
                         );
                         matchedDocs.push(...matching);
                       }
-                      if (docType.key === 'brochure' && p.brochure_url) {
-                        const exists = matchedDocs.some((d) => d.file_url === p.brochure_url);
+                      if (docType.key === "brochure" && p.brochure_url) {
+                        const exists = matchedDocs.some(
+                          (d) => d.file_url === p.brochure_url,
+                        );
                         if (!exists) {
                           matchedDocs.unshift({
                             title: `${p.name} Brochure`,
                             file_url: p.brochure_url,
-                            type: 'Brochure',
+                            type: "Brochure",
                           });
                         }
                       }
@@ -371,14 +439,20 @@ function CompareContent() {
                                   <span className="material-symbols-outlined text-sm! shrink-0 text-blue-500 group-hover:text-blue-700">
                                     download
                                   </span>
-                                  <span className="truncate max-w-[200px]" title={doc.title}>
-                                    {doc.title || `Download ${doc.type || 'Doc'}`}
+                                  <span
+                                    className="truncate max-w-[200px]"
+                                    title={doc.title}
+                                  >
+                                    {doc.title ||
+                                      `Download ${doc.type || "Doc"}`}
                                   </span>
                                 </BrochureDownloadButton>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-xs italic">Not available</span>
+                            <span className="text-gray-400 text-xs italic">
+                              Not available
+                            </span>
                           )}
                         </td>
                       );
@@ -395,7 +469,11 @@ function CompareContent() {
           <RelatedProducts
             currentProductSlug={productsList[0].slug}
             tag="Similar Medical Devices"
-            title={productsList[0].category_name ? `Similar ${productsList[0].category_name}` : 'Similar Medical Devices'}
+            title={
+              productsList[0].category_name
+                ? `Similar ${productsList[0].category_name}`
+                : "Similar Medical Devices"
+            }
             subtitle="Other models you may also be interested in comparing side-by-side."
             onAddCompare={handleAddProduct}
           />

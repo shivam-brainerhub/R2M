@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 export interface QuoteItem {
   productId: string;
@@ -17,7 +17,7 @@ export interface QuoteItem {
 interface QuoteCartContextType {
   items: QuoteItem[];
   isLoaded: boolean;
-  addItem: (item: Omit<QuoteItem, 'quantity'> & { quantity?: number }) => void;
+  addItem: (item: Omit<QuoteItem, "quantity"> & { quantity?: number }) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   updateItemNotes: (productId: string, notes: string) => void;
@@ -26,7 +26,9 @@ interface QuoteCartContextType {
   totalUnits: number;
 }
 
-const QuoteCartContext = createContext<QuoteCartContextType | undefined>(undefined);
+const QuoteCartContext = createContext<QuoteCartContextType | undefined>(
+  undefined,
+);
 
 export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<QuoteItem[]>([]);
@@ -36,12 +38,12 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const stored = localStorage.getItem('quoteCart');
+        const stored = localStorage.getItem("quoteCart");
         if (stored) {
           setItems(JSON.parse(stored));
         }
       } catch (e) {
-        console.error('Failed to parse quote cart from local storage', e);
+        console.error("Failed to parse quote cart from local storage", e);
       } finally {
         setIsLoaded(true);
       }
@@ -53,13 +55,15 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
     try {
-      localStorage.setItem('quoteCart', JSON.stringify(items));
+      localStorage.setItem("quoteCart", JSON.stringify(items));
     } catch (e) {
-      console.error('Failed to save quote cart to local storage', e);
+      console.error("Failed to save quote cart to local storage", e);
     }
   }, [items, isLoaded]);
 
-  const addItem = (newItem: Omit<QuoteItem, 'quantity'> & { quantity?: number }) => {
+  const addItem = (
+    newItem: Omit<QuoteItem, "quantity"> & { quantity?: number },
+  ) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === newItem.productId);
       if (existing) {
@@ -67,7 +71,7 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
         return prev.map((i) =>
           i.productId === newItem.productId
             ? { ...i, ...newItem, quantity: i.quantity || 1 }
-            : i
+            : i,
         );
       }
       return [
@@ -87,13 +91,15 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
   const updateQuantity = (productId: string, quantity: number) => {
     const validQty = Math.max(1, Math.floor(quantity) || 1);
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity: validQty } : i))
+      prev.map((i) =>
+        i.productId === productId ? { ...i, quantity: validQty } : i,
+      ),
     );
   };
 
   const updateItemNotes = (productId: string, itemNotes: string) => {
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, itemNotes } : i))
+      prev.map((i) => (i.productId === productId ? { ...i, itemNotes } : i)),
     );
   };
 
@@ -126,7 +132,7 @@ export function QuoteCartProvider({ children }: { children: React.ReactNode }) {
 export function useQuoteCart() {
   const context = useContext(QuoteCartContext);
   if (context === undefined) {
-    throw new Error('useQuoteCart must be used within a QuoteCartProvider');
+    throw new Error("useQuoteCart must be used within a QuoteCartProvider");
   }
   return context;
 }

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { contentApi, LegalContent } from '@/lib/api';
-import { DEFAULT_TERMS_OF_USE } from '@/lib/constants';
+import { contentApi, LegalContent } from "@/lib/api";
+import { DEFAULT_TERMS_OF_USE } from "@/lib/constants";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 function getRenderableHtml(data: LegalContent): string {
   if (data.content && data.content.trim().length > 0) {
@@ -11,16 +11,19 @@ function getRenderableHtml(data: LegalContent): string {
       return data.content;
     }
     return data.content
-      .split('\n\n')
-      .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
-      .join('');
+      .split("\n\n")
+      .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+      .join("");
   }
   if (data.sections && data.sections.length > 0) {
     return data.sections
-      .map((s) => `<h2>${s.heading}</h2><p>${s.content.replace(/\n/g, '<br/>')}</p>`)
-      .join('');
+      .map(
+        (s) =>
+          `<h2>${s.heading}</h2><p>${s.content.replace(/\n/g, "<br/>")}</p>`,
+      )
+      .join("");
   }
-  return '';
+  return "";
 }
 
 export default function TermsContent() {
@@ -30,7 +33,7 @@ export default function TermsContent() {
     let active = true;
 
     contentApi
-      .getSection('terms_of_use')
+      .getSection("terms_of_use")
       .then((res) => {
         if (!active || !res?.content) return;
         const c = res.content as Partial<LegalContent>;
@@ -38,12 +41,18 @@ export default function TermsContent() {
           title: c.title || prev.title,
           subtitle: c.subtitle !== undefined ? c.subtitle : prev.subtitle,
           lastUpdated: c.lastUpdated || c.last_updated || prev.lastUpdated,
-          content: c.content !== undefined && c.content !== '' ? c.content : prev.content,
-          sections: Array.isArray(c.sections) && c.sections.length > 0 ? c.sections : prev.sections,
+          content:
+            c.content !== undefined && c.content !== ""
+              ? c.content
+              : prev.content,
+          sections:
+            Array.isArray(c.sections) && c.sections.length > 0
+              ? c.sections
+              : prev.sections,
         }));
       })
       .catch((err) => {
-        console.error('Failed to fetch terms of use from CMS:', err);
+        console.error("Failed to fetch terms of use from CMS:", err);
       });
 
     return () => {
@@ -85,10 +94,16 @@ export default function TermsContent() {
           />
 
           <div className="pt-6 border-t border-gray-100 flex justify-between items-center">
-            <Link href="/" className="text-sm font-semibold text-blue-600 hover:text-navy transition-colors">
+            <Link
+              href="/"
+              className="text-sm font-semibold text-blue-600 hover:text-navy transition-colors"
+            >
               &larr; Back to Home
             </Link>
-            <Link href="/quote" className="text-sm font-semibold text-navy hover:text-gold transition-colors">
+            <Link
+              href="/quote"
+              className="text-sm font-semibold text-navy hover:text-gold transition-colors"
+            >
               Request a Quote &rarr;
             </Link>
           </div>

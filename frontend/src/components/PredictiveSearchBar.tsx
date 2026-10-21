@@ -1,22 +1,34 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, useSyncExternalStore } from 'react';
-import { createPortal } from 'react-dom';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import {
-  productsApi,
-  SearchSuggestionsResponse,
-  SearchSuggestionProduct,
-  SearchSuggestionCategory,
-  SearchSuggestionBrand,
   getMediaUrl,
-} from '@/lib/api';
+  productsApi,
+  SearchSuggestionBrand,
+  SearchSuggestionCategory,
+  SearchSuggestionProduct,
+  SearchSuggestionsResponse,
+} from "@/lib/api";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createPortal } from "react-dom";
 
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 const emptySubscribe = () => () => {};
 function useIsMounted() {
-  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 }
 
 interface PredictiveSearchBarProps {
@@ -24,13 +36,13 @@ interface PredictiveSearchBarProps {
   onChange: (val: string) => void;
   onSubmit: (val: string) => void;
   placeholder?: string;
-  size?: 'md' | 'lg';
+  size?: "md" | "lg";
   className?: string;
-  placement?: 'auto' | 'top' | 'bottom';
+  placement?: "auto" | "top" | "bottom";
 }
 
 interface DropdownCoords {
-  placement: 'top' | 'bottom';
+  placement: "top" | "bottom";
   left: number;
   width: number;
   top?: number;
@@ -42,17 +54,20 @@ export default function PredictiveSearchBar({
   value,
   onChange,
   onSubmit,
-  placeholder = 'Search by product, model number, manufacturer...',
-  size = 'lg',
-  className = '',
-  placement = 'auto',
+  placeholder = "Search by product, model number, manufacturer...",
+  size = "lg",
+  className = "",
+  placement = "auto",
 }: PredictiveSearchBarProps) {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<SearchSuggestionsResponse | null>(null);
-  const [dropdownCoords, setDropdownCoords] = useState<DropdownCoords | null>(null);
+  const [suggestions, setSuggestions] =
+    useState<SearchSuggestionsResponse | null>(null);
+  const [dropdownCoords, setDropdownCoords] = useState<DropdownCoords | null>(
+    null,
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -79,24 +94,34 @@ export default function PredictiveSearchBar({
     const spaceAbove = Math.max(0, rect.top - NAVBAR_HEIGHT - GAP);
     const spaceBelow = Math.max(0, window.innerHeight - rect.bottom - GAP);
 
-    let chosenPlacement: 'top' | 'bottom';
-    if (placement === 'top') {
-      chosenPlacement = 'top';
-    } else if (placement === 'bottom') {
-      chosenPlacement = 'bottom';
+    let chosenPlacement: "top" | "bottom";
+    if (placement === "top") {
+      chosenPlacement = "top";
+    } else if (placement === "bottom") {
+      chosenPlacement = "bottom";
     } else {
       // Dynamic: open upside if space below is cramped (< 360px) and space above offers more clearance
-      chosenPlacement = spaceBelow < 360 && spaceAbove > spaceBelow ? 'top' : 'bottom';
+      chosenPlacement =
+        spaceBelow < 360 && spaceAbove > spaceBelow ? "top" : "bottom";
     }
 
-    const availableHeight = chosenPlacement === 'top' ? spaceAbove - SAFETY_MARGIN : spaceBelow - SAFETY_MARGIN;
-    const maxHeight = Math.min(DROPDOWN_IDEAL_HEIGHT, Math.max(160, availableHeight));
+    const availableHeight =
+      chosenPlacement === "top"
+        ? spaceAbove - SAFETY_MARGIN
+        : spaceBelow - SAFETY_MARGIN;
+    const maxHeight = Math.min(
+      DROPDOWN_IDEAL_HEIGHT,
+      Math.max(160, availableHeight),
+    );
 
     // Clamp horizontally to avoid viewport overflow
     const screenMargin = 12;
     const maxAvailableWidth = window.innerWidth - screenMargin * 2;
     const width = Math.min(rect.width, maxAvailableWidth);
-    const left = Math.max(screenMargin, Math.min(rect.left, window.innerWidth - width - screenMargin));
+    const left = Math.max(
+      screenMargin,
+      Math.min(rect.left, window.innerWidth - width - screenMargin),
+    );
     const topVal = rect.bottom + GAP;
     const bottomVal = window.innerHeight - rect.top + GAP;
 
@@ -131,7 +156,10 @@ export default function PredictiveSearchBar({
 
     const handleScroll = (e: Event) => {
       // Do not reposition if scroll event originates from inside the dropdown itself
-      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        dropdownRef.current.contains(e.target as Node)
+      ) {
         return;
       }
       updatePosition();
@@ -141,12 +169,15 @@ export default function PredictiveSearchBar({
       updatePosition();
     };
 
-    window.addEventListener('resize', handleResize, { passive: true });
-    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("scroll", handleScroll, {
+      passive: true,
+      capture: true,
+    });
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [isOpen, suggestions, updatePosition]);
 
@@ -168,21 +199,27 @@ export default function PredictiveSearchBar({
 
     debounceTimerRef.current = setTimeout(async () => {
       // Re-verify that user is still actively focused and typing in this input
-      if (!isUserTypingRef.current || document.activeElement !== inputRef.current) {
+      if (
+        !isUserTypingRef.current ||
+        document.activeElement !== inputRef.current
+      ) {
         return;
       }
 
       setIsLoading(true);
       try {
         const res = await productsApi.getSuggestions(trimmed, 6);
-        if (!isUserTypingRef.current || document.activeElement !== inputRef.current) {
+        if (
+          !isUserTypingRef.current ||
+          document.activeElement !== inputRef.current
+        ) {
           return;
         }
         setSuggestions(res);
         updatePosition();
         setIsOpen(true);
       } catch (err) {
-        console.error('Failed to fetch predictive search suggestions', err);
+        console.error("Failed to fetch predictive search suggestions", err);
         setSuggestions(null);
       } finally {
         setIsLoading(false);
@@ -210,8 +247,8 @@ export default function PredictiveSearchBar({
         isUserTypingRef.current = false;
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -242,7 +279,7 @@ export default function PredictiveSearchBar({
 
   const handleClear = () => {
     isUserTypingRef.current = false;
-    onChange('');
+    onChange("");
     setSuggestions(null);
     setIsOpen(false);
     inputRef.current?.focus();
@@ -265,19 +302,21 @@ export default function PredictiveSearchBar({
       suggestions.categories.length > 0 ||
       suggestions.brands.length > 0);
 
-  const isLarge = size === 'lg';
+  const isLarge = size === "lg";
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
       <form
         onSubmit={handleFormSubmit}
         className={`bg-white rounded-full flex items-center shadow-lg transition-all duration-200 border border-gray-200 focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/30 ${
-          isLarge ? 'p-1 md:p-1.5' : 'p-1'
+          isLarge ? "p-1 md:p-1.5" : "p-1"
         }`}
       >
         <span
           className={`material-symbols-outlined text-navy shrink-0 ${
-            isLarge ? 'ml-3 md:ml-4 mr-1 md:mr-2 text-xl md:text-2xl!' : 'ml-2.5 mr-1 text-lg!'
+            isLarge
+              ? "ml-3 md:ml-4 mr-1 md:mr-2 text-xl md:text-2xl!"
+              : "ml-2.5 mr-1 text-lg!"
           }`}
         >
           search
@@ -303,7 +342,7 @@ export default function PredictiveSearchBar({
             }
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Escape') {
+            if (e.key === "Escape") {
               setIsOpen(false);
               isUserTypingRef.current = false;
             }
@@ -312,13 +351,15 @@ export default function PredictiveSearchBar({
           autoComplete="off"
           spellCheck={false}
           className={`flex-1 min-w-0 bg-transparent border-none outline-none text-navy placeholder-gray-400 font-medium ${
-            isLarge ? 'px-2 text-xs sm:text-sm' : 'px-2 text-xs sm:text-sm'
+            isLarge ? "px-2 text-xs sm:text-sm" : "px-2 text-xs sm:text-sm"
           }`}
         />
 
         {isLoading ? (
           <div className="mr-2 shrink-0 animate-spin text-gray-400 flex items-center justify-center">
-            <span className="material-symbols-outlined text-base!">progress_activity</span>
+            <span className="material-symbols-outlined text-base!">
+              progress_activity
+            </span>
           </div>
         ) : value ? (
           <button
@@ -327,7 +368,9 @@ export default function PredictiveSearchBar({
             className="text-gray-400 hover:text-navy mr-1.5 p-1 rounded-full hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
             aria-label="Clear input"
           >
-            <span className="material-symbols-outlined text-sm! block">close</span>
+            <span className="material-symbols-outlined text-sm! block">
+              close
+            </span>
           </button>
         ) : null}
 
@@ -335,14 +378,14 @@ export default function PredictiveSearchBar({
           type="submit"
           className={`bg-gold text-navy font-bold rounded-full flex items-center hover:bg-gold-bright transition-all duration-200 hover:scale-[1.02] active:scale-95 shrink-0 shadow-xs cursor-pointer group ${
             isLarge
-              ? 'px-4 md:px-7 py-2 md:py-3 text-xs sm:text-sm'
-              : 'px-3.5 py-1.5 text-xs'
+              ? "px-4 md:px-7 py-2 md:py-3 text-xs sm:text-sm"
+              : "px-3.5 py-1.5 text-xs"
           }`}
         >
           <span>Search</span>
           <span
             className={`material-symbols-outlined font-bold transition-transform duration-200 group-hover:translate-x-0.5 ${
-              isLarge ? 'ml-1 text-sm!' : 'ml-0.5 text-xs!'
+              isLarge ? "ml-1 text-sm!" : "ml-0.5 text-xs!"
             }`}
           >
             arrow_forward
@@ -354,24 +397,24 @@ export default function PredictiveSearchBar({
       {isMounted &&
         isOpen &&
         dropdownCoords &&
-        typeof document !== 'undefined' &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             ref={dropdownRef}
             style={{
-              position: 'fixed',
+              position: "fixed",
               left: `${dropdownCoords.left}px`,
               width: `${dropdownCoords.width}px`,
               maxHeight: `${dropdownCoords.maxHeight}px`,
               zIndex: 100,
-              ...(dropdownCoords.placement === 'top'
+              ...(dropdownCoords.placement === "top"
                 ? { bottom: `${dropdownCoords.bottom}px` }
                 : { top: `${dropdownCoords.top}px` }),
             }}
             className={`bg-white rounded-2xl border border-gray-200/90 overflow-hidden divide-y divide-gray-100 text-left animate-in fade-in-0 duration-150 backdrop-blur-md flex flex-col ${
-              dropdownCoords.placement === 'top'
-                ? 'origin-bottom zoom-in-95 shadow-[0_-12px_32px_rgba(0,0,0,0.18)]'
-                : 'origin-top zoom-in-95 shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
+              dropdownCoords.placement === "top"
+                ? "origin-bottom zoom-in-95 shadow-[0_-12px_32px_rgba(0,0,0,0.18)]"
+                : "origin-top zoom-in-95 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
             }`}
           >
             {hasResults ? (
@@ -381,11 +424,14 @@ export default function PredictiveSearchBar({
                   <div className="p-2">
                     <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
                       <span>Products ({suggestions.products.length})</span>
-                      <span className="text-[9px] font-normal text-gray-400">Click to view details</span>
+                      <span className="text-[9px] font-normal text-gray-400">
+                        Click to view details
+                      </span>
                     </div>
                     <div className="space-y-0.5">
                       {suggestions.products.map((p) => {
-                        const img = p.primary_image_url || '/images/benevision_n12.jpg';
+                        const img =
+                          p.primary_image_url || "/images/benevision_n12.jpg";
                         return (
                           <div
                             key={p.id}
@@ -414,10 +460,18 @@ export default function PredictiveSearchBar({
                               </div>
                               <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                                 {p.brand_name && (
-                                  <span className="font-semibold text-gray-700">{p.brand_name}</span>
+                                  <span className="font-semibold text-gray-700">
+                                    {p.brand_name}
+                                  </span>
                                 )}
-                                {p.brand_name && p.category_name && <span>•</span>}
-                                {p.category_name && <span className="truncate">{p.category_name}</span>}
+                                {p.brand_name && p.category_name && (
+                                  <span>•</span>
+                                )}
+                                {p.category_name && (
+                                  <span className="truncate">
+                                    {p.category_name}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <span className="material-symbols-outlined text-gray-300 group-hover:text-gold text-lg! transition-transform group-hover:translate-x-1 shrink-0">
@@ -506,9 +560,12 @@ export default function PredictiveSearchBar({
               className="px-4 py-3 bg-slate-50 hover:bg-gold/10 text-xs font-bold text-navy flex items-center justify-between cursor-pointer transition-colors group shrink-0"
             >
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-base! text-gold">manage_search</span>
+                <span className="material-symbols-outlined text-base! text-gold">
+                  manage_search
+                </span>
                 <span>
-                  Search entire catalogue for <span className="text-blue-600">&quot;{value}&quot;</span>
+                  Search entire catalogue for{" "}
+                  <span className="text-blue-600">&quot;{value}&quot;</span>
                 </span>
               </div>
               <span className="material-symbols-outlined text-sm! text-gray-400 group-hover:text-navy transition-transform group-hover:translate-x-1">
@@ -516,7 +573,7 @@ export default function PredictiveSearchBar({
               </span>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

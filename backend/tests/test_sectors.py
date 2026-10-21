@@ -1,6 +1,5 @@
-import pytest
-from starlette.testclient import TestClient
 from app.models import Product, Sector
+from starlette.testclient import TestClient
 
 
 def test_list_sectors_public(client: TestClient):
@@ -67,7 +66,9 @@ def test_filter_options_includes_sectors(client: TestClient):
     assert "count" in first
 
 
-def test_product_create_and_update_with_sectors(client: TestClient, admin_token_headers, db_session):
+def test_product_create_and_update_with_sectors(
+    client: TestClient, admin_token_headers, db_session
+):
     sector = db_session.query(Sector).first()
     assert sector is not None
 

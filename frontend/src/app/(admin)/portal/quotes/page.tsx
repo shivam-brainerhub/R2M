@@ -1,32 +1,45 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import QuoteDetailsModal, {
+  getStatusBadge,
+  getUrgencyBadge,
+} from "@/components/admin/QuoteDetailsModal";
+import { useAuth } from "@/context/AuthContext";
 import {
-  quotesApi,
-  QuoteRequestData,
-  QuoteStatsData,
   ApiError,
-} from '@/lib/api';
-import QuoteDetailsModal, { getStatusBadge, getUrgencyBadge } from '@/components/admin/QuoteDetailsModal';
+  QuoteRequestData,
+  quotesApi,
+  QuoteStatsData,
+} from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
 
-type TabStatus = 'All' | 'New' | 'In Review' | 'Quoted' | 'Approved' | 'Declined';
+type TabStatus =
+  | "All"
+  | "New"
+  | "In Review"
+  | "Quoted"
+  | "Approved"
+  | "Declined";
 
 export default function AdminQuotesPage() {
   const { token, hasPermission } = useAuth();
-  const canWriteQuotes = hasPermission('quotes', 'write');
+  const canWriteQuotes = hasPermission("quotes", "write");
 
   const [quotes, setQuotes] = useState<QuoteRequestData[]>([]);
   const [stats, setStats] = useState<QuoteStatsData | null>(null);
-  const [activeTab, setActiveTab] = useState<TabStatus>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<TabStatus>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   // Detail Modal State
-  const [selectedQuote, setSelectedQuote] = useState<QuoteRequestData | null>(null);
+  const [selectedQuote, setSelectedQuote] = useState<QuoteRequestData | null>(
+    null,
+  );
 
   // Delete Confirmation State
-  const [quoteToDelete, setQuoteToDelete] = useState<QuoteRequestData | null>(null);
+  const [quoteToDelete, setQuoteToDelete] = useState<QuoteRequestData | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Toast State
@@ -39,15 +52,18 @@ export default function AdminQuotesPage() {
 
   const refreshData = useCallback(() => {
     if (!token) return;
-    quotesApi.getQuoteStats(token).then((data) => {
-      setStats(data);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('admin:refresh-stats'));
-      }
-    }).catch(() => {});
+    quotesApi
+      .getQuoteStats(token)
+      .then((data) => {
+        setStats(data);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("admin:refresh-stats"));
+        }
+      })
+      .catch(() => {});
     quotesApi
       .listQuotes(token, {
-        status: activeTab !== 'All' ? activeTab : undefined,
+        status: activeTab !== "All" ? activeTab : undefined,
         search: searchQuery.trim() || undefined,
       })
       .then(setQuotes)
@@ -63,11 +79,11 @@ export default function AdminQuotesPage() {
       .then((data) => {
         if (active) setStats(data);
       })
-      .catch((e) => console.error('Failed to load stats', e));
+      .catch((e) => console.error("Failed to load stats", e));
 
     quotesApi
       .listQuotes(token, {
-        status: activeTab !== 'All' ? activeTab : undefined,
+        status: activeTab !== "All" ? activeTab : undefined,
         search: searchQuery.trim() || undefined,
       })
       .then((data) => {
@@ -77,7 +93,7 @@ export default function AdminQuotesPage() {
         }
       })
       .catch((e) => {
-        console.error('Failed to load quotes', e);
+        console.error("Failed to load quotes", e);
         if (active) setIsLoading(false);
       });
 
@@ -85,7 +101,6 @@ export default function AdminQuotesPage() {
       active = false;
     };
   }, [token, activeTab, searchQuery]);
-
 
   const handleOpenDetails = (q: QuoteRequestData) => {
     setSelectedQuote(q);
@@ -109,9 +124,9 @@ export default function AdminQuotesPage() {
       setQuoteToDelete(null);
       refreshData();
       showToast(`Deleted quote request ${quoteToDelete.quote_number}`);
-
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete quote';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to delete quote";
       showToast(msg);
     } finally {
       setIsDeleting(false);
@@ -120,12 +135,15 @@ export default function AdminQuotesPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans">
-      
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-100 bg-navy text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 animate-fadeIn">
-          <span className="material-symbols-outlined text-gold text-xl!">info</span>
-          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
+          <span className="material-symbols-outlined text-gold text-xl!">
+            info
+          </span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">
+            {toastMessage}
+          </span>
         </div>
       )}
 
@@ -136,25 +154,34 @@ export default function AdminQuotesPage() {
             Quote Inquiries &amp; Requests
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Review incoming quote requests submitted by hospital groups, clinics, and doctors.
+            Review incoming quote requests submitted by hospital groups,
+            clinics, and doctors.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-gray-600 bg-white px-3.5 py-1.5 rounded-xl border border-gray-200 shadow-2xs flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            <strong>{stats?.new_quotes ?? quotes.filter((q) => q.status === 'New').length}</strong> pending review
+            <strong>
+              {stats?.new_quotes ??
+                quotes.filter((q) => q.status === "New").length}
+            </strong>{" "}
+            pending review
           </span>
         </div>
       </div>
 
       {!canWriteQuotes && (
         <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
-          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">
+            visibility
+          </span>
           <div>
             <p className="font-bold text-amber-950">Read-Only Quotes View</p>
             <p className="text-amber-800/90 mt-0.5">
-              Your account has read-only access to quotation requests. Modifying request status, updating quoted amounts, adding internal notes, or deleting requests is disabled.
+              Your account has read-only access to quotation requests. Modifying
+              request status, updating quoted amounts, adding internal notes, or
+              deleting requests is disabled.
             </p>
           </div>
         </div>
@@ -162,21 +189,29 @@ export default function AdminQuotesPage() {
 
       {/* Filter Tabs & Search Bar */}
       <div className="bg-white p-4 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-        
         {/* Status Tabs */}
         <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-2xl">
-          {(['All', 'New', 'In Review', 'Quoted', 'Approved', 'Declined'] as const).map((tab) => {
+          {(
+            [
+              "All",
+              "New",
+              "In Review",
+              "Quoted",
+              "Approved",
+              "Declined",
+            ] as const
+          ).map((tab) => {
             const count =
-              stats && tab !== 'All'
-                ? tab === 'New'
+              stats && tab !== "All"
+                ? tab === "New"
                   ? stats.new_quotes
-                  : tab === 'In Review'
-                  ? stats.in_review_quotes
-                  : tab === 'Quoted'
-                  ? stats.quoted_quotes
-                  : tab === 'Approved'
-                  ? stats.approved_quotes
-                  : stats.declined_quotes
+                  : tab === "In Review"
+                    ? stats.in_review_quotes
+                    : tab === "Quoted"
+                      ? stats.quoted_quotes
+                      : tab === "Approved"
+                        ? stats.approved_quotes
+                        : stats.declined_quotes
                 : stats?.total_quotes;
 
             return (
@@ -186,19 +221,19 @@ export default function AdminQuotesPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   activeTab === tab
-                    ? 'bg-white text-navy shadow-xs'
-                    : 'text-gray-500 hover:text-navy'
+                    ? "bg-white text-navy shadow-xs"
+                    : "text-gray-500 hover:text-navy"
                 }`}
               >
                 <span>{tab}</span>
                 {count !== undefined && count > 0 && (
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      tab === 'New'
-                        ? 'bg-amber-500 text-white'
+                      tab === "New"
+                        ? "bg-amber-500 text-white"
                         : activeTab === tab
-                        ? 'bg-slate-100 text-navy'
-                        : 'bg-slate-200 text-gray-600'
+                          ? "bg-slate-100 text-navy"
+                          : "bg-slate-200 text-gray-600"
                     }`}
                   >
                     {count}
@@ -222,7 +257,6 @@ export default function AdminQuotesPage() {
             className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-gray-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all text-navy"
           />
         </div>
-
       </div>
 
       {/* Quotes Table */}
@@ -232,7 +266,9 @@ export default function AdminQuotesPage() {
             <span className="material-symbols-outlined text-4xl animate-spin text-blue-600">
               progress_activity
             </span>
-            <p className="text-xs text-gray-500 font-semibold">Loading quotation requests...</p>
+            <p className="text-xs text-gray-500 font-semibold">
+              Loading quotation requests...
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -250,7 +286,10 @@ export default function AdminQuotesPage() {
               <tbody className="divide-y divide-gray-100">
                 {quotes.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-12 text-center text-gray-400"
+                    >
                       <span className="material-symbols-outlined text-4xl block mb-2 text-gray-300">
                         receipt_long
                       </span>
@@ -259,12 +298,19 @@ export default function AdminQuotesPage() {
                   </tr>
                 ) : (
                   quotes.map((q) => (
-                    <tr key={q.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr
+                      key={q.id}
+                      className="hover:bg-slate-50/70 transition-colors"
+                    >
                       {/* ID & Facility */}
                       <td className="px-5 py-4">
-                        <div className="font-bold text-navy text-sm">{q.facility_name}</div>
+                        <div className="font-bold text-navy text-sm">
+                          {q.facility_name}
+                        </div>
                         <div className="text-[11px] text-gray-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span className="text-blue-600 font-semibold">{q.quote_number}</span>
+                          <span className="text-blue-600 font-semibold">
+                            {q.quote_number}
+                          </span>
                           {q.sector && (
                             <>
                               <span>&bull;</span>
@@ -276,19 +322,30 @@ export default function AdminQuotesPage() {
 
                       {/* Contact Person */}
                       <td className="px-4 py-4">
-                        <div className="font-medium text-gray-800">{q.contact_name}</div>
-                        <div className="text-[11px] text-gray-500 truncate">{q.email}</div>
+                        <div className="font-medium text-gray-800">
+                          {q.contact_name}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {q.email}
+                        </div>
                       </td>
 
                       {/* Equipment Requested */}
                       <td className="px-4 py-4">
                         <div className="space-y-1">
                           {q.items.slice(0, 3).map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-xs text-gray-700">
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1.5 text-xs text-gray-700"
+                            >
                               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                              <span className="font-semibold">{item.product_name}</span>
+                              <span className="font-semibold">
+                                {item.product_name}
+                              </span>
                               {item.brand_name && (
-                                <span className="text-gray-400">({item.brand_name})</span>
+                                <span className="text-gray-400">
+                                  ({item.brand_name})
+                                </span>
                               )}
                               <span className="font-mono bg-slate-100 text-gray-600 px-1.5 py-0.2 rounded text-[10px] font-bold">
                                 &times;{item.quantity}
@@ -306,20 +363,28 @@ export default function AdminQuotesPage() {
                       {/* Date & Urgency */}
                       <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                         <div>
-                          {new Date(q.created_at).toLocaleDateString('en-ZA', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
+                          {new Date(q.created_at).toLocaleDateString("en-ZA", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
                           })}
                         </div>
-                        <span className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full border ${getUrgencyBadge(q.urgency)}`}>
+                        <span
+                          className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full border ${getUrgencyBadge(
+                            q.urgency,
+                          )}`}
+                        >
                           {q.urgency}
                         </span>
                       </td>
 
                       {/* Status Badge */}
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${getStatusBadge(q.status)}`}>
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${getStatusBadge(
+                            q.status,
+                          )}`}
+                        >
                           {q.status}
                         </span>
                         {q.quoted_amount && (
@@ -338,7 +403,9 @@ export default function AdminQuotesPage() {
                             className="bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
                           >
                             <span>Review</span>
-                            <span className="material-symbols-outlined text-xs!">visibility</span>
+                            <span className="material-symbols-outlined text-xs!">
+                              visibility
+                            </span>
                           </button>
                           {canWriteQuotes && (
                             <button
@@ -347,12 +414,13 @@ export default function AdminQuotesPage() {
                               className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
                               title="Delete Quote"
                             >
-                              <span className="material-symbols-outlined text-sm!">delete</span>
+                              <span className="material-symbols-outlined text-sm!">
+                                delete
+                              </span>
                             </button>
                           )}
                         </div>
                       </td>
-
                     </tr>
                   ))
                 )}
@@ -375,14 +443,21 @@ export default function AdminQuotesPage() {
         <div className="fixed inset-0 bg-black/60 z-60 flex items-center justify-center p-4 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl!">delete</span>
+              <span className="material-symbols-outlined text-2xl!">
+                delete
+              </span>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-navy">Delete Quote Request?</h3>
+              <h3 className="text-lg font-bold text-navy">
+                Delete Quote Request?
+              </h3>
               <p className="text-xs text-gray-500 mt-1">
-                Are you sure you want to permanently delete quotation request{' '}
-                <strong className="text-navy">{quoteToDelete.quote_number}</strong> for{' '}
-                <strong>{quoteToDelete.facility_name}</strong>? This action cannot be undone.
+                Are you sure you want to permanently delete quotation request{" "}
+                <strong className="text-navy">
+                  {quoteToDelete.quote_number}
+                </strong>{" "}
+                for <strong>{quoteToDelete.facility_name}</strong>? This action
+                cannot be undone.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -399,13 +474,12 @@ export default function AdminQuotesPage() {
                 disabled={isDeleting}
                 className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
               >
-                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                {isDeleting ? "Deleting..." : "Delete Permanently"}
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

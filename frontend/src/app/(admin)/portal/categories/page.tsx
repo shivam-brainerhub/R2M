@@ -1,72 +1,79 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from "@/context/AuthContext";
 import {
-  categoriesApi,
-  brandsApi,
-  CategoryItem,
-  BrandItem,
-  CreateCategoryPayload,
-  UpdateCategoryPayload,
-  CreateBrandPayload,
-  UpdateBrandPayload,
   ApiError,
+  BrandItem,
+  brandsApi,
+  categoriesApi,
+  CategoryItem,
+  CreateBrandPayload,
+  CreateCategoryPayload,
   getMediaUrl,
-} from '@/lib/api';
+  UpdateBrandPayload,
+  UpdateCategoryPayload,
+} from "@/lib/api";
+import { useEffect, useState } from "react";
 
 const POPULAR_CATEGORY_ICONS = [
-  'monitor_heart',
-  'bed',
-  'clean_hands',
-  'sanitizer',
-  'medical_services',
-  'accessible',
-  'content_cut',
-  'science',
-  'pets',
-  'cardiology',
-  'vaccines',
-  'emergency',
-  'local_hospital',
-  'biotech',
-  'stethoscope',
-  'vital_signs',
+  "monitor_heart",
+  "bed",
+  "clean_hands",
+  "sanitizer",
+  "medical_services",
+  "accessible",
+  "content_cut",
+  "science",
+  "pets",
+  "cardiology",
+  "vaccines",
+  "emergency",
+  "local_hospital",
+  "biotech",
+  "stethoscope",
+  "vital_signs",
 ];
 
 export default function AdminCategoriesBrandsPage() {
   const { token, hasPermission } = useAuth();
-  const canWriteCategories = hasPermission('categories', 'write');
+  const canWriteCategories = hasPermission("categories", "write");
 
-  const [viewSection, setViewSection] = useState<'categories' | 'brands'>('categories');
+  const [viewSection, setViewSection] = useState<"categories" | "brands">(
+    "categories",
+  );
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [brands, setBrands] = useState<BrandItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Category Modal State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
-  const [categoryFormData, setCategoryFormData] = useState<CreateCategoryPayload>({
-    name: '',
-    code: '',
-    description: '',
-    icon: 'category',
-  });
-  const [categoryFormError, setCategoryFormError] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(
+    null,
+  );
+  const [categoryFormData, setCategoryFormData] =
+    useState<CreateCategoryPayload>({
+      name: "",
+      code: "",
+      description: "",
+      icon: "category",
+    });
+  const [categoryFormError, setCategoryFormError] = useState<string | null>(
+    null,
+  );
   const [isCategorySubmitting, setIsCategorySubmitting] = useState(false);
 
   // Brand Modal State
   const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<BrandItem | null>(null);
   const [brandFormData, setBrandFormData] = useState<CreateBrandPayload>({
-    name: '',
-    country: '',
-    description: '',
-    logo_url: '',
-    website_url: '',
+    name: "",
+    country: "",
+    description: "",
+    logo_url: "",
+    website_url: "",
     featured_in_slider: true,
   });
   const [brandFormError, setBrandFormError] = useState<string | null>(null);
@@ -76,15 +83,19 @@ export default function AdminCategoriesBrandsPage() {
 
   // Delete Confirm Modal State
   const [deleteModal, setDeleteModal] = useState<{
-    type: 'category' | 'brand';
+    type: "category" | "brand";
     id: number;
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Inline Category Deletion State (Confirm directly in specific card, no alert)
-  const [confirmingDeleteCategoryId, setConfirmingDeleteCategoryId] = useState<number | null>(null);
-  const [isDeletingCategoryId, setIsDeletingCategoryId] = useState<number | null>(null);
+  const [confirmingDeleteCategoryId, setConfirmingDeleteCategoryId] = useState<
+    number | null
+  >(null);
+  const [isDeletingCategoryId, setIsDeletingCategoryId] = useState<
+    number | null
+  >(null);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -93,7 +104,7 @@ export default function AdminCategoriesBrandsPage() {
 
   const handleInlineDeleteCategory = async (cat: CategoryItem) => {
     if (!token) {
-      showToast('Authentication required to delete category');
+      showToast("Authentication required to delete category");
       return;
     }
 
@@ -104,7 +115,8 @@ export default function AdminCategoriesBrandsPage() {
       showToast(`Category "${cat.name}" deleted successfully`);
       setConfirmingDeleteCategoryId(null);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete category';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to delete category";
       showToast(msg);
     } finally {
       setIsDeletingCategoryId(null);
@@ -112,20 +124,24 @@ export default function AdminCategoriesBrandsPage() {
   };
 
   // Subcategory Management Modal State
-  const [managingSubcatCategory, setManagingSubcatCategory] = useState<CategoryItem | null>(null);
-  const [newSubcatName, setNewSubcatName] = useState('');
-  const [newSubcatSlug, setNewSubcatSlug] = useState('');
+  const [managingSubcatCategory, setManagingSubcatCategory] =
+    useState<CategoryItem | null>(null);
+  const [newSubcatName, setNewSubcatName] = useState("");
+  const [newSubcatSlug, setNewSubcatSlug] = useState("");
   const [isSubcatSubmitting, setIsSubcatSubmitting] = useState(false);
   const [subcatError, setSubcatError] = useState<string | null>(null);
 
   // Inline Subcategory Editing
   const [editingSubcatId, setEditingSubcatId] = useState<number | null>(null);
-  const [editingSubcatName, setEditingSubcatName] = useState('');
-  const [editingSubcatSlug, setEditingSubcatSlug] = useState('');
-  const [isEditingSubcatSubmitting, setIsEditingSubcatSubmitting] = useState(false);
+  const [editingSubcatName, setEditingSubcatName] = useState("");
+  const [editingSubcatSlug, setEditingSubcatSlug] = useState("");
+  const [isEditingSubcatSubmitting, setIsEditingSubcatSubmitting] =
+    useState(false);
 
   // Subcategory Deletion Confirmation
-  const [confirmDeleteSubcatId, setConfirmDeleteSubcatId] = useState<number | null>(null);
+  const [confirmDeleteSubcatId, setConfirmDeleteSubcatId] = useState<
+    number | null
+  >(null);
   const [isDeletingSubcat, setIsDeletingSubcat] = useState(false);
 
   const handleCreateSubcategory = async (e: React.FormEvent) => {
@@ -133,30 +149,41 @@ export default function AdminCategoriesBrandsPage() {
     if (!token || !managingSubcatCategory) return;
     const cleanName = newSubcatName.trim();
     if (!cleanName) {
-      setSubcatError('Subcategory name is required');
+      setSubcatError("Subcategory name is required");
       return;
     }
 
     setIsSubcatSubmitting(true);
     setSubcatError(null);
     try {
-      const created = await categoriesApi.createSubcategory(token, managingSubcatCategory.id, {
-        name: cleanName,
-        slug: newSubcatSlug.trim() || undefined,
-      });
-
-      const updatedSubcats = [...(managingSubcatCategory.subcategories || []), created].sort((a, b) =>
-        a.name.localeCompare(b.name)
+      const created = await categoriesApi.createSubcategory(
+        token,
+        managingSubcatCategory.id,
+        {
+          name: cleanName,
+          slug: newSubcatSlug.trim() || undefined,
+        },
       );
-      const updatedCat: CategoryItem = { ...managingSubcatCategory, subcategories: updatedSubcats };
-      setManagingSubcatCategory(updatedCat);
-      setCategories((prev) => prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)));
 
-      setNewSubcatName('');
-      setNewSubcatSlug('');
+      const updatedSubcats = [
+        ...(managingSubcatCategory.subcategories || []),
+        created,
+      ].sort((a, b) => a.name.localeCompare(b.name));
+      const updatedCat: CategoryItem = {
+        ...managingSubcatCategory,
+        subcategories: updatedSubcats,
+      };
+      setManagingSubcatCategory(updatedCat);
+      setCategories((prev) =>
+        prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)),
+      );
+
+      setNewSubcatName("");
+      setNewSubcatSlug("");
       showToast(`Subcategory "${created.name}" created successfully!`);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to create subcategory';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to create subcategory";
       setSubcatError(msg);
     } finally {
       setIsSubcatSubmitting(false);
@@ -167,7 +194,7 @@ export default function AdminCategoriesBrandsPage() {
     if (!token || !managingSubcatCategory) return;
     const cleanName = editingSubcatName.trim();
     if (!cleanName) {
-      setSubcatError('Subcategory name is required');
+      setSubcatError("Subcategory name is required");
       return;
     }
 
@@ -179,24 +206,33 @@ export default function AdminCategoriesBrandsPage() {
         slug: editingSubcatSlug.trim() || undefined,
       });
 
-      const updatedSubcats = (managingSubcatCategory.subcategories || []).map((s) =>
-        s.id === subcatId ? updated : s
-      ).sort((a, b) => a.name.localeCompare(b.name));
-      const updatedCat: CategoryItem = { ...managingSubcatCategory, subcategories: updatedSubcats };
+      const updatedSubcats = (managingSubcatCategory.subcategories || [])
+        .map((s) => (s.id === subcatId ? updated : s))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const updatedCat: CategoryItem = {
+        ...managingSubcatCategory,
+        subcategories: updatedSubcats,
+      };
       setManagingSubcatCategory(updatedCat);
-      setCategories((prev) => prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)));
+      setCategories((prev) =>
+        prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)),
+      );
 
       setEditingSubcatId(null);
       showToast(`Subcategory updated successfully!`);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to update subcategory';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to update subcategory";
       setSubcatError(msg);
     } finally {
       setIsEditingSubcatSubmitting(false);
     }
   };
 
-  const handleDeleteSubcategory = async (subcatId: number, force: boolean = false) => {
+  const handleDeleteSubcategory = async (
+    subcatId: number,
+    force: boolean = false,
+  ) => {
     if (!token || !managingSubcatCategory) return;
 
     setIsDeletingSubcat(true);
@@ -204,15 +240,23 @@ export default function AdminCategoriesBrandsPage() {
     try {
       await categoriesApi.deleteSubcategory(token, subcatId, force);
 
-      const updatedSubcats = (managingSubcatCategory.subcategories || []).filter((s) => s.id !== subcatId);
-      const updatedCat: CategoryItem = { ...managingSubcatCategory, subcategories: updatedSubcats };
+      const updatedSubcats = (
+        managingSubcatCategory.subcategories || []
+      ).filter((s) => s.id !== subcatId);
+      const updatedCat: CategoryItem = {
+        ...managingSubcatCategory,
+        subcategories: updatedSubcats,
+      };
       setManagingSubcatCategory(updatedCat);
-      setCategories((prev) => prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)));
+      setCategories((prev) =>
+        prev.map((c) => (c.id === updatedCat.id ? updatedCat : c)),
+      );
 
       setConfirmDeleteSubcatId(null);
       showToast(`Subcategory deleted successfully!`);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete subcategory';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to delete subcategory";
       setSubcatError(msg);
     } finally {
       setIsDeletingSubcat(false);
@@ -230,7 +274,10 @@ export default function AdminCategoriesBrandsPage() {
       setCategories(catsData);
       setBrands(brandsData);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to connect to backend server';
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to connect to backend server";
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -248,7 +295,10 @@ export default function AdminCategoriesBrandsPage() {
       })
       .catch((err: unknown) => {
         if (!isMounted) return;
-        const msg = err instanceof ApiError ? err.message : 'Failed to connect to backend server';
+        const msg =
+          err instanceof ApiError
+            ? err.message
+            : "Failed to connect to backend server";
         setError(msg);
         setIsLoading(false);
       });
@@ -268,7 +318,7 @@ export default function AdminCategoriesBrandsPage() {
   useEffect(() => {
     if (isAnyCategoryModalOpen) {
       const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = originalOverflow;
       };
@@ -299,7 +349,7 @@ export default function AdminCategoriesBrandsPage() {
   // Slider Toggle Handler
   const handleToggleBrandSlider = async (brand: BrandItem) => {
     if (!token) {
-      showToast('Authentication required to update brands');
+      showToast("Authentication required to update brands");
       return;
     }
 
@@ -307,12 +357,17 @@ export default function AdminCategoriesBrandsPage() {
       const res = await brandsApi.toggleSlider(token, brand.id);
       setBrands((prev) =>
         prev.map((b) =>
-          b.id === brand.id ? { ...b, featured_in_slider: res.featured_in_slider } : b
-        )
+          b.id === brand.id
+            ? { ...b, featured_in_slider: res.featured_in_slider }
+            : b,
+        ),
       );
       showToast(res.message);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to toggle homepage slider';
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to toggle homepage slider";
       showToast(msg);
     }
   };
@@ -324,20 +379,21 @@ export default function AdminCategoriesBrandsPage() {
       setEditingCategory(cat);
       setCategoryFormData({
         name: cat.name,
-        code: cat.code || '',
-        description: cat.description || '',
-        icon: cat.icon || 'category',
+        code: cat.code || "",
+        description: cat.description || "",
+        icon: cat.icon || "category",
       });
     } else {
       setEditingCategory(null);
       // Generate next code
       const nextCodeNum = categories.length + 1;
-      const defaultCode = nextCodeNum < 10 ? `0${nextCodeNum}` : `${nextCodeNum}`;
+      const defaultCode =
+        nextCodeNum < 10 ? `0${nextCodeNum}` : `${nextCodeNum}`;
       setCategoryFormData({
-        name: '',
+        name: "",
         code: defaultCode,
-        description: '',
-        icon: 'category',
+        description: "",
+        icon: "category",
       });
     }
     setIsCategoryModalOpen(true);
@@ -347,12 +403,12 @@ export default function AdminCategoriesBrandsPage() {
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryFormData.name.trim()) {
-      setCategoryFormError('Category name is required.');
+      setCategoryFormError("Category name is required.");
       return;
     }
 
     if (!token) {
-      setCategoryFormError('Authentication required. Please re-login.');
+      setCategoryFormError("Authentication required. Please re-login.");
       return;
     }
 
@@ -365,17 +421,23 @@ export default function AdminCategoriesBrandsPage() {
           name: categoryFormData.name.trim(),
           code: categoryFormData.code?.trim() || undefined,
           description: categoryFormData.description?.trim() || undefined,
-          icon: categoryFormData.icon?.trim() || 'category',
+          icon: categoryFormData.icon?.trim() || "category",
         };
-        const updated = await categoriesApi.updateCategory(token, editingCategory.id, payload);
-        setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        const updated = await categoriesApi.updateCategory(
+          token,
+          editingCategory.id,
+          payload,
+        );
+        setCategories((prev) =>
+          prev.map((c) => (c.id === updated.id ? updated : c)),
+        );
         showToast(`Category "${updated.name}" updated successfully`);
       } else {
         const payload: CreateCategoryPayload = {
           name: categoryFormData.name.trim(),
           code: categoryFormData.code?.trim() || undefined,
           description: categoryFormData.description?.trim() || undefined,
-          icon: categoryFormData.icon?.trim() || 'category',
+          icon: categoryFormData.icon?.trim() || "category",
         };
         const created = await categoriesApi.createCategory(token, payload);
         setCategories((prev) => [...prev, created]);
@@ -383,7 +445,8 @@ export default function AdminCategoriesBrandsPage() {
       }
       setIsCategoryModalOpen(false);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to save category';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to save category";
       setCategoryFormError(msg);
     } finally {
       setIsCategorySubmitting(false);
@@ -399,21 +462,21 @@ export default function AdminCategoriesBrandsPage() {
       setLogoPreview(brand.logo_url ? getMediaUrl(brand.logo_url) : null);
       setBrandFormData({
         name: brand.name,
-        country: brand.country || '',
-        description: brand.description || '',
-        logo_url: brand.logo_url || '',
-        website_url: brand.website_url || '',
+        country: brand.country || "",
+        description: brand.description || "",
+        logo_url: brand.logo_url || "",
+        website_url: brand.website_url || "",
         featured_in_slider: brand.featured_in_slider,
       });
     } else {
       setEditingBrand(null);
       setLogoPreview(null);
       setBrandFormData({
-        name: '',
-        country: '',
-        description: '',
-        logo_url: '',
-        website_url: '',
+        name: "",
+        country: "",
+        description: "",
+        logo_url: "",
+        website_url: "",
         featured_in_slider: true,
       });
     }
@@ -424,12 +487,12 @@ export default function AdminCategoriesBrandsPage() {
   const handleBrandSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brandFormData.name.trim()) {
-      setBrandFormError('Brand name is required.');
+      setBrandFormError("Brand name is required.");
       return;
     }
 
     if (!token) {
-      setBrandFormError('Authentication required. Please re-login.');
+      setBrandFormError("Authentication required. Please re-login.");
       return;
     }
 
@@ -441,7 +504,10 @@ export default function AdminCategoriesBrandsPage() {
 
       // If user selected a new logo file from PC, upload it first
       if (selectedLogoFile) {
-        const uploadResult = await brandsApi.uploadLogo(token, selectedLogoFile);
+        const uploadResult = await brandsApi.uploadLogo(
+          token,
+          selectedLogoFile,
+        );
         finalLogoUrl = uploadResult.url;
       }
 
@@ -454,8 +520,14 @@ export default function AdminCategoriesBrandsPage() {
           website_url: brandFormData.website_url?.trim() || undefined,
           featured_in_slider: brandFormData.featured_in_slider,
         };
-        const updated = await brandsApi.updateBrand(token, editingBrand.id, payload);
-        setBrands((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+        const updated = await brandsApi.updateBrand(
+          token,
+          editingBrand.id,
+          payload,
+        );
+        setBrands((prev) =>
+          prev.map((b) => (b.id === updated.id ? updated : b)),
+        );
         showToast(`Brand "${updated.name}" updated successfully`);
       } else {
         const payload: CreateBrandPayload = {
@@ -472,7 +544,8 @@ export default function AdminCategoriesBrandsPage() {
       }
       setIsBrandModalOpen(false);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to save brand';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to save brand";
       setBrandFormError(msg);
     } finally {
       setIsBrandSubmitting(false);
@@ -485,7 +558,7 @@ export default function AdminCategoriesBrandsPage() {
 
     setIsDeleting(true);
     try {
-      if (deleteModal.type === 'category') {
+      if (deleteModal.type === "category") {
         await categoriesApi.deleteCategory(token, deleteModal.id);
         setCategories((prev) => prev.filter((c) => c.id !== deleteModal.id));
         showToast(`Category "${deleteModal.name}" deleted successfully`);
@@ -496,7 +569,8 @@ export default function AdminCategoriesBrandsPage() {
       }
       setDeleteModal(null);
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to delete item';
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to delete item";
       showToast(msg);
     } finally {
       setIsDeleting(false);
@@ -508,8 +582,12 @@ export default function AdminCategoriesBrandsPage() {
       {/* Toast Notification (Topmost layer above all modals & backdrops) */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-100 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-emerald-950/20 border border-emerald-500/80 flex items-center gap-3 animate-scale-in">
-          <span className="material-symbols-outlined text-white text-xl!">check_circle</span>
-          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
+          <span className="material-symbols-outlined text-white text-xl!">
+            check_circle
+          </span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">
+            {toastMessage}
+          </span>
         </div>
       )}
 
@@ -520,7 +598,8 @@ export default function AdminCategoriesBrandsPage() {
             Categories &amp; Medical Brands
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Maintain healthcare catalogue taxonomy and manage partner manufacturers connected to backend PostgreSQL.
+            Maintain healthcare catalogue taxonomy and manage partner
+            manufacturers connected to backend PostgreSQL.
           </p>
         </div>
 
@@ -529,30 +608,34 @@ export default function AdminCategoriesBrandsPage() {
           <div className="flex items-center gap-1.5 p-1 bg-white border border-gray-200 rounded-xl shadow-xs">
             <button
               onClick={() => {
-                setViewSection('categories');
-                setSearchTerm('');
+                setViewSection("categories");
+                setSearchTerm("");
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewSection === 'categories'
-                  ? 'bg-navy text-white shadow-xs'
-                  : 'text-gray-600 hover:text-navy'
+                viewSection === "categories"
+                  ? "bg-navy text-white shadow-xs"
+                  : "text-gray-600 hover:text-navy"
               }`}
             >
-              <span className="material-symbols-outlined text-base!">category</span>
+              <span className="material-symbols-outlined text-base!">
+                category
+              </span>
               Product Categories ({categories.length})
             </button>
             <button
               onClick={() => {
-                setViewSection('brands');
-                setSearchTerm('');
+                setViewSection("brands");
+                setSearchTerm("");
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewSection === 'brands'
-                  ? 'bg-navy text-white shadow-xs'
-                  : 'text-gray-600 hover:text-navy'
+                viewSection === "brands"
+                  ? "bg-navy text-white shadow-xs"
+                  : "text-gray-600 hover:text-navy"
               }`}
             >
-              <span className="material-symbols-outlined text-base!">domain</span>
+              <span className="material-symbols-outlined text-base!">
+                domain
+              </span>
               Manufacturers ({brands.length})
             </button>
           </div>
@@ -560,7 +643,7 @@ export default function AdminCategoriesBrandsPage() {
           {canWriteCategories && (
             <button
               onClick={() => {
-                if (viewSection === 'categories') {
+                if (viewSection === "categories") {
                   handleOpenCategoryModal();
                 } else {
                   handleOpenBrandModal();
@@ -569,7 +652,9 @@ export default function AdminCategoriesBrandsPage() {
               className="inline-flex items-center gap-1.5 bg-navy text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer"
             >
               <span className="material-symbols-outlined text-base!">add</span>
-              {viewSection === 'categories' ? 'Add Category' : 'Add Manufacturer'}
+              {viewSection === "categories"
+                ? "Add Category"
+                : "Add Manufacturer"}
             </button>
           )}
         </div>
@@ -577,7 +662,9 @@ export default function AdminCategoriesBrandsPage() {
 
       {!canWriteCategories && (
         <div className="bg-amber-50/90 border border-amber-200/90 text-amber-900 rounded-2xl p-4 flex items-center gap-3 text-xs leading-relaxed">
-          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">visibility</span>
+          <span className="material-symbols-outlined text-amber-600 text-xl! shrink-0">
+            visibility
+          </span>
           <div>
             <p className="font-bold text-amber-950">Read-Only Taxonomy View</p>
             <p className="text-amber-800/90 mt-0.5">
@@ -598,9 +685,9 @@ export default function AdminCategoriesBrandsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={
-              viewSection === 'categories'
-                ? 'Search categories by title, code or keywords...'
-                : 'Search manufacturers by brand name, country...'
+              viewSection === "categories"
+                ? "Search categories by title, code or keywords..."
+                : "Search manufacturers by brand name, country..."
             }
             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-gray-200 rounded-xl text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-navy focus:bg-white transition-all"
           />
@@ -615,10 +702,12 @@ export default function AdminCategoriesBrandsPage() {
             <span className="material-symbols-outlined text-lg!">refresh</span>
           </button>
           <span className="text-xs text-gray-500 font-medium">
-            Showing{' '}
+            Showing{" "}
             <strong className="text-navy">
-              {viewSection === 'categories' ? filteredCategories.length : filteredBrands.length}
-            </strong>{' '}
+              {viewSection === "categories"
+                ? filteredCategories.length
+                : filteredBrands.length}
+            </strong>{" "}
             records
           </span>
         </div>
@@ -664,18 +753,22 @@ export default function AdminCategoriesBrandsPage() {
       ) : (
         <>
           {/* SECTION 1: PRODUCT CATEGORIES GRID */}
-          {viewSection === 'categories' && (
+          {viewSection === "categories" && (
             <div>
               {filteredCategories.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 border border-gray-200/80 text-center shadow-xs">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
-                    <span className="material-symbols-outlined text-2xl!">category</span>
+                    <span className="material-symbols-outlined text-2xl!">
+                      category
+                    </span>
                   </div>
-                  <h3 className="text-base font-bold text-navy mb-1">No Categories Found</h3>
+                  <h3 className="text-base font-bold text-navy mb-1">
+                    No Categories Found
+                  </h3>
                   <p className="text-xs text-gray-500 mb-4">
                     {searchTerm
                       ? `No category matching "${searchTerm}". Try a different keyword.`
-                      : 'No product categories currently configured in the database.'}
+                      : "No product categories currently configured in the database."}
                   </p>
                   <button
                     onClick={() => handleOpenCategoryModal()}
@@ -697,7 +790,9 @@ export default function AdminCategoriesBrandsPage() {
                           <div>
                             <div className="flex items-center gap-2 mb-2">
                               <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold shrink-0">
-                                <span className="material-symbols-outlined text-xl!">warning</span>
+                                <span className="material-symbols-outlined text-xl!">
+                                  warning
+                                </span>
                               </div>
                               <span className="text-xs font-bold uppercase tracking-wider text-rose-700">
                                 Confirm Deletion
@@ -709,10 +804,11 @@ export default function AdminCategoriesBrandsPage() {
                             <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
                               {cat.product_count > 0 ? (
                                 <span className="text-rose-600 font-semibold">
-                                  Warning: {cat.product_count} active product(s) linked to this category!
+                                  Warning: {cat.product_count} active product(s)
+                                  linked to this category!
                                 </span>
                               ) : (
-                                'Permanently remove this category. This action cannot be undone.'
+                                "Permanently remove this category. This action cannot be undone."
                               )}
                             </p>
                           </div>
@@ -721,7 +817,9 @@ export default function AdminCategoriesBrandsPage() {
                             <button
                               type="button"
                               disabled={isDeletingCategoryId === cat.id}
-                              onClick={() => setConfirmingDeleteCategoryId(null)}
+                              onClick={() =>
+                                setConfirmingDeleteCategoryId(null)
+                              }
                               className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                             >
                               Cancel
@@ -739,7 +837,9 @@ export default function AdminCategoriesBrandsPage() {
                                 </>
                               ) : (
                                 <>
-                                  <span className="material-symbols-outlined text-sm!">delete</span>
+                                  <span className="material-symbols-outlined text-sm!">
+                                    delete
+                                  </span>
                                   <span>Confirm Delete</span>
                                 </>
                               )}
@@ -752,7 +852,7 @@ export default function AdminCategoriesBrandsPage() {
                         <div className="flex items-center justify-between mb-3">
                           <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
                             <span className="material-symbols-outlined text-2xl!">
-                              {cat.icon || 'category'}
+                              {cat.icon || "category"}
                             </span>
                           </div>
                           {cat.code && (
@@ -762,9 +862,12 @@ export default function AdminCategoriesBrandsPage() {
                           )}
                         </div>
 
-                        <h3 className="font-bold text-navy text-base mb-1">{cat.name}</h3>
+                        <h3 className="font-bold text-navy text-base mb-1">
+                          {cat.name}
+                        </h3>
                         <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
-                          {cat.description || 'No descriptive summary provided.'}
+                          {cat.description ||
+                            "No descriptive summary provided."}
                         </p>
                       </div>
 
@@ -772,15 +875,17 @@ export default function AdminCategoriesBrandsPage() {
                       <div className="my-3 pt-2.5 border-t border-gray-100">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm!">account_tree</span>
+                            <span className="material-symbols-outlined text-sm!">
+                              account_tree
+                            </span>
                             Subcategories ({cat.subcategories?.length || 0})
                           </span>
                           <button
                             type="button"
                             onClick={() => {
                               setManagingSubcatCategory(cat);
-                              setNewSubcatName('');
-                              setNewSubcatSlug('');
+                              setNewSubcatName("");
+                              setNewSubcatSlug("");
                               setSubcatError(null);
                               setEditingSubcatId(null);
                               setConfirmDeleteSubcatId(null);
@@ -788,9 +893,9 @@ export default function AdminCategoriesBrandsPage() {
                             className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-0.5 cursor-pointer"
                           >
                             <span className="material-symbols-outlined text-xs!">
-                              {canWriteCategories ? 'edit_note' : 'visibility'}
+                              {canWriteCategories ? "edit_note" : "visibility"}
                             </span>
-                            {canWriteCategories ? 'Manage' : 'View'}
+                            {canWriteCategories ? "Manage" : "View"}
                           </button>
                         </div>
                         {cat.subcategories && cat.subcategories.length > 0 ? (
@@ -801,39 +906,56 @@ export default function AdminCategoriesBrandsPage() {
                                 className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium"
                               >
                                 {sub.name}
-                                <span className="text-[10px] text-gray-400">({sub.product_count})</span>
+                                <span className="text-[10px] text-gray-400">
+                                  ({sub.product_count})
+                                </span>
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <p className="text-[11px] text-gray-400 italic">No subcategories created yet</p>
+                          <p className="text-[11px] text-gray-400 italic">
+                            No subcategories created yet
+                          </p>
                         )}
                       </div>
 
                       <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
                         <span className="font-medium text-gray-500">
-                          <strong className="text-navy">{cat.product_count}</strong> Active Product(s)
+                          <strong className="text-navy">
+                            {cat.product_count}
+                          </strong>{" "}
+                          Active Product(s)
                         </span>
 
                         {/* Actions in bottom right */}
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleOpenCategoryModal(cat)}
-                            title={canWriteCategories ? 'Edit Category' : 'View Category Details'}
+                            title={
+                              canWriteCategories
+                                ? "Edit Category"
+                                : "View Category Details"
+                            }
                             className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-medium"
                           >
                             <span className="material-symbols-outlined text-base!">
-                              {canWriteCategories ? 'edit' : 'visibility'}
+                              {canWriteCategories ? "edit" : "visibility"}
                             </span>
-                            <span className="text-xs">{canWriteCategories ? 'Edit' : 'View Details'}</span>
+                            <span className="text-xs">
+                              {canWriteCategories ? "Edit" : "View Details"}
+                            </span>
                           </button>
                           {canWriteCategories && (
                             <button
-                              onClick={() => setConfirmingDeleteCategoryId(cat.id)}
+                              onClick={() =>
+                                setConfirmingDeleteCategoryId(cat.id)
+                              }
                               title="Delete Category"
                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             >
-                              <span className="material-symbols-outlined text-base!">delete</span>
+                              <span className="material-symbols-outlined text-base!">
+                                delete
+                              </span>
                             </button>
                           )}
                         </div>
@@ -846,13 +968,16 @@ export default function AdminCategoriesBrandsPage() {
           )}
 
           {/* SECTION 2: MANUFACTURERS TABLE */}
-          {viewSection === 'brands' && (
+          {viewSection === "brands" && (
             <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                  <h2 className="text-sm font-bold text-navy">Partner Medical Brands</h2>
+                  <h2 className="text-sm font-bold text-navy">
+                    Partner Medical Brands
+                  </h2>
                   <p className="text-xs text-gray-500">
-                    Configure manufacturer profiles, country origins and live inclusion in homepage BrandSlider.
+                    Configure manufacturer profiles, country origins and live
+                    inclusion in homepage BrandSlider.
                   </p>
                 </div>
                 {canWriteCategories && (
@@ -860,7 +985,9 @@ export default function AdminCategoriesBrandsPage() {
                     onClick={() => handleOpenBrandModal()}
                     className="bg-navy text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl hover:bg-navy-light transition-all cursor-pointer inline-flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-sm!">add</span>
+                    <span className="material-symbols-outlined text-sm!">
+                      add
+                    </span>
                     Add Manufacturer
                   </button>
                 )}
@@ -884,7 +1011,10 @@ export default function AdminCategoriesBrandsPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredBrands.map((b) => (
-                        <tr key={b.id} className="hover:bg-slate-50/70 transition-colors">
+                        <tr
+                          key={b.id}
+                          className="hover:bg-slate-50/70 transition-colors"
+                        >
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
                               {b.logo_url ? (
@@ -896,7 +1026,7 @@ export default function AdminCategoriesBrandsPage() {
                                     className="max-h-full max-w-full object-contain"
                                     onError={(e) => {
                                       // Fallback on missing image
-                                      e.currentTarget.style.display = 'none';
+                                      e.currentTarget.style.display = "none";
                                     }}
                                   />
                                 </div>
@@ -916,7 +1046,9 @@ export default function AdminCategoriesBrandsPage() {
                                       className="text-gray-400 hover:text-blue-600"
                                       title={b.website_url}
                                     >
-                                      <span className="material-symbols-outlined text-xs!">open_in_new</span>
+                                      <span className="material-symbols-outlined text-xs!">
+                                        open_in_new
+                                      </span>
                                     </a>
                                   )}
                                 </div>
@@ -927,10 +1059,11 @@ export default function AdminCategoriesBrandsPage() {
                             </div>
                           </td>
                           <td className="px-4 py-4 text-gray-600 text-xs whitespace-nowrap">
-                            {b.country || 'International'}
+                            {b.country || "International"}
                           </td>
                           <td className="px-4 py-4 text-gray-600 max-w-md text-xs leading-relaxed">
-                            {b.description || 'Global healthcare device manufacturer.'}
+                            {b.description ||
+                              "Global healthcare device manufacturer."}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             {canWriteCategories ? (
@@ -938,32 +1071,40 @@ export default function AdminCategoriesBrandsPage() {
                                 onClick={() => handleToggleBrandSlider(b)}
                                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                                   b.featured_in_slider
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200"
+                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200"
                                 }`}
                                 title="Click to toggle homepage slider display"
                               >
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full ${
-                                    b.featured_in_slider ? 'bg-emerald-600 animate-pulse' : 'bg-gray-400'
+                                    b.featured_in_slider
+                                      ? "bg-emerald-600 animate-pulse"
+                                      : "bg-gray-400"
                                   }`}
                                 />
-                                {b.featured_in_slider ? 'Featured on Slider' : 'Hidden from Slider'}
+                                {b.featured_in_slider
+                                  ? "Featured on Slider"
+                                  : "Hidden from Slider"}
                               </button>
                             ) : (
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none ${
                                   b.featured_in_slider
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                    : "bg-gray-100 text-gray-600 border border-gray-200"
                                 }`}
                               >
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full ${
-                                    b.featured_in_slider ? 'bg-emerald-600' : 'bg-gray-400'
+                                    b.featured_in_slider
+                                      ? "bg-emerald-600"
+                                      : "bg-gray-400"
                                   }`}
                                 />
-                                {b.featured_in_slider ? 'Featured on Slider' : 'Hidden from Slider'}
+                                {b.featured_in_slider
+                                  ? "Featured on Slider"
+                                  : "Hidden from Slider"}
                               </span>
                             )}
                           </td>
@@ -971,18 +1112,22 @@ export default function AdminCategoriesBrandsPage() {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleOpenBrandModal(b)}
-                                title={canWriteCategories ? 'Edit Brand Details' : 'View Brand Details'}
+                                title={
+                                  canWriteCategories
+                                    ? "Edit Brand Details"
+                                    : "View Brand Details"
+                                }
                                 className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                               >
                                 <span className="material-symbols-outlined text-lg!">
-                                  {canWriteCategories ? 'edit' : 'visibility'}
+                                  {canWriteCategories ? "edit" : "visibility"}
                                 </span>
                               </button>
                               {canWriteCategories && (
                                 <button
                                   onClick={() =>
                                     setDeleteModal({
-                                      type: 'brand',
+                                      type: "brand",
                                       id: b.id,
                                       name: b.name,
                                     })
@@ -990,7 +1135,9 @@ export default function AdminCategoriesBrandsPage() {
                                   title="Delete Brand"
                                   className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                 >
-                                  <span className="material-symbols-outlined text-lg!">delete</span>
+                                  <span className="material-symbols-outlined text-lg!">
+                                    delete
+                                  </span>
                                 </button>
                               )}
                             </div>
@@ -1015,9 +1162,9 @@ export default function AdminCategoriesBrandsPage() {
                 <h3 className="font-bold text-lg text-navy">
                   {editingCategory
                     ? canWriteCategories
-                      ? 'Edit Product Category'
+                      ? "Edit Product Category"
                       : `Category Details: ${editingCategory.name}`
-                    : 'Add New Category'}
+                    : "Add New Category"}
                 </h3>
                 {!canWriteCategories && (
                   <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
@@ -1029,40 +1176,60 @@ export default function AdminCategoriesBrandsPage() {
                 onClick={() => setIsCategoryModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-xl!">close</span>
+                <span className="material-symbols-outlined text-xl!">
+                  close
+                </span>
               </button>
             </div>
 
             {categoryFormError && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-                <span className="material-symbols-outlined text-base!">error</span>
+                <span className="material-symbols-outlined text-base!">
+                  error
+                </span>
                 <span>{categoryFormError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCategorySubmit} className="space-y-4 mt-4 text-xs sm:text-sm">
-              <fieldset disabled={!canWriteCategories} className="space-y-4 disabled:opacity-90">
+            <form
+              onSubmit={handleCategorySubmit}
+              className="space-y-4 mt-4 text-xs sm:text-sm"
+            >
+              <fieldset
+                disabled={!canWriteCategories}
+                className="space-y-4 disabled:opacity-90"
+              >
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2 space-y-1.5">
-                    <label className="block font-bold text-gray-700">Category Title / Name *</label>
+                    <label className="block font-bold text-gray-700">
+                      Category Title / Name *
+                    </label>
                     <input
                       type="text"
                       required
                       value={categoryFormData.name}
                       onChange={(e) =>
-                        setCategoryFormData({ ...categoryFormData, name: e.target.value })
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          name: e.target.value,
+                        })
                       }
                       placeholder="e.g. Diagnostic and Measure"
                       className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block font-bold text-gray-700">Code</label>
+                    <label className="block font-bold text-gray-700">
+                      Code
+                    </label>
                     <input
                       type="text"
-                      value={categoryFormData.code || ''}
+                      value={categoryFormData.code || ""}
                       onChange={(e) =>
-                        setCategoryFormData({ ...categoryFormData, code: e.target.value })
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          code: e.target.value,
+                        })
                       }
                       placeholder="e.g. 01"
                       className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm font-mono disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -1071,18 +1238,23 @@ export default function AdminCategoriesBrandsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Icon (Material Symbol)</label>
+                  <label className="block font-bold text-gray-700">
+                    Icon (Material Symbol)
+                  </label>
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                       <span className="material-symbols-outlined text-2xl!">
-                        {categoryFormData.icon || 'category'}
+                        {categoryFormData.icon || "category"}
                       </span>
                     </div>
                     <input
                       type="text"
-                      value={categoryFormData.icon || ''}
+                      value={categoryFormData.icon || ""}
                       onChange={(e) =>
-                        setCategoryFormData({ ...categoryFormData, icon: e.target.value })
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          icon: e.target.value,
+                        })
                       }
                       placeholder="e.g. monitor_heart, bed, science"
                       className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -1095,16 +1267,21 @@ export default function AdminCategoriesBrandsPage() {
                           key={iconName}
                           type="button"
                           onClick={() =>
-                            setCategoryFormData({ ...categoryFormData, icon: iconName })
+                            setCategoryFormData({
+                              ...categoryFormData,
+                              icon: iconName,
+                            })
                           }
                           className={`p-1 rounded-md text-xs border transition-colors cursor-pointer ${
                             categoryFormData.icon === iconName
-                              ? 'bg-navy text-white border-navy'
-                              : 'bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100'
+                              ? "bg-navy text-white border-navy"
+                              : "bg-slate-50 text-gray-600 border-gray-200 hover:bg-slate-100"
                           }`}
                           title={iconName}
                         >
-                          <span className="material-symbols-outlined text-base!">{iconName}</span>
+                          <span className="material-symbols-outlined text-base!">
+                            {iconName}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -1112,12 +1289,17 @@ export default function AdminCategoriesBrandsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Description / Scope</label>
+                  <label className="block font-bold text-gray-700">
+                    Description / Scope
+                  </label>
                   <textarea
                     rows={3}
-                    value={categoryFormData.description || ''}
+                    value={categoryFormData.description || ""}
                     onChange={(e) =>
-                      setCategoryFormData({ ...categoryFormData, description: e.target.value })
+                      setCategoryFormData({
+                        ...categoryFormData,
+                        description: e.target.value,
+                      })
                     }
                     placeholder="Outline the medical devices or surgical supplies categorized under this group..."
                     className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm leading-relaxed disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -1131,7 +1313,7 @@ export default function AdminCategoriesBrandsPage() {
                   onClick={() => setIsCategoryModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold cursor-pointer"
                 >
-                  {canWriteCategories ? 'Cancel' : 'Close'}
+                  {canWriteCategories ? "Cancel" : "Close"}
                 </button>
                 {canWriteCategories && (
                   <button
@@ -1139,7 +1321,11 @@ export default function AdminCategoriesBrandsPage() {
                     disabled={isCategorySubmitting}
                     className="px-5 py-2 bg-navy text-white rounded-xl font-bold hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
                   >
-                    {isCategorySubmitting ? 'Saving...' : editingCategory ? 'Save Changes' : 'Create Category'}
+                    {isCategorySubmitting
+                      ? "Saving..."
+                      : editingCategory
+                        ? "Save Changes"
+                        : "Create Category"}
                   </button>
                 )}
               </div>
@@ -1157,9 +1343,9 @@ export default function AdminCategoriesBrandsPage() {
                 <h3 className="font-bold text-lg text-navy">
                   {editingBrand
                     ? canWriteCategories
-                      ? 'Edit Medical Brand'
+                      ? "Edit Medical Brand"
                       : `Manufacturer Details: ${editingBrand.name}`
-                    : 'Register Manufacturer'}
+                    : "Register Manufacturer"}
                 </h3>
                 {!canWriteCategories && (
                   <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
@@ -1171,40 +1357,60 @@ export default function AdminCategoriesBrandsPage() {
                 onClick={() => setIsBrandModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-xl!">close</span>
+                <span className="material-symbols-outlined text-xl!">
+                  close
+                </span>
               </button>
             </div>
 
             {brandFormError && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-                <span className="material-symbols-outlined text-base!">error</span>
+                <span className="material-symbols-outlined text-base!">
+                  error
+                </span>
                 <span>{brandFormError}</span>
               </div>
             )}
 
-            <form onSubmit={handleBrandSubmit} className="space-y-4 mt-4 text-xs sm:text-sm">
-              <fieldset disabled={!canWriteCategories} className="space-y-4 disabled:opacity-90">
+            <form
+              onSubmit={handleBrandSubmit}
+              className="space-y-4 mt-4 text-xs sm:text-sm"
+            >
+              <fieldset
+                disabled={!canWriteCategories}
+                className="space-y-4 disabled:opacity-90"
+              >
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="block font-bold text-gray-700">Brand / Manufacturer *</label>
+                    <label className="block font-bold text-gray-700">
+                      Brand / Manufacturer *
+                    </label>
                     <input
                       type="text"
                       required
                       value={brandFormData.name}
                       onChange={(e) =>
-                        setBrandFormData({ ...brandFormData, name: e.target.value })
+                        setBrandFormData({
+                          ...brandFormData,
+                          name: e.target.value,
+                        })
                       }
                       placeholder="e.g. Mindray"
                       className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block font-bold text-gray-700">Country / Origin</label>
+                    <label className="block font-bold text-gray-700">
+                      Country / Origin
+                    </label>
                     <input
                       type="text"
-                      value={brandFormData.country || ''}
+                      value={brandFormData.country || ""}
                       onChange={(e) =>
-                        setBrandFormData({ ...brandFormData, country: e.target.value })
+                        setBrandFormData({
+                          ...brandFormData,
+                          country: e.target.value,
+                        })
                       }
                       placeholder="e.g. Germany, Netherlands"
                       className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -1213,7 +1419,9 @@ export default function AdminCategoriesBrandsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Brand Logo Image</label>
+                  <label className="block font-bold text-gray-700">
+                    Brand Logo Image
+                  </label>
                   <div className="flex items-center gap-3 p-3 bg-slate-50 border border-gray-200 rounded-xl">
                     {logoPreview ? (
                       <div className="w-14 h-14 rounded-lg bg-white border border-gray-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
@@ -1226,7 +1434,9 @@ export default function AdminCategoriesBrandsPage() {
                       </div>
                     ) : (
                       <div className="w-14 h-14 rounded-lg bg-slate-200 border border-dashed border-gray-300 flex items-center justify-center text-gray-400 shrink-0">
-                        <span className="material-symbols-outlined text-2xl!">image</span>
+                        <span className="material-symbols-outlined text-2xl!">
+                          image
+                        </span>
                       </div>
                     )}
 
@@ -1251,15 +1461,24 @@ export default function AdminCategoriesBrandsPage() {
                             htmlFor="brand-logo-upload"
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-navy text-navy font-semibold rounded-lg text-xs cursor-pointer shadow-xs transition-colors"
                           >
-                            <span className="material-symbols-outlined text-base!">upload</span>
-                            <span>{logoPreview ? 'Change Logo Image' : 'Choose Logo Image'}</span>
+                            <span className="material-symbols-outlined text-base!">
+                              upload
+                            </span>
+                            <span>
+                              {logoPreview
+                                ? "Change Logo Image"
+                                : "Choose Logo Image"}
+                            </span>
                           </label>
                         </>
                       )}
                       <p className="text-[11px] text-gray-500 mt-1 truncate">
                         {selectedLogoFile
                           ? selectedLogoFile.name
-                          : (brandFormData.logo_url || (canWriteCategories ? 'PNG, JPG, WebP, SVG (saved to /media/brands)' : 'No logo uploaded'))}
+                          : brandFormData.logo_url ||
+                            (canWriteCategories
+                              ? "PNG, JPG, WebP, SVG (saved to /media/brands)"
+                              : "No logo uploaded")}
                       </p>
                     </div>
 
@@ -1269,24 +1488,31 @@ export default function AdminCategoriesBrandsPage() {
                         onClick={() => {
                           setSelectedLogoFile(null);
                           setLogoPreview(null);
-                          setBrandFormData({ ...brandFormData, logo_url: '' });
+                          setBrandFormData({ ...brandFormData, logo_url: "" });
                         }}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Remove image"
                       >
-                        <span className="material-symbols-outlined text-lg!">close</span>
+                        <span className="material-symbols-outlined text-lg!">
+                          close
+                        </span>
                       </button>
                     )}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Official Website URL</label>
+                  <label className="block font-bold text-gray-700">
+                    Official Website URL
+                  </label>
                   <input
                     type="url"
-                    value={brandFormData.website_url || ''}
+                    value={brandFormData.website_url || ""}
                     onChange={(e) =>
-                      setBrandFormData({ ...brandFormData, website_url: e.target.value })
+                      setBrandFormData({
+                        ...brandFormData,
+                        website_url: e.target.value,
+                      })
                     }
                     placeholder="https://www.example.com"
                     className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -1294,12 +1520,17 @@ export default function AdminCategoriesBrandsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-gray-700">Speciality / Profile Summary</label>
+                  <label className="block font-bold text-gray-700">
+                    Speciality / Profile Summary
+                  </label>
                   <textarea
                     rows={3}
-                    value={brandFormData.description || ''}
+                    value={brandFormData.description || ""}
                     onChange={(e) =>
-                      setBrandFormData({ ...brandFormData, description: e.target.value })
+                      setBrandFormData({
+                        ...brandFormData,
+                        description: e.target.value,
+                      })
                     }
                     placeholder="Clinical domain, diagnostic equipment focus, medical device specialties..."
                     className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:outline-none focus:border-navy text-xs sm:text-sm leading-relaxed disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -1308,16 +1539,22 @@ export default function AdminCategoriesBrandsPage() {
 
                 <div className="p-3 bg-slate-50 border border-gray-200 rounded-xl flex items-center justify-between">
                   <div>
-                    <div className="font-bold text-navy text-xs">Featured on Homepage Slider</div>
+                    <div className="font-bold text-navy text-xs">
+                      Featured on Homepage Slider
+                    </div>
                     <div className="text-[11px] text-gray-500">
-                      Include this manufacturer in the live carousel on the customer homepage.
+                      Include this manufacturer in the live carousel on the
+                      customer homepage.
                     </div>
                   </div>
                   <input
                     type="checkbox"
                     checked={brandFormData.featured_in_slider}
                     onChange={(e) =>
-                      setBrandFormData({ ...brandFormData, featured_in_slider: e.target.checked })
+                      setBrandFormData({
+                        ...brandFormData,
+                        featured_in_slider: e.target.checked,
+                      })
                     }
                     className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
                   />
@@ -1330,7 +1567,7 @@ export default function AdminCategoriesBrandsPage() {
                   onClick={() => setIsBrandModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold cursor-pointer"
                 >
-                  {canWriteCategories ? 'Cancel' : 'Close'}
+                  {canWriteCategories ? "Cancel" : "Close"}
                 </button>
                 {canWriteCategories && (
                   <button
@@ -1338,7 +1575,11 @@ export default function AdminCategoriesBrandsPage() {
                     disabled={isBrandSubmitting}
                     className="px-5 py-2 bg-navy text-white rounded-xl font-bold hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
                   >
-                    {isBrandSubmitting ? 'Saving...' : editingBrand ? 'Save Changes' : 'Register Brand'}
+                    {isBrandSubmitting
+                      ? "Saving..."
+                      : editingBrand
+                        ? "Save Changes"
+                        : "Register Brand"}
                   </button>
                 )}
               </div>
@@ -1355,12 +1596,16 @@ export default function AdminCategoriesBrandsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <span className="material-symbols-outlined text-xl!">account_tree</span>
+                  <span className="material-symbols-outlined text-xl!">
+                    account_tree
+                  </span>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-base text-navy">
-                      {canWriteCategories ? 'Manage Subcategories' : 'View Subcategories'}
+                      {canWriteCategories
+                        ? "Manage Subcategories"
+                        : "View Subcategories"}
                     </h3>
                     {!canWriteCategories && (
                       <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full border border-amber-200">
@@ -1369,7 +1614,10 @@ export default function AdminCategoriesBrandsPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-500">
-                    Category: <strong className="text-navy">{managingSubcatCategory.name}</strong>
+                    Category:{" "}
+                    <strong className="text-navy">
+                      {managingSubcatCategory.name}
+                    </strong>
                   </p>
                 </div>
               </div>
@@ -1378,22 +1626,31 @@ export default function AdminCategoriesBrandsPage() {
                 onClick={() => setManagingSubcatCategory(null)}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                <span className="material-symbols-outlined text-xl!">close</span>
+                <span className="material-symbols-outlined text-xl!">
+                  close
+                </span>
               </button>
             </div>
 
             {subcatError && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 shrink-0">
-                <span className="material-symbols-outlined text-base!">error</span>
+                <span className="material-symbols-outlined text-base!">
+                  error
+                </span>
                 <span>{subcatError}</span>
               </div>
             )}
 
             {/* Quick Add Subcategory Form */}
             {canWriteCategories && (
-              <form onSubmit={handleCreateSubcategory} className="mt-4 p-4 bg-slate-50 border border-gray-200 rounded-xl shrink-0">
+              <form
+                onSubmit={handleCreateSubcategory}
+                className="mt-4 p-4 bg-slate-50 border border-gray-200 rounded-xl shrink-0"
+              >
                 <h4 className="text-xs font-bold uppercase tracking-wider text-navy mb-2.5 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base! text-blue-600">add_circle</span>
+                  <span className="material-symbols-outlined text-base! text-blue-600">
+                    add_circle
+                  </span>
                   Add New Subcategory
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
@@ -1424,7 +1681,9 @@ export default function AdminCategoriesBrandsPage() {
                         <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          <span className="material-symbols-outlined text-sm!">add</span>
+                          <span className="material-symbols-outlined text-sm!">
+                            add
+                          </span>
                           <span>Add</span>
                         </>
                       )}
@@ -1437,13 +1696,18 @@ export default function AdminCategoriesBrandsPage() {
             {/* Existing Subcategories List */}
             <div className="mt-4 flex-1 overflow-y-auto pr-1 space-y-2">
               <div className="flex items-center justify-between text-xs text-gray-500 font-semibold mb-1">
-                <span>Existing Subcategories ({managingSubcatCategory.subcategories?.length || 0})</span>
+                <span>
+                  Existing Subcategories (
+                  {managingSubcatCategory.subcategories?.length || 0})
+                </span>
                 <span>Active Products</span>
               </div>
 
-              {(!managingSubcatCategory.subcategories || managingSubcatCategory.subcategories.length === 0) ? (
+              {!managingSubcatCategory.subcategories ||
+              managingSubcatCategory.subcategories.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 text-xs italic bg-slate-50/50 border border-dashed border-gray-200 rounded-xl">
-                  No subcategories currently created in this category. Use the form above to add one.
+                  No subcategories currently created in this category. Use the
+                  form above to add one.
                 </div>
               ) : (
                 managingSubcatCategory.subcategories.map((sub) => (
@@ -1456,20 +1720,28 @@ export default function AdminCategoriesBrandsPage() {
                       <div className="space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Name *</label>
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">
+                              Name *
+                            </label>
                             <input
                               type="text"
                               value={editingSubcatName}
-                              onChange={(e) => setEditingSubcatName(e.target.value)}
+                              onChange={(e) =>
+                                setEditingSubcatName(e.target.value)
+                              }
                               className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-navy focus:outline-none focus:border-navy"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">Slug</label>
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-0.5">
+                              Slug
+                            </label>
                             <input
                               type="text"
                               value={editingSubcatSlug}
-                              onChange={(e) => setEditingSubcatSlug(e.target.value)}
+                              onChange={(e) =>
+                                setEditingSubcatSlug(e.target.value)
+                              }
                               className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs font-mono text-gray-600 focus:outline-none focus:border-navy"
                             />
                           </div>
@@ -1484,11 +1756,14 @@ export default function AdminCategoriesBrandsPage() {
                           </button>
                           <button
                             type="button"
-                            disabled={isEditingSubcatSubmitting || !editingSubcatName.trim()}
+                            disabled={
+                              isEditingSubcatSubmitting ||
+                              !editingSubcatName.trim()
+                            }
                             onClick={() => handleUpdateSubcategory(sub.id)}
                             className="px-3 py-1 bg-navy text-white rounded-md font-bold text-xs hover:bg-navy-light transition-all disabled:opacity-50 cursor-pointer"
                           >
-                            {isEditingSubcatSubmitting ? 'Saving...' : 'Save'}
+                            {isEditingSubcatSubmitting ? "Saving..." : "Save"}
                           </button>
                         </div>
                       </div>
@@ -1496,13 +1771,18 @@ export default function AdminCategoriesBrandsPage() {
                       /* Delete Confirmation Mode */
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-rose-50 border border-rose-200 rounded-lg text-rose-800">
                         <div className="text-[11px] leading-snug">
-                          <strong className="font-bold">Delete &quot;{sub.name}&quot;?</strong>
+                          <strong className="font-bold">
+                            Delete &quot;{sub.name}&quot;?
+                          </strong>
                           {sub.product_count > 0 ? (
                             <span className="block text-rose-600 font-semibold mt-0.5">
-                              ⚠️ Warning: {sub.product_count} product(s) linked. Deleting will unlink them.
+                              ⚠️ Warning: {sub.product_count} product(s) linked.
+                              Deleting will unlink them.
                             </span>
                           ) : (
-                            <span className="block text-gray-500 mt-0.5">This action cannot be undone.</span>
+                            <span className="block text-gray-500 mt-0.5">
+                              This action cannot be undone.
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
@@ -1516,13 +1796,15 @@ export default function AdminCategoriesBrandsPage() {
                           <button
                             type="button"
                             disabled={isDeletingSubcat}
-                            onClick={() => handleDeleteSubcategory(sub.id, true)}
+                            onClick={() =>
+                              handleDeleteSubcategory(sub.id, true)
+                            }
                             className="px-3 py-1 bg-rose-600 text-white hover:bg-rose-700 rounded-md text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
                           >
                             {isDeletingSubcat ? (
                               <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
-                              'Confirm Delete'
+                              "Confirm Delete"
                             )}
                           </button>
                         </div>
@@ -1531,13 +1813,18 @@ export default function AdminCategoriesBrandsPage() {
                       /* Normal Display Mode */
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="font-bold text-navy text-xs truncate">{sub.name}</div>
-                          <div className="text-[11px] font-mono text-gray-400 truncate">/{sub.slug}</div>
+                          <div className="font-bold text-navy text-xs truncate">
+                            {sub.name}
+                          </div>
+                          <div className="text-[11px] font-mono text-gray-400 truncate">
+                            /{sub.slug}
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-[11px] font-semibold text-navy bg-slate-100 px-2 py-0.5 rounded-full">
-                            {sub.product_count} product{sub.product_count === 1 ? '' : 's'}
+                            {sub.product_count} product
+                            {sub.product_count === 1 ? "" : "s"}
                           </span>
 
                           {canWriteCategories && (
@@ -1553,7 +1840,9 @@ export default function AdminCategoriesBrandsPage() {
                                 className="p-1 text-gray-400 hover:text-navy hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
                                 title="Edit subcategory"
                               >
-                                <span className="material-symbols-outlined text-base!">edit</span>
+                                <span className="material-symbols-outlined text-base!">
+                                  edit
+                                </span>
                               </button>
                               <button
                                 type="button"
@@ -1564,7 +1853,9 @@ export default function AdminCategoriesBrandsPage() {
                                 className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
                                 title="Delete subcategory"
                               >
-                                <span className="material-symbols-outlined text-base!">delete</span>
+                                <span className="material-symbols-outlined text-base!">
+                                  delete
+                                </span>
                               </button>
                             </div>
                           )}
@@ -1595,15 +1886,18 @@ export default function AdminCategoriesBrandsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 animate-scale-up text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
-              <span className="material-symbols-outlined text-2xl!">warning</span>
+              <span className="material-symbols-outlined text-2xl!">
+                warning
+              </span>
             </div>
             <h3 className="font-bold text-lg text-navy mb-1">
-              Delete {deleteModal.type === 'category' ? 'Category' : 'Manufacturer'}?
+              Delete{" "}
+              {deleteModal.type === "category" ? "Category" : "Manufacturer"}?
             </h3>
             <p className="text-xs text-gray-500 mb-6 leading-relaxed">
-              Are you sure you want to permanently delete{' '}
-              <strong className="text-navy">{deleteModal.name}</strong>? This action cannot be
-              undone.
+              Are you sure you want to permanently delete{" "}
+              <strong className="text-navy">{deleteModal.name}</strong>? This
+              action cannot be undone.
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
@@ -1619,7 +1913,7 @@ export default function AdminCategoriesBrandsPage() {
                 onClick={handleConfirmDelete}
                 className="px-5 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-all disabled:opacity-50 cursor-pointer"
               >
-                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
               </button>
             </div>
           </div>

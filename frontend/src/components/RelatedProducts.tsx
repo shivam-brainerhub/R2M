@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { productsApi, ProductItem, getMediaUrl } from '@/lib/api';
-import { useQuoteCart } from '@/context/QuoteCartContext';
+import { useQuoteCart } from "@/context/QuoteCartContext";
+import { ProductItem, getMediaUrl, productsApi } from "@/lib/api";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface RelatedProductsProps {
   currentProductSlug: string;
@@ -89,13 +89,14 @@ export default function RelatedProducts({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
         <div>
           <span className="text-xs font-extrabold uppercase tracking-widest text-gold block mb-1">
-            {tag || 'Clinical Recommendations'}
+            {tag || "Clinical Recommendations"}
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
-            {title || 'Related Equipment & Solutions'}
+            {title || "Related Equipment & Solutions"}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            {subtitle || 'Explore clinically comparable medical devices and complementary equipment in this category.'}
+            {subtitle ||
+              "Explore clinically comparable medical devices and complementary equipment in this category."}
           </p>
         </div>
         <Link
@@ -103,7 +104,9 @@ export default function RelatedProducts({
           className="inline-flex items-center gap-1.5 text-xs font-bold text-navy hover:text-blue-600 transition-colors shrink-0"
         >
           <span>View full catalogue</span>
-          <span className="material-symbols-outlined text-sm!">arrow_forward</span>
+          <span className="material-symbols-outlined text-sm!">
+            arrow_forward
+          </span>
         </Link>
       </div>
 
@@ -112,7 +115,7 @@ export default function RelatedProducts({
           const imgUrl =
             item.primary_image_url ||
             item.images?.[0]?.image_url ||
-            '/images/benevision_n12.jpg';
+            "/images/benevision_n12.jpg";
 
           return (
             <div
@@ -123,7 +126,7 @@ export default function RelatedProducts({
                 {/* Brand & Category header */}
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-red-600 truncate max-w-35">
-                    {item.brand_name || 'Generic'}
+                    {item.brand_name || "Generic"}
                   </span>
                   {item.subcategory_name && (
                     <span className="text-[11px] font-medium text-gray-500 bg-slate-50 border border-gray-200 px-2 py-0.5 rounded-md truncate max-w-30">
@@ -185,7 +188,9 @@ export default function RelatedProducts({
                   className="flex-1 bg-navy text-white text-xs font-bold py-2.5 px-3 rounded-xl hover:bg-navy-light transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   title="Add to Quote Cart"
                 >
-                  <span className="material-symbols-outlined text-base!">add_shopping_cart</span>
+                  <span className="material-symbols-outlined text-base!">
+                    add_shopping_cart
+                  </span>
                   <span>Quote</span>
                 </button>
 
@@ -202,7 +207,9 @@ export default function RelatedProducts({
                   title="Compare with other equipment"
                   aria-label={`Compare ${item.name}`}
                 >
-                  <span className="material-symbols-outlined text-lg!">compare_arrows</span>
+                  <span className="material-symbols-outlined text-lg!">
+                    compare_arrows
+                  </span>
                 </button>
               </div>
             </div>

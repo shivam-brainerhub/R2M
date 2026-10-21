@@ -1,84 +1,95 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useQuoteCart } from '@/context/QuoteCartContext';
-import { useAuth } from '@/context/AuthContext';
-import { quotesApi, QuoteRequestData, getMediaUrl, ApiError } from '@/lib/api';
-import AuthModal from '@/components/auth/AuthModal';
-import CustomSelect from '@/components/CustomSelect';
+import AuthModal from "@/components/auth/AuthModal";
+import CustomSelect from "@/components/CustomSelect";
+import { useAuth } from "@/context/AuthContext";
+import { useQuoteCart } from "@/context/QuoteCartContext";
+import { ApiError, QuoteRequestData, getMediaUrl, quotesApi } from "@/lib/api";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const HEALTHCARE_SECTORS = [
-  'Hospitals & Healthcare Groups',
-  'Clinics & Primary Care',
-  'Emergency & EMS',
-  'Veterinary & Animal Care',
-  'Laboratories & Diagnostics',
-  'Government & Public Health',
-  'Private Practice & Specialist Surgery',
-  'Other / Research Institution',
+  "Hospitals & Healthcare Groups",
+  "Clinics & Primary Care",
+  "Emergency & EMS",
+  "Veterinary & Animal Care",
+  "Laboratories & Diagnostics",
+  "Government & Public Health",
+  "Private Practice & Specialist Surgery",
+  "Other / Research Institution",
 ];
 
 const URGENCY_OPTIONS = [
   {
-    id: 'Standard',
-    label: 'Standard Inquiry',
-    desc: 'General procurement planning or equipment replacement.',
-    icon: 'schedule',
+    id: "Standard",
+    label: "Standard Inquiry",
+    desc: "General procurement planning or equipment replacement.",
+    icon: "schedule",
   },
   {
-    id: 'Urgent',
-    label: 'Urgent Clinical Need',
-    desc: 'Critical ward, ICU, or immediate medical facility demand.',
-    icon: 'bolt',
+    id: "Urgent",
+    label: "Urgent Clinical Need",
+    desc: "Critical ward, ICU, or immediate medical facility demand.",
+    icon: "bolt",
   },
   {
-    id: 'Procurement Tender',
-    label: 'Formal Tender / RFP',
-    desc: 'Hospital group tender or bulk institutional procurement request.',
-    icon: 'assignment',
+    id: "Procurement Tender",
+    label: "Formal Tender / RFP",
+    desc: "Hospital group tender or bulk institutional procurement request.",
+    icon: "assignment",
   },
 ];
 
 export default function QuotePage() {
-  const { items, isLoaded, updateQuantity, updateItemNotes, removeItem, clearCart, itemCount, totalUnits } = useQuoteCart();
+  const {
+    items,
+    isLoaded,
+    updateQuantity,
+    updateItemNotes,
+    removeItem,
+    clearCart,
+    itemCount,
+    totalUnits,
+  } = useQuoteCart();
   const { user, token, isAuthenticated } = useAuth();
 
   // Multi-step flow: 1 = Cart Review, 2 = Facility & Contact, 3 = RFQ Specs & Timeline, 4 = Review & Submit
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form Fields
-  const [facilityName, setFacilityName] = useState('');
-  const [contactNameInput, setContactNameInput] = useState('');
-  const [emailInput, setEmailInput] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
+  const [facilityName, setFacilityName] = useState("");
+  const [contactNameInput, setContactNameInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
   const [sector, setSector] = useState(HEALTHCARE_SECTORS[0]);
-  const [department, setDepartment] = useState('');
-  const [city, setCity] = useState('');
-  const [address, setAddress] = useState('');
-  const [urgency, setUrgency] = useState('Standard');
-  const [notes, setNotes] = useState('');
+  const [department, setDepartment] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [urgency, setUrgency] = useState("Standard");
+  const [notes, setNotes] = useState("");
 
   // Auto-fill from authenticated user profile
   useEffect(() => {
     if (user) {
-      if (user.full_name && !contactNameInput) setContactNameInput(user.full_name);
-      if (user.email && !emailInput) setEmailInput(user.email);
-      if (user.phone && !phoneInput) setPhoneInput(user.phone);
+      if (user.full_name)
+        setContactNameInput((prev) => prev || user.full_name || "");
+      if (user.email) setEmailInput((prev) => prev || user.email || "");
+      if (user.phone) setPhoneInput((prev) => prev || user.phone || "");
     }
   }, [user]);
 
   // Derived effective values with auth fallback
-  const contactName = contactNameInput || user?.full_name || '';
-  const email = emailInput || user?.email || '';
-  const phone = phoneInput || user?.phone || '';
-
+  const contactName = contactNameInput || user?.full_name || "";
+  const email = emailInput || user?.email || "";
+  const phone = phoneInput || user?.phone || "";
 
   // Submission & Validation State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [submittedQuote, setSubmittedQuote] = useState<QuoteRequestData | null>(null);
+  const [submittedQuote, setSubmittedQuote] = useState<QuoteRequestData | null>(
+    null,
+  );
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const handleAuthSuccess = () => {
@@ -94,19 +105,19 @@ export default function QuotePage() {
   const validateStep2 = (): boolean => {
     setErrorMessage(null);
     if (!facilityName.trim()) {
-      setErrorMessage('Please enter the Hospital, Clinic or Practice name.');
+      setErrorMessage("Please enter the Hospital, Clinic or Practice name.");
       return false;
     }
     if (!contactName.trim()) {
-      setErrorMessage('Please enter the contact person name.');
+      setErrorMessage("Please enter the contact person name.");
       return false;
     }
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMessage('Please enter a valid email address for quote delivery.');
+    if (!email.trim() || !email.includes("@")) {
+      setErrorMessage("Please enter a valid email address for quote delivery.");
       return false;
     }
     if (!phone.trim() || phone.trim().length < 6) {
-      setErrorMessage('Please enter a valid telephone or mobile number.');
+      setErrorMessage("Please enter a valid telephone or mobile number.");
       return false;
     }
     return true;
@@ -115,7 +126,9 @@ export default function QuotePage() {
   const handleNextStep = () => {
     if (currentStep === 1) {
       if (items.length === 0) {
-        setErrorMessage('Your quote cart is empty. Please add medical equipment.');
+        setErrorMessage(
+          "Your quote cart is empty. Please add medical equipment.",
+        );
         return;
       }
       if (!isAuthenticated) {
@@ -143,7 +156,7 @@ export default function QuotePage() {
 
   const handleSubmitQuote = async () => {
     if (items.length === 0) {
-      setErrorMessage('Quote cart is empty.');
+      setErrorMessage("Quote cart is empty.");
       return;
     }
     if (!isAuthenticated) {
@@ -184,7 +197,10 @@ export default function QuotePage() {
       setSubmittedQuote(result);
       clearCart();
     } catch (err: unknown) {
-      const msg = err instanceof ApiError ? err.message : 'Failed to submit quote request. Please try again.';
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to submit quote request. Please try again.";
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -196,9 +212,10 @@ export default function QuotePage() {
     return (
       <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 font-sans print:p-0 print:py-2 print:m-0 print:max-w-none">
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden p-6 sm:p-12 text-center space-y-6 animate-fadeIn print:shadow-none print:border-none print:p-4 print:space-y-4">
-          
           <div className="w-20 h-20 bg-emerald-50 border-2 border-emerald-200 text-emerald-600 rounded-3xl mx-auto flex items-center justify-center shadow-xs print:w-12 print:h-12">
-            <span className="material-symbols-outlined text-5xl! print:text-3xl!">check_circle</span>
+            <span className="material-symbols-outlined text-5xl! print:text-3xl!">
+              check_circle
+            </span>
           </div>
 
           <div>
@@ -210,7 +227,15 @@ export default function QuotePage() {
               Quotation Request Received!
             </h1>
             <p className="text-gray-600 max-w-lg mx-auto text-sm sm:text-base mt-2 leading-relaxed">
-              Thank you, <span className="font-semibold text-navy">{submittedQuote.contact_name}</span>. Your formal quotation request for <span className="font-semibold text-navy">{submittedQuote.facility_name}</span> has been logged in our system.
+              Thank you,{" "}
+              <span className="font-semibold text-navy">
+                {submittedQuote.contact_name}
+              </span>
+              . Your formal quotation request for{" "}
+              <span className="font-semibold text-navy">
+                {submittedQuote.facility_name}
+              </span>{" "}
+              has been logged in our system.
             </p>
           </div>
 
@@ -222,7 +247,10 @@ export default function QuotePage() {
             </div>
             <div className="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1 print:max-h-none print:overflow-visible">
               {submittedQuote.items.map((it, idx) => (
-                <div key={idx} className="py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm">
+                <div
+                  key={idx}
+                  className="py-2.5 flex items-center justify-between gap-3 text-xs sm:text-sm"
+                >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 bg-white border border-gray-200 rounded-lg relative overflow-hidden shrink-0 flex items-center justify-center p-0.5">
                       {it.image_url ? (
@@ -240,7 +268,9 @@ export default function QuotePage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold text-navy truncate">{it.product_name}</div>
+                      <div className="font-bold text-navy truncate">
+                        {it.product_name}
+                      </div>
                       <div className="text-gray-400 text-[10px] flex items-center gap-2 flex-wrap">
                         {it.brand_name && <span>{it.brand_name}</span>}
                         {it.product_sku && <span>SKU: {it.product_sku}</span>}
@@ -257,10 +287,20 @@ export default function QuotePage() {
 
           {/* Next Steps Banner */}
           <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-left max-w-xl mx-auto flex items-start gap-3 print:bg-amber-50 print:border-amber-300">
-            <span className="material-symbols-outlined text-amber-700 text-2xl! shrink-0 mt-0.5">info</span>
+            <span className="material-symbols-outlined text-amber-700 text-2xl! shrink-0 mt-0.5">
+              info
+            </span>
             <div className="text-xs text-amber-900 leading-relaxed">
-              <span className="font-bold block text-sm mb-0.5">What happens next?</span>
-              Our sales &amp; clinical equipment consultants will verify manufacturer availability, configure custom healthcare pricing and warranty options, and email an itemized PDF quote to <span className="font-semibold underline">{submittedQuote.email}</span>.
+              <span className="font-bold block text-sm mb-0.5">
+                What happens next?
+              </span>
+              Our sales &amp; clinical equipment consultants will verify
+              manufacturer availability, configure custom healthcare pricing and
+              warranty options, and email an itemized PDF quote to{" "}
+              <span className="font-semibold underline">
+                {submittedQuote.email}
+              </span>
+              .
             </div>
           </div>
 
@@ -280,7 +320,9 @@ export default function QuotePage() {
                 href="/profile"
                 className="bg-navy text-white text-xs sm:text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-navy-light transition-all shadow-md flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-sm!">account_circle</span>
+                <span className="material-symbols-outlined text-sm!">
+                  account_circle
+                </span>
                 View in My Profile
               </Link>
             ) : (
@@ -288,7 +330,9 @@ export default function QuotePage() {
                 href="/login"
                 className="bg-navy text-white text-xs sm:text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-navy-light transition-all shadow-md flex items-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-sm!">login</span>
+                <span className="material-symbols-outlined text-sm!">
+                  login
+                </span>
                 Sign In to Track
               </Link>
             )}
@@ -298,10 +342,11 @@ export default function QuotePage() {
               className="bg-gold text-navy text-xs sm:text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-gold-bright transition-all shadow-md flex items-center gap-1.5"
             >
               <span>Browse Catalogue</span>
-              <span className="material-symbols-outlined text-sm!">arrow_forward</span>
+              <span className="material-symbols-outlined text-sm!">
+                arrow_forward
+              </span>
             </Link>
           </div>
-
         </div>
       </div>
     );
@@ -313,7 +358,9 @@ export default function QuotePage() {
       <div className="max-w-4xl mx-auto py-20 px-4 sm:px-6 lg:px-8 text-center font-sans">
         <div className="flex flex-col items-center justify-center gap-3">
           <div className="w-10 h-10 border-3 border-navy/20 border-t-navy rounded-full animate-spin" />
-          <p className="text-sm text-gray-500 font-medium">Loading your quote cart...</p>
+          <p className="text-sm text-gray-500 font-medium">
+            Loading your quote cart...
+          </p>
         </div>
       </div>
     );
@@ -325,14 +372,17 @@ export default function QuotePage() {
       <div className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8 font-sans">
         <div className="bg-white rounded-3xl shadow-sm border border-gray-200/80 p-8 sm:p-14 text-center space-y-5">
           <div className="w-20 h-20 bg-slate-100 text-gray-400 rounded-3xl mx-auto flex items-center justify-center">
-            <span className="material-symbols-outlined text-5xl!">production_quantity_limits</span>
+            <span className="material-symbols-outlined text-5xl!">
+              production_quantity_limits
+            </span>
           </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-navy tracking-tight">
               Your Quote Cart is Empty
             </h1>
             <p className="text-gray-500 max-w-md mx-auto text-sm sm:text-base mt-2">
-              Browse our medical equipment catalogue and add products to request official healthcare quotations.
+              Browse our medical equipment catalogue and add products to request
+              official healthcare quotations.
             </p>
           </div>
           <div className="pt-2">
@@ -340,7 +390,9 @@ export default function QuotePage() {
               href="/products"
               className="inline-flex items-center gap-2 bg-navy text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-navy-light transition-all shadow-md hover:scale-105 active:scale-95"
             >
-              <span className="material-symbols-outlined text-lg!">storefront</span>
+              <span className="material-symbols-outlined text-lg!">
+                storefront
+              </span>
               Explore Products
             </Link>
           </div>
@@ -351,7 +403,6 @@ export default function QuotePage() {
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8 font-sans">
-      
       {/* Page Title & Authenticated Status */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -359,14 +410,18 @@ export default function QuotePage() {
             Request Official Quotation
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Complete the procurement checkout below to receive custom healthcare facility pricing.
+            Complete the procurement checkout below to receive custom healthcare
+            facility pricing.
           </p>
         </div>
 
         {isAuthenticated && user ? (
           <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 text-xs px-3.5 py-1.5 rounded-xl border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Signed in as <strong className="font-semibold">{user.email}</strong></span>
+            <span>
+              Signed in as{" "}
+              <strong className="font-semibold">{user.email}</strong>
+            </span>
           </div>
         ) : (
           <button
@@ -375,7 +430,13 @@ export default function QuotePage() {
             className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-gray-700 text-xs px-3.5 py-1.5 rounded-xl transition-colors cursor-pointer border border-gray-200"
           >
             <span className="material-symbols-outlined text-sm!">lock</span>
-            <span>Guest Mode (<strong className="text-blue-600 underline">Sign In / Register</strong>)</span>
+            <span>
+              Guest Mode (
+              <strong className="text-blue-600 underline">
+                Sign In / Register
+              </strong>
+              )
+            </span>
           </button>
         )}
       </div>
@@ -384,10 +445,10 @@ export default function QuotePage() {
       <div className="mb-8 bg-white p-3 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs">
         <div className="grid grid-cols-4 gap-2 text-center text-xs">
           {[
-            { step: 1, title: '1. Cart Review', icon: 'shopping_cart' },
-            { step: 2, title: '2. Facility Info', icon: 'local_hospital' },
-            { step: 3, title: '3. RFQ Specs', icon: 'tune' },
-            { step: 4, title: '4. Confirmation', icon: 'fact_check' },
+            { step: 1, title: "1. Cart Review", icon: "shopping_cart" },
+            { step: 2, title: "2. Facility Info", icon: "local_hospital" },
+            { step: 3, title: "3. RFQ Specs", icon: "tune" },
+            { step: 4, title: "4. Confirmation", icon: "fact_check" },
           ].map((s) => {
             const isCompleted = currentStep > s.step;
             const isCurrent = currentStep === s.step;
@@ -397,18 +458,19 @@ export default function QuotePage() {
                 type="button"
                 disabled={currentStep < s.step && s.step > 2}
                 onClick={() => {
-                  if (s.step < currentStep) setCurrentStep(s.step as 1 | 2 | 3 | 4);
+                  if (s.step < currentStep)
+                    setCurrentStep(s.step as 1 | 2 | 3 | 4);
                 }}
                 className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl transition-all ${
                   isCurrent
-                    ? 'bg-navy text-white font-bold shadow-xs'
+                    ? "bg-navy text-white font-bold shadow-xs"
                     : isCompleted
-                    ? 'bg-emerald-50 text-emerald-800 font-semibold cursor-pointer'
-                    : 'text-gray-400 bg-slate-50 cursor-not-allowed'
+                      ? "bg-emerald-50 text-emerald-800 font-semibold cursor-pointer"
+                      : "text-gray-400 bg-slate-50 cursor-not-allowed"
                 }`}
               >
                 <span className="material-symbols-outlined text-base!">
-                  {isCompleted ? 'check' : s.icon}
+                  {isCompleted ? "check" : s.icon}
                 </span>
                 <span className="truncate">{s.title}</span>
               </button>
@@ -420,7 +482,9 @@ export default function QuotePage() {
       {/* Error Banner */}
       {errorMessage && (
         <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 flex items-center gap-3 text-red-700 text-sm animate-fadeIn">
-          <span className="material-symbols-outlined text-xl! shrink-0">error</span>
+          <span className="material-symbols-outlined text-xl! shrink-0">
+            error
+          </span>
           <span className="flex-1">{errorMessage}</span>
           <button
             type="button"
@@ -439,10 +503,12 @@ export default function QuotePage() {
             <div className="p-5 sm:p-6 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-navy">
-                  Selected Equipment ({itemCount} item{itemCount > 1 ? 's' : ''}, {totalUnits} unit{totalUnits > 1 ? 's' : ''})
+                  Selected Equipment ({itemCount} item{itemCount > 1 ? "s" : ""}
+                  , {totalUnits} unit{totalUnits > 1 ? "s" : ""})
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Adjust product quantities and specify item-level accessory requirements below.
+                  Adjust product quantities and specify item-level accessory
+                  requirements below.
                 </p>
               </div>
               <button
@@ -450,15 +516,19 @@ export default function QuotePage() {
                 onClick={clearCart}
                 className="text-xs font-semibold text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-sm!">delete_sweep</span>
+                <span className="material-symbols-outlined text-sm!">
+                  delete_sweep
+                </span>
                 Clear Cart
               </button>
             </div>
 
             <div className="divide-y divide-gray-100">
               {items.map((item) => (
-                <div key={item.productId} className="p-5 sm:p-6 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between hover:bg-slate-50/50 transition-colors">
-                  
+                <div
+                  key={item.productId}
+                  className="p-5 sm:p-6 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between hover:bg-slate-50/50 transition-colors"
+                >
                   {/* Product Details */}
                   <div className="flex items-start gap-4 flex-1 min-w-0">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white border border-gray-200 rounded-2xl relative overflow-hidden shrink-0 flex items-center justify-center p-2">
@@ -499,8 +569,10 @@ export default function QuotePage() {
                       <div className="mt-2.5 max-w-md">
                         <input
                           type="text"
-                          value={item.itemNotes || ''}
-                          onChange={(e) => updateItemNotes(item.productId, e.target.value)}
+                          value={item.itemNotes || ""}
+                          onChange={(e) =>
+                            updateItemNotes(item.productId, e.target.value)
+                          }
                           placeholder="Specific options (e.g., wall mount, 230V plug, telemetry)..."
                           className="w-full text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white focus:border-blue-500 outline-none text-navy"
                         />
@@ -513,12 +585,19 @@ export default function QuotePage() {
                     <div className="flex items-center border border-gray-200 rounded-xl bg-white shadow-2xs overflow-hidden">
                       <button
                         type="button"
-                        onClick={() => updateQuantity(item.productId, Math.max(1, item.quantity - 1))}
+                        onClick={() =>
+                          updateQuantity(
+                            item.productId,
+                            Math.max(1, item.quantity - 1),
+                          )
+                        }
                         disabled={item.quantity <= 1}
                         className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                         title="Decrease quantity"
                       >
-                        <span className="material-symbols-outlined text-sm!">remove</span>
+                        <span className="material-symbols-outlined text-sm!">
+                          remove
+                        </span>
                       </button>
 
                       <input
@@ -527,18 +606,25 @@ export default function QuotePage() {
                         value={item.quantity}
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
-                          updateQuantity(item.productId, isNaN(val) || val < 1 ? 1 : val);
+                          updateQuantity(
+                            item.productId,
+                            isNaN(val) || val < 1 ? 1 : val,
+                          );
                         }}
                         className="w-12 text-center text-sm font-bold text-navy py-1.5 outline-none border-x border-gray-100"
                       />
 
                       <button
                         type="button"
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() =>
+                          updateQuantity(item.productId, item.quantity + 1)
+                        }
                         className="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-slate-100 transition-colors cursor-pointer"
                         title="Increase quantity"
                       >
-                        <span className="material-symbols-outlined text-sm!">add</span>
+                        <span className="material-symbols-outlined text-sm!">
+                          add
+                        </span>
                       </button>
                     </div>
 
@@ -548,10 +634,11 @@ export default function QuotePage() {
                       className="text-gray-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50 cursor-pointer"
                       title="Remove from quote"
                     >
-                      <span className="material-symbols-outlined text-lg!">delete</span>
+                      <span className="material-symbols-outlined text-lg!">
+                        delete
+                      </span>
                     </button>
                   </div>
-
                 </div>
               ))}
             </div>
@@ -562,14 +649,18 @@ export default function QuotePage() {
                 href="/products"
                 className="text-xs sm:text-sm font-bold text-navy hover:text-blue-600 flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-sm!">arrow_back</span>
+                <span className="material-symbols-outlined text-sm!">
+                  arrow_back
+                </span>
                 Continue Browsing Equipment
               </Link>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 {!isAuthenticated && (
                   <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm! text-amber-600">lock</span>
+                    <span className="material-symbols-outlined text-sm! text-amber-600">
+                      lock
+                    </span>
                     Sign-in required to submit
                   </span>
                 )}
@@ -580,7 +671,7 @@ export default function QuotePage() {
                 >
                   <span>Proceed to Facility Details</span>
                   <span className="material-symbols-outlined text-sm!">
-                    {isAuthenticated ? 'arrow_forward' : 'lock'}
+                    {isAuthenticated ? "arrow_forward" : "lock"}
                   </span>
                 </button>
               </div>
@@ -593,9 +684,12 @@ export default function QuotePage() {
       {currentStep === 2 && (
         <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs p-6 sm:p-8 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-navy">Facility &amp; Contact Information</h2>
+            <h2 className="text-xl font-bold text-navy">
+              Facility &amp; Contact Information
+            </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Provide your healthcare institution details so our team can assign the appropriate regional consultant.
+              Provide your healthcare institution details so our team can assign
+              the appropriate regional consultant.
             </p>
           </div>
 
@@ -603,7 +697,8 @@ export default function QuotePage() {
             {/* Facility Name */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Hospital / Clinic / Organization Name <span className="text-red-500">*</span>
+                Hospital / Clinic / Organization Name{" "}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -661,11 +756,11 @@ export default function QuotePage() {
               />
             </div>
 
-
             {/* Telephone Number */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Direct Telephone / Mobile <span className="text-red-500">*</span>
+                Direct Telephone / Mobile{" "}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
@@ -726,7 +821,9 @@ export default function QuotePage() {
               onClick={handlePrevStep}
               className="text-xs sm:text-sm font-bold text-gray-500 hover:text-navy cursor-pointer flex items-center gap-1"
             >
-              <span className="material-symbols-outlined text-sm!">arrow_back</span>
+              <span className="material-symbols-outlined text-sm!">
+                arrow_back
+              </span>
               Back to Equipment Review
             </button>
             <button
@@ -735,7 +832,9 @@ export default function QuotePage() {
               className="bg-navy text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-navy-light transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
             >
               <span>Continue to RFQ Specs</span>
-              <span className="material-symbols-outlined text-sm!">arrow_forward</span>
+              <span className="material-symbols-outlined text-sm!">
+                arrow_forward
+              </span>
             </button>
           </div>
         </div>
@@ -745,9 +844,12 @@ export default function QuotePage() {
       {currentStep === 3 && (
         <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs p-6 sm:p-8 space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-navy">Procurement &amp; Quotation Specifications</h2>
+            <h2 className="text-xl font-bold text-navy">
+              Procurement &amp; Quotation Specifications
+            </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Select your required turnaround urgency and detail any clinical or tender specifications.
+              Select your required turnaround urgency and detail any clinical or
+              tender specifications.
             </p>
           </div>
 
@@ -763,22 +865,30 @@ export default function QuotePage() {
                   onClick={() => setUrgency(opt.id)}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                     urgency === opt.id
-                      ? 'border-navy bg-blue-50/40 shadow-xs ring-2 ring-navy/10'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                      ? "border-navy bg-blue-50/40 shadow-xs ring-2 ring-navy/10"
+                      : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
                 >
                   <div>
                     <div className="mb-2">
-                      <span className="material-symbols-outlined text-2xl! text-navy">{opt.icon}</span>
+                      <span className="material-symbols-outlined text-2xl! text-navy">
+                        {opt.icon}
+                      </span>
                     </div>
-                    <div className="font-bold text-sm text-navy">{opt.label}</div>
-                    <div className="text-xs text-gray-500 mt-1 leading-snug">{opt.desc}</div>
+                    <div className="font-bold text-sm text-navy">
+                      {opt.label}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 leading-snug">
+                      {opt.desc}
+                    </div>
                   </div>
                   <div className="mt-4 flex items-center gap-1 text-[11px] font-bold text-blue-600">
                     <span className="material-symbols-outlined text-sm!">
-                      {urgency === opt.id ? 'radio_button_checked' : 'radio_button_unchecked'}
+                      {urgency === opt.id
+                        ? "radio_button_checked"
+                        : "radio_button_unchecked"}
                     </span>
-                    <span>{urgency === opt.id ? 'Selected' : 'Select'}</span>
+                    <span>{urgency === opt.id ? "Selected" : "Select"}</span>
                   </div>
                 </div>
               ))}
@@ -798,7 +908,8 @@ export default function QuotePage() {
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-500 outline-none text-navy bg-slate-50 focus:bg-white transition-all"
             />
             <span className="text-[11px] text-gray-400 mt-1 block">
-              You can also specify whether you require maintenance SLA contracts or on-site clinical demonstrations.
+              You can also specify whether you require maintenance SLA contracts
+              or on-site clinical demonstrations.
             </span>
           </div>
 
@@ -808,7 +919,9 @@ export default function QuotePage() {
               onClick={handlePrevStep}
               className="text-xs sm:text-sm font-bold text-gray-500 hover:text-navy cursor-pointer flex items-center gap-1"
             >
-              <span className="material-symbols-outlined text-sm!">arrow_back</span>
+              <span className="material-symbols-outlined text-sm!">
+                arrow_back
+              </span>
               Back to Facility Details
             </button>
             <button
@@ -817,7 +930,9 @@ export default function QuotePage() {
               className="bg-navy text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-navy-light transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
             >
               <span>Review Final Summary</span>
-              <span className="material-symbols-outlined text-sm!">arrow_forward</span>
+              <span className="material-symbols-outlined text-sm!">
+                arrow_forward
+              </span>
             </button>
           </div>
         </div>
@@ -828,9 +943,12 @@ export default function QuotePage() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs p-6 sm:p-8 space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-navy">Final Review &amp; Submission</h2>
+              <h2 className="text-xl font-bold text-navy">
+                Final Review &amp; Submission
+              </h2>
               <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Please review your medical quotation details before transmitting to our procurement desk.
+                Please review your medical quotation details before transmitting
+                to our procurement desk.
               </p>
             </div>
 
@@ -851,11 +969,15 @@ export default function QuotePage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                 <div>
-                  <span className="text-gray-400 block text-[11px]">Facility Name</span>
+                  <span className="text-gray-400 block text-[11px]">
+                    Facility Name
+                  </span>
                   <span className="font-bold text-navy">{facilityName}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400 block text-[11px]">Contact Person</span>
+                  <span className="text-gray-400 block text-[11px]">
+                    Contact Person
+                  </span>
                   <span className="font-bold text-navy">{contactName}</span>
                 </div>
                 <div>
@@ -863,16 +985,22 @@ export default function QuotePage() {
                   <span className="font-semibold text-gray-700">{email}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400 block text-[11px]">Telephone</span>
+                  <span className="text-gray-400 block text-[11px]">
+                    Telephone
+                  </span>
                   <span className="font-semibold text-gray-700">{phone}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400 block text-[11px]">Sector</span>
+                  <span className="text-gray-400 block text-[11px]">
+                    Sector
+                  </span>
                   <span className="text-gray-700">{sector}</span>
                 </div>
                 {city && (
                   <div>
-                    <span className="text-gray-400 block text-[11px]">Destination City</span>
+                    <span className="text-gray-400 block text-[11px]">
+                      Destination City
+                    </span>
                     <span className="text-gray-700">{city}</span>
                   </div>
                 )}
@@ -893,7 +1021,10 @@ export default function QuotePage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {items.map((it) => (
-                  <div key={it.productId} className="p-4 flex items-center justify-between text-xs sm:text-sm">
+                  <div
+                    key={it.productId}
+                    className="p-4 flex items-center justify-between text-xs sm:text-sm"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl relative overflow-hidden shrink-0 flex items-center justify-center p-1">
                         {it.imageUrl ? (
@@ -911,12 +1042,16 @@ export default function QuotePage() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-navy truncate">{it.productName}</div>
+                        <div className="font-bold text-navy truncate">
+                          {it.productName}
+                        </div>
                         <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5 flex-wrap">
                           {it.brandName && <span>Brand: {it.brandName}</span>}
                           {it.sku && <span>SKU: {it.sku}</span>}
                           {it.itemNotes && (
-                            <span className="text-blue-600 italic">&bull; Note: &quot;{it.itemNotes}&quot;</span>
+                            <span className="text-blue-600 italic">
+                              &bull; Note: &quot;{it.itemNotes}&quot;
+                            </span>
                           )}
                         </div>
                       </div>
@@ -932,7 +1067,9 @@ export default function QuotePage() {
             {/* Priority & Notes */}
             <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-200/80 text-xs text-gray-700 space-y-1">
               <div className="font-bold text-navy flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-amber-600 text-base!">flag</span>
+                <span className="material-symbols-outlined text-amber-600 text-base!">
+                  flag
+                </span>
                 <span>Urgency Level: {urgency}</span>
               </div>
               {notes && (
@@ -949,7 +1086,9 @@ export default function QuotePage() {
                 onClick={handlePrevStep}
                 className="text-xs sm:text-sm font-bold text-gray-500 hover:text-navy cursor-pointer flex items-center gap-1"
               >
-                <span className="material-symbols-outlined text-sm!">arrow_back</span>
+                <span className="material-symbols-outlined text-sm!">
+                  arrow_back
+                </span>
                 Back
               </button>
 
@@ -961,13 +1100,17 @@ export default function QuotePage() {
               >
                 {isSubmitting ? (
                   <>
-                    <span className="material-symbols-outlined animate-spin text-lg!">progress_activity</span>
+                    <span className="material-symbols-outlined animate-spin text-lg!">
+                      progress_activity
+                    </span>
                     <span>Submitting Request...</span>
                   </>
                 ) : (
                   <>
                     <span>Submit Quote Request</span>
-                    <span className="material-symbols-outlined text-base!">send</span>
+                    <span className="material-symbols-outlined text-base!">
+                      send
+                    </span>
                   </>
                 )}
               </button>
@@ -982,7 +1125,6 @@ export default function QuotePage() {
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
       />
-
     </div>
   );
 }

@@ -1,6 +1,5 @@
-import os
+from app.models import Brand, Category, Document, Product
 from starlette.testclient import TestClient
-from app.models import Product, Document, Category, Brand
 
 
 def test_list_resources(client: TestClient, db_session):
@@ -71,7 +70,9 @@ def test_list_resources(client: TestClient, db_session):
 
 def test_download_document_unauthenticated(client: TestClient):
     # Attempting to download without token or authorization header fails with 401
-    response = client.get("/api/documents/download?url=/media/brochures/contec-cms5100-patient-monitor.pdf")
+    response = client.get(
+        "/api/documents/download?url=/media/brochures/contec-cms5100-patient-monitor.pdf"
+    )
     assert response.status_code == 401
     assert "Authentication required" in response.json()["detail"]
 
@@ -87,7 +88,9 @@ def test_download_document_authenticated(client: TestClient, user_token_headers)
     assert "attachment" in response.headers["content-disposition"]
 
 
-def test_download_document_path_traversal_blocked(client: TestClient, user_token_headers):
+def test_download_document_path_traversal_blocked(
+    client: TestClient, user_token_headers
+):
     # Attempting to download arbitrary system files outside MEDIA_DIR must be blocked with 400
     response = client.get(
         "/api/documents/download?url=../../etc/passwd",

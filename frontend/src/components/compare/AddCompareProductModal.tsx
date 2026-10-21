@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
-import { productsApi, ProductItem, getMediaUrl } from '@/lib/api';
+import { ProductItem, getMediaUrl, productsApi } from "@/lib/api";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const PAGE_SIZE = 12;
 
@@ -19,8 +19,8 @@ export default function AddCompareProductModal({
   onSelectProduct,
   existingSlugs,
 }: AddCompareProductModalProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -47,7 +47,7 @@ export default function AddCompareProductModal({
     productsApi
       .listProducts({
         search: debouncedQuery.trim() || undefined,
-        status: 'Active',
+        status: "Active",
         limit: PAGE_SIZE,
         skip: 0,
       })
@@ -63,7 +63,7 @@ export default function AddCompareProductModal({
       })
       .catch((err) => {
         if (!active) return;
-        console.error('Failed to load products for comparison modal', err);
+        console.error("Failed to load products for comparison modal", err);
         setProducts([]);
         setHasMore(false);
         setIsLoading(false);
@@ -82,7 +82,7 @@ export default function AddCompareProductModal({
     try {
       const nextBatch = await productsApi.listProducts({
         search: debouncedQuery.trim() || undefined,
-        status: 'Active',
+        status: "Active",
         limit: PAGE_SIZE,
         skip: products.length,
       });
@@ -97,7 +97,7 @@ export default function AddCompareProductModal({
         return [...prev, ...filteredNew];
       });
     } catch (err) {
-      console.error('Failed to load more products on scroll', err);
+      console.error("Failed to load more products on scroll", err);
     } finally {
       setIsLoadingMore(false);
     }
@@ -105,7 +105,14 @@ export default function AddCompareProductModal({
 
   // IntersectionObserver for sentinel element at bottom of scroll list
   useEffect(() => {
-    if (!isOpen || !sentinelRef.current || !hasMore || isLoading || isLoadingMore) return;
+    if (
+      !isOpen ||
+      !sentinelRef.current ||
+      !hasMore ||
+      isLoading ||
+      isLoadingMore
+    )
+      return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -116,7 +123,7 @@ export default function AddCompareProductModal({
       {
         root: scrollContainerRef.current,
         threshold: 0.1,
-      }
+      },
     );
 
     observer.observe(sentinelRef.current);
@@ -126,7 +133,12 @@ export default function AddCompareProductModal({
   // OnScroll fallback for container scroll listener
   const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop - clientHeight < 100 && hasMore && !isLoading && !isLoadingMore) {
+    if (
+      scrollHeight - scrollTop - clientHeight < 100 &&
+      hasMore &&
+      !isLoading &&
+      !isLoadingMore
+    ) {
       handleLoadMore();
     }
   };
@@ -136,15 +148,15 @@ export default function AddCompareProductModal({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, onClose]);
@@ -163,7 +175,9 @@ export default function AddCompareProductModal({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div>
-            <h3 className="text-lg font-bold text-navy">Add Product to Comparison</h3>
+            <h3 className="text-lg font-bold text-navy">
+              Add Product to Comparison
+            </h3>
             <p className="text-xs text-gray-400 mt-0.5">
               Select medical devices to compare clinical specifications.
             </p>
@@ -195,11 +209,13 @@ export default function AddCompareProductModal({
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
                 title="Clear search"
               >
-                <span className="material-symbols-outlined text-base!">close</span>
+                <span className="material-symbols-outlined text-base!">
+                  close
+                </span>
               </button>
             )}
           </div>
@@ -216,7 +232,9 @@ export default function AddCompareProductModal({
               <span className="material-symbols-outlined text-3xl animate-spin text-blue-600">
                 progress_activity
               </span>
-              <p className="text-xs text-gray-500 font-medium">Loading equipment catalogue...</p>
+              <p className="text-xs text-gray-500 font-medium">
+                Loading equipment catalogue...
+              </p>
             </div>
           ) : products.length === 0 ? (
             <div className="py-14 text-center space-y-2">
@@ -227,12 +245,12 @@ export default function AddCompareProductModal({
               <p className="text-[11px] text-gray-400 max-w-xs mx-auto">
                 {searchQuery
                   ? `No active equipment matches "${searchQuery}". Try different keywords.`
-                  : 'No active products are currently available in the catalogue.'}
+                  : "No active products are currently available in the catalogue."}
               </p>
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery("")}
                   className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer pt-1 inline-block"
                 >
                   Clear Search Filter
@@ -267,17 +285,24 @@ export default function AddCompareProductModal({
                         )}
                       </div>
                       <div className="min-w-0 truncate">
-                        <div className="text-xs font-bold text-navy truncate" title={p.name}>
+                        <div
+                          className="text-xs font-bold text-navy truncate"
+                          title={p.name}
+                        >
                           {p.name}
                         </div>
                         <div className="text-[11px] text-gray-400 uppercase font-semibold flex items-center gap-1.5 mt-0.5 flex-wrap">
                           {p.brand_name && (
-                            <span className="text-blue-600">{p.brand_name}</span>
+                            <span className="text-blue-600">
+                              {p.brand_name}
+                            </span>
                           )}
                           {p.sku && (
                             <>
                               {p.brand_name && <span>&bull;</span>}
-                              <span className="font-mono text-gray-400">SKU: {p.sku}</span>
+                              <span className="font-mono text-gray-400">
+                                SKU: {p.sku}
+                              </span>
                             </>
                           )}
                         </div>
@@ -287,7 +312,9 @@ export default function AddCompareProductModal({
                     <div className="shrink-0">
                       {isAlreadyAdded ? (
                         <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                          <span className="material-symbols-outlined text-xs!">check</span>
+                          <span className="material-symbols-outlined text-xs!">
+                            check
+                          </span>
                           <span>Added</span>
                         </span>
                       ) : (
@@ -297,7 +324,9 @@ export default function AddCompareProductModal({
                           className="text-xs font-bold px-3 py-1.5 rounded-xl bg-navy text-white hover:bg-gold hover:text-navy transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
                         >
                           <span>Compare</span>
-                          <span className="material-symbols-outlined text-xs!">add</span>
+                          <span className="material-symbols-outlined text-xs!">
+                            add
+                          </span>
                         </button>
                       )}
                     </div>

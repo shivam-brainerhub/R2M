@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # ==============================================================================
 # Quote Item Schemas
 # ==============================================================================
+
 
 class QuoteItemCreate(BaseModel):
     product_id: Optional[int] = None
@@ -36,8 +37,14 @@ class QuoteItemResponse(BaseModel):
 # Quote Request Schemas
 # ==============================================================================
 
+
 class QuoteRequestCreate(BaseModel):
-    facility_name: str = Field(..., min_length=2, max_length=200, description="Hospital, clinic or practice name")
+    facility_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=200,
+        description="Hospital, clinic or practice name",
+    )
     contact_name: str = Field(..., min_length=2, max_length=150)
     email: EmailStr
     phone: str = Field(..., min_length=5, max_length=50)
@@ -46,15 +53,29 @@ class QuoteRequestCreate(BaseModel):
     city: Optional[str] = Field(None, max_length=100)
     address: Optional[str] = Field(None, max_length=300)
     postal_code: Optional[str] = Field(None, max_length=30)
-    urgency: str = Field("Standard", description="Standard, Urgent, or Procurement Tender")
-    notes: Optional[str] = Field(None, max_length=5000, description="Procurement specifications or clinical requirements")
-    items: List[QuoteItemCreate] = Field(..., min_length=1, description="At least one equipment item is required")
+    urgency: str = Field(
+        "Standard", description="Standard, Urgent, or Procurement Tender"
+    )
+    notes: Optional[str] = Field(
+        None,
+        max_length=5000,
+        description="Procurement specifications or clinical requirements",
+    )
+    items: List[QuoteItemCreate] = Field(
+        ..., min_length=1, description="At least one equipment item is required"
+    )
 
 
 class QuoteRequestUpdate(BaseModel):
-    status: Optional[str] = Field(None, description="New, In Review, Quoted, Approved, Declined")
-    internal_notes: Optional[str] = Field(None, description="Internal admin or sales representative notes")
-    quoted_amount: Optional[str] = Field(None, description="Quotation value or summary currency string")
+    status: Optional[str] = Field(
+        None, description="New, In Review, Quoted, Approved, Declined"
+    )
+    internal_notes: Optional[str] = Field(
+        None, description="Internal admin or sales representative notes"
+    )
+    quoted_amount: Optional[str] = Field(
+        None, description="Quotation value or summary currency string"
+    )
 
 
 class QuoteRequestResponse(BaseModel):

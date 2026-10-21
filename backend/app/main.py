@@ -1,25 +1,25 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
-import app.models
+from app import models as _models  # noqa: F401
 from app.api.admin_users import router as admin_users_router
 from app.api.auth import router as auth_router
 from app.api.brands import router as brands_router
-from app.api.categories import router as categories_router, subcategories_router
+from app.api.categories import router as categories_router
+from app.api.categories import subcategories_router
+from app.api.inquiries import router as inquiries_router
 from app.api.products import router as products_router
 from app.api.properties import router as properties_router
-from app.api.roles import router as roles_router
-from app.api.site_content import router as site_content_router
-from app.api.inquiries import router as inquiries_router
 from app.api.quotes import router as quotes_router
 from app.api.resources import router as resources_router
+from app.api.roles import router as roles_router
 from app.api.sectors import router as sectors_router
-from app.database import Base, SessionLocal, engine
+from app.api.site_content import router as site_content_router
+from app.database import SessionLocal
 from app.init_db import init_db
-
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ async def lifespan(app: FastAPI):
         init_db(db)
         # Pre-warm filter options cache in memory
         from app.services.filter_cache import filter_cache_service
+
         filter_cache_service.get_filter_options(db)
     finally:
         db.close()
@@ -39,7 +40,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="R2M & SA Healthcare Digital Platform API",
     version="1.0.0",
-    description="Backend API for SA Healthcare e-catalogue, quotation engine, and administration.",
+    description=(
+        "Backend API for SA Healthcare e-catalogue, "
+        "quotation engine, and administration."
+    ),
     lifespan=lifespan,
 )
 

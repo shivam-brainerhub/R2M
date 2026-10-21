@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { authApi, ApiError } from '@/lib/api';
+import { ApiError, authApi } from "@/lib/api";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState } from "react";
 
 export default function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tokenParam = searchParams.get('token') || '';
+  const tokenParam = searchParams.get("token") || "";
 
   const [token, setToken] = useState(tokenParam);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -29,19 +29,19 @@ export default function ResetPasswordForm() {
 
     const activeToken = token.trim();
     if (!activeToken) {
-      errors.token = 'Reset token is required. Please paste your reset token.';
+      errors.token = "Reset token is required. Please paste your reset token.";
     }
 
     if (!newPassword) {
-      errors.newPassword = 'Please enter a new password.';
+      errors.newPassword = "Please enter a new password.";
     } else if (newPassword.length < 6) {
-      errors.newPassword = 'Password must be at least 6 characters long.';
+      errors.newPassword = "Password must be at least 6 characters long.";
     }
 
     if (!confirmPassword) {
-      errors.confirmPassword = 'Please confirm your new password.';
+      errors.confirmPassword = "Please confirm your new password.";
     } else if (newPassword !== confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
+      errors.confirmPassword = "Passwords do not match.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -57,9 +57,12 @@ export default function ResetPasswordForm() {
         new_password: newPassword,
       });
 
-      setSuccessMessage(response.message || 'Password has been successfully reset! Redirecting to login...');
+      setSuccessMessage(
+        response.message ||
+          "Password has been successfully reset! Redirecting to login...",
+      );
       setTimeout(() => {
-        router.push('/login');
+        router.push("/login");
       }, 1500);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -67,7 +70,7 @@ export default function ResetPasswordForm() {
       } else if (error instanceof Error) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage('Failed to reset password. The link may have expired.');
+        setErrorMessage("Failed to reset password. The link may have expired.");
       }
     } finally {
       setIsLoading(false);
@@ -129,26 +132,30 @@ export default function ResetPasswordForm() {
                     onChange={(e) => {
                       setToken(e.target.value);
                       if (fieldErrors.token) {
-                        setFieldErrors((prev) => ({ ...prev, token: '' }));
+                        setFieldErrors((prev) => ({ ...prev, token: "" }));
                       }
                     }}
                     disabled={isLoading}
                     className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-xs font-mono transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                       fieldErrors.token
-                        ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                        : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                        ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                        : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                     }`}
                     placeholder="Paste reset token here"
                   />
-                  <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                    fieldErrors.token ? 'text-red-400' : 'text-gray-400'
-                  }`}>
+                  <span
+                    className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                      fieldErrors.token ? "text-red-400" : "text-gray-400"
+                    }`}
+                  >
                     key
                   </span>
                 </div>
                 {fieldErrors.token && (
                   <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                    <span className="material-symbols-outlined text-sm">error</span>
+                    <span className="material-symbols-outlined text-sm">
+                      error
+                    </span>
                     <span>{fieldErrors.token}</span>
                   </p>
                 )}
@@ -166,42 +173,46 @@ export default function ResetPasswordForm() {
                 <input
                   id="new-password"
                   name="newPassword"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => {
                     setNewPassword(e.target.value);
                     if (fieldErrors.newPassword) {
-                      setFieldErrors((prev) => ({ ...prev, newPassword: '' }));
+                      setFieldErrors((prev) => ({ ...prev, newPassword: "" }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 pr-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.newPassword
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="At least 6 characters"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.newPassword ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.newPassword ? "text-red-400" : "text-gray-400"
+                  }`}
+                >
                   lock
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   <span className="material-symbols-outlined text-xl">
-                    {showPassword ? 'visibility_off' : 'visibility'}
+                    {showPassword ? "visibility_off" : "visibility"}
                   </span>
                 </button>
               </div>
               {fieldErrors.newPassword && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.newPassword}</span>
                 </p>
               )}
@@ -218,32 +229,41 @@ export default function ResetPasswordForm() {
                 <input
                   id="confirm-password"
                   name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     if (fieldErrors.confirmPassword) {
-                      setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        confirmPassword: "",
+                      }));
                     }
                   }}
                   disabled={isLoading}
                   className={`appearance-none relative block w-full px-3 py-2.5 pl-10 border rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors disabled:bg-gray-50 disabled:text-gray-500 ${
                     fieldErrors.confirmPassword
-                      ? 'border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-                      : 'border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy'
+                      ? "border-red-400 focus:ring-red-500 focus:border-red-500 bg-red-50/20"
+                      : "border-gray-300 placeholder-gray-400 text-gray-900 focus:ring-navy focus:border-navy"
                   }`}
                   placeholder="Re-enter new password"
                 />
-                <span className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
-                  fieldErrors.confirmPassword ? 'text-red-400' : 'text-gray-400'
-                }`}>
+                <span
+                  className={`material-symbols-outlined absolute left-3 top-2.5 text-xl pointer-events-none ${
+                    fieldErrors.confirmPassword
+                      ? "text-red-400"
+                      : "text-gray-400"
+                  }`}
+                >
                   lock_reset
                 </span>
               </div>
               {fieldErrors.confirmPassword && (
                 <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1 font-medium animate-fadeIn">
-                  <span className="material-symbols-outlined text-sm">error</span>
+                  <span className="material-symbols-outlined text-sm">
+                    error
+                  </span>
                   <span>{fieldErrors.confirmPassword}</span>
                 </p>
               )}
@@ -262,12 +282,12 @@ export default function ResetPasswordForm() {
                   <span>Resetting password...</span>
                 </div>
               ) : (
-                'Reset password'
+                "Reset password"
               )}
             </button>
 
             <p className="text-center text-sm text-gray-600 pt-2 border-t border-gray-100">
-              Remember your password?{' '}
+              Remember your password?{" "}
               <Link
                 href="/login"
                 className="font-semibold text-navy underline decoration-2 underline-offset-2 hover:text-gold transition-colors"

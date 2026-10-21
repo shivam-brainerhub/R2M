@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { getProtectedDownloadUrl } from '@/lib/api';
-import AuthModal from '@/components/auth/AuthModal';
+import AuthModal from "@/components/auth/AuthModal";
+import { useAuth } from "@/context/AuthContext";
+import { getProtectedDownloadUrl } from "@/lib/api";
+import React, { useState } from "react";
 
 interface BrochureDownloadButtonProps {
   brochureUrl?: string | null;
@@ -26,7 +26,7 @@ export default function BrochureDownloadButton({
   const handleDownload = (authToken?: string | null) => {
     const activeToken = authToken || token;
     const url = getProtectedDownloadUrl(brochureUrl, activeToken);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleClick = (e: React.MouseEvent) => {
@@ -41,9 +41,11 @@ export default function BrochureDownloadButton({
 
   const handleAuthSuccess = () => {
     setIsAuthOpen(false);
-    const storedToken = typeof window !== 'undefined'
-      ? localStorage.getItem('r2m_access_token') || sessionStorage.getItem('r2m_access_token')
-      : null;
+    const storedToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem("r2m_access_token") ||
+          sessionStorage.getItem("r2m_access_token")
+        : null;
     handleDownload(storedToken || token);
   };
 

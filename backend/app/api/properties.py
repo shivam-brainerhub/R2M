@@ -1,12 +1,12 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
 
-from app.core.dependencies import require_admin, require_permission
+from app.core.dependencies import require_permission
 from app.database import get_db
 from app.models import Category, ProductPropertyValue, Property, User
 from app.schemas.property import PropertyCreate, PropertyResponse, PropertyUpdate
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/properties",
@@ -199,8 +199,9 @@ def update_property(
 
     if "description" in update_data:
         val = update_data["description"]
-        prop.description = val.strip() if (isinstance(val, str) and val.strip()) else None
-
+        prop.description = (
+            val.strip() if (isinstance(val, str) and val.strip()) else None
+        )
 
     db.commit()
     db.refresh(prop)

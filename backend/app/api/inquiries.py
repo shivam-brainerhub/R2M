@@ -1,9 +1,6 @@
-from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import desc, or_
-from sqlalchemy.orm import Session
+from typing import Dict, List, Optional
 
-from app.core.dependencies import require_admin, require_permission
+from app.core.dependencies import require_permission
 from app.database import get_db
 from app.models import ContactMessage, SupplierApplication, User
 from app.schemas.inquiries import (
@@ -14,6 +11,9 @@ from app.schemas.inquiries import (
     SupplierApplicationResponse,
     SupplierApplicationUpdate,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import desc, or_
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/inquiries",
@@ -25,7 +25,12 @@ router = APIRouter(
 # Contact Messages Endpoints
 # ==============================================================================
 
-@router.post("/contact", response_model=ContactMessageResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/contact",
+    response_model=ContactMessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def submit_contact_message(
     payload: ContactMessageCreate,
     db: Session = Depends(get_db),
@@ -49,8 +54,14 @@ def submit_contact_message(
 
 @router.get("/contact", response_model=List[ContactMessageResponse])
 def list_contact_messages(
-    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status, e.g. New, In Progress, Responded, Archived"),
-    search: Optional[str] = Query(None, description="Search by name, email, organization or message text"),
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filter by status, e.g. New, In Progress, Responded, Archived",
+    ),
+    search: Optional[str] = Query(
+        None, description="Search by name, email, organization or message text"
+    ),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -76,7 +87,9 @@ def list_contact_messages(
             )
         )
 
-    return query.order_by(desc(ContactMessage.created_at)).offset(skip).limit(limit).all()
+    return (
+        query.order_by(desc(ContactMessage.created_at)).offset(skip).limit(limit).all()
+    )
 
 
 @router.patch("/contact/{message_id}", response_model=ContactMessageResponse)
@@ -131,7 +144,12 @@ def delete_contact_message(
 # Supplier Applications Endpoints
 # ==============================================================================
 
-@router.post("/supplier", response_model=SupplierApplicationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/supplier",
+    response_model=SupplierApplicationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def submit_supplier_application(
     payload: SupplierApplicationCreate,
     db: Session = Depends(get_db),
@@ -158,8 +176,15 @@ def submit_supplier_application(
 
 @router.get("/supplier", response_model=List[SupplierApplicationResponse])
 def list_supplier_applications(
-    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status, e.g. New, Under Review, Approved, Declined"),
-    search: Optional[str] = Query(None, description="Search by company, contact person, email, category or overview"),
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filter by status, e.g. New, Under Review, Approved, Declined",
+    ),
+    search: Optional[str] = Query(
+        None,
+        description="Search by company, contact person, email, category or overview",
+    ),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -185,7 +210,12 @@ def list_supplier_applications(
             )
         )
 
-    return query.order_by(desc(SupplierApplication.created_at)).offset(skip).limit(limit).all()
+    return (
+        query.order_by(desc(SupplierApplication.created_at))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.patch("/supplier/{app_id}", response_model=SupplierApplicationResponse)
@@ -244,13 +274,25 @@ def get_inquiries_stats(
     """
     Retrieve quick inquiry counts for admin badge notifications and dashboard widgets.
     """
-    new_contact = db.query(ContactMessage).filter(ContactMessage.status == "New").count()
+    new_contact = (
+        db.query(ContactMessage).filter(ContactMessage.status == "New").count()
+    )
     total_contact = db.query(ContactMessage).count()
-    in_progress_contact = db.query(ContactMessage).filter(ContactMessage.status == "In Progress").count()
+    in_progress_contact = (
+        db.query(ContactMessage).filter(ContactMessage.status == "In Progress").count()
+    )
 
-    new_supplier = db.query(SupplierApplication).filter(SupplierApplication.status == "New").count()
+    new_supplier = (
+        db.query(SupplierApplication)
+        .filter(SupplierApplication.status == "New")
+        .count()
+    )
     total_supplier = db.query(SupplierApplication).count()
-    under_review_supplier = db.query(SupplierApplication).filter(SupplierApplication.status == "Under Review").count()
+    under_review_supplier = (
+        db.query(SupplierApplication)
+        .filter(SupplierApplication.status == "Under Review")
+        .count()
+    )
 
     return {
         "new_contact": new_contact,
@@ -262,4 +304,3 @@ def get_inquiries_stats(
         "under_review_supplier": under_review_supplier,
         "total_in_progress": in_progress_contact + under_review_supplier,
     }
-

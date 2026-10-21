@@ -1,8 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+
 from app.core.dependencies import get_current_user
 from app.core.security import (
     create_access_token,
@@ -14,7 +11,7 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_db
-from app.models import Role, User, UserRole
+from app.models import Role, User
 from app.schemas.token import Token, TokenRefreshRequest
 from app.schemas.user import (
     ForgotPasswordRequest,
@@ -29,6 +26,9 @@ from app.schemas.user import (
     VerifyEmailRequest,
 )
 from app.services.email import send_password_reset_email, send_verification_email
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 
 
 def get_role_value(user: User) -> str:
@@ -48,18 +48,14 @@ def register_public_user(user_in: UserRegister, db: Session = Depends(get_db)):
     Public registration endpoint. Registers a standard public user.
     Sets is_email_verified=False and sends confirmation email.
     """
-    existing_user_email = (
-        db.query(User).filter(User.email == user_in.email).first()
-    )
+    existing_user_email = db.query(User).filter(User.email == user_in.email).first()
     if existing_user_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="A user with this email already exists",
         )
 
-    existing_username = (
-        db.query(User).filter(User.username == user_in.username).first()
-    )
+    existing_username = db.query(User).filter(User.username == user_in.username).first()
     if existing_username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -90,9 +86,7 @@ def register_public_user(user_in: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/verify-email")
-def verify_email(
-    request: VerifyEmailRequest, db: Session = Depends(get_db)
-):
+def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     """
     Verify user email address using the token sent via confirmation email.
     """
@@ -200,8 +194,7 @@ def login_oauth2(
     user = (
         db.query(User)
         .filter(
-            (User.email == form_data.username)
-            | (User.username == form_data.username)
+            (User.email == form_data.username) | (User.username == form_data.username)
         )
         .first()
     )
@@ -355,9 +348,7 @@ def change_password(
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
-def forgot_password(
-    request: ForgotPasswordRequest, db: Session = Depends(get_db)
-):
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """
     Initiate password reset. If the email exists and is active, sends a password reset email.
     """
@@ -373,9 +364,7 @@ def forgot_password(
 
 
 @router.post("/reset-password")
-def reset_password(
-    request: ResetPasswordRequest, db: Session = Depends(get_db)
-):
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
     """
     Reset user password using a valid password reset token.
     """

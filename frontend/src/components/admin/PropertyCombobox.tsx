@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { PropertyItem } from '@/lib/api';
+import { PropertyItem } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface PropertyComboboxProps {
   value: string;
@@ -22,12 +22,12 @@ export default function PropertyCombobox({
   availableProperties,
   excludeNames = [],
   onCreateProperty,
-  placeholder = 'Select or create property...',
+  placeholder = "Select or create property...",
   disabled = false,
-  className = '',
+  className = "",
 }: PropertyComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState(value || '');
+  const [query, setQuery] = useState(value || "");
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -37,34 +37,37 @@ export default function PropertyCombobox({
 
   // Sync external value changes to local input display
   useEffect(() => {
-    setQuery(value || '');
+    setQuery(value || "");
   }, [value]);
 
   // Handle outside clicks to close the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         // If user typed something without selecting or creating, revert to current value
-        if (query.trim() !== (value || '').trim()) {
+        if (query.trim() !== (value || "").trim()) {
           const exactMatch = availableProperties.find(
-            (p) => p.name.trim().toLowerCase() === query.trim().toLowerCase()
+            (p) => p.name.trim().toLowerCase() === query.trim().toLowerCase(),
           );
           if (exactMatch) {
             onChange(exactMatch.name, exactMatch.id);
             setQuery(exactMatch.name);
           } else {
-            setQuery(value || '');
+            setQuery(value || "");
           }
         }
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, query, value, availableProperties, onChange]);
 
@@ -74,7 +77,7 @@ export default function PropertyCombobox({
   const filteredProperties = useMemo(() => {
     if (!trimmedQuery) return availableProperties;
     return availableProperties.filter((p) =>
-      p.name.toLowerCase().includes(trimmedQuery)
+      p.name.toLowerCase().includes(trimmedQuery),
     );
   }, [availableProperties, trimmedQuery]);
 
@@ -82,7 +85,7 @@ export default function PropertyCombobox({
   const hasExactMatch = useMemo(() => {
     if (!trimmedQuery) return false;
     return availableProperties.some(
-      (p) => p.name.trim().toLowerCase() === trimmedQuery
+      (p) => p.name.trim().toLowerCase() === trimmedQuery,
     );
   }, [availableProperties, trimmedQuery]);
 
@@ -96,17 +99,19 @@ export default function PropertyCombobox({
   // Scroll highlighted item into view
   useEffect(() => {
     if (highlightedIndex >= 0 && listRef.current) {
-      const items = listRef.current.querySelectorAll('[data-combobox-item]');
+      const items = listRef.current.querySelectorAll("[data-combobox-item]");
       const activeEl = items[highlightedIndex] as HTMLElement | undefined;
       if (activeEl) {
-        activeEl.scrollIntoView({ block: 'nearest' });
+        activeEl.scrollIntoView({ block: "nearest" });
       }
     }
   }, [highlightedIndex]);
 
   const handleSelectProperty = (prop: PropertyItem) => {
     const isExcluded = excludeNames.some(
-      (ex) => ex.toLowerCase() === prop.name.toLowerCase() && ex.toLowerCase() !== (value || '').toLowerCase()
+      (ex) =>
+        ex.toLowerCase() === prop.name.toLowerCase() &&
+        ex.toLowerCase() !== (value || "").toLowerCase(),
     );
     if (isExcluded) return;
 
@@ -144,7 +149,7 @@ export default function PropertyCombobox({
     if (disabled) return;
 
     if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") {
         e.preventDefault();
         setIsOpen(true);
         setHighlightedIndex(0);
@@ -153,23 +158,31 @@ export default function PropertyCombobox({
     }
 
     switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex((prev) => (totalNavItems > 0 ? (prev + 1) % totalNavItems : -1));
-        break;
-
-      case 'ArrowUp':
+      case "ArrowDown":
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          totalNavItems > 0 ? (prev - 1 + totalNavItems) % totalNavItems : -1
+          totalNavItems > 0 ? (prev + 1) % totalNavItems : -1,
         );
         break;
 
-      case 'Enter':
+      case "ArrowUp":
         e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < filteredProperties.length) {
+        setHighlightedIndex((prev) =>
+          totalNavItems > 0 ? (prev - 1 + totalNavItems) % totalNavItems : -1,
+        );
+        break;
+
+      case "Enter":
+        e.preventDefault();
+        if (
+          highlightedIndex >= 0 &&
+          highlightedIndex < filteredProperties.length
+        ) {
           handleSelectProperty(filteredProperties[highlightedIndex]);
-        } else if (highlightedIndex === filteredProperties.length && canCreate) {
+        } else if (
+          highlightedIndex === filteredProperties.length &&
+          canCreate
+        ) {
           handleCreateNew();
         } else if (canCreate && filteredProperties.length === 0) {
           handleCreateNew();
@@ -178,13 +191,13 @@ export default function PropertyCombobox({
         }
         break;
 
-      case 'Escape':
+      case "Escape":
         e.preventDefault();
         setIsOpen(false);
-        setQuery(value || '');
+        setQuery(value || "");
         break;
 
-      case 'Tab':
+      case "Tab":
         setIsOpen(false);
         break;
 
@@ -195,8 +208,8 @@ export default function PropertyCombobox({
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onChange('');
-    setQuery('');
+    onChange("");
+    setQuery("");
     setHighlightedIndex(-1);
     inputRef.current?.focus();
   };
@@ -224,10 +237,10 @@ export default function PropertyCombobox({
           onKeyDown={handleKeyDown}
           className={`w-full pl-3 pr-14 py-1.5 text-xs bg-white border rounded-lg outline-none transition-all ${
             disabled
-              ? 'bg-slate-100 text-gray-400 cursor-not-allowed border-gray-200'
+              ? "bg-slate-100 text-gray-400 cursor-not-allowed border-gray-200"
               : isOpen
-              ? 'border-blue-500 ring-2 ring-blue-500/20 text-navy font-semibold'
-              : 'border-gray-200 text-navy hover:border-gray-300 focus:border-blue-500'
+                ? "border-blue-500 ring-2 ring-blue-500/20 text-navy font-semibold"
+                : "border-gray-200 text-navy hover:border-gray-300 focus:border-blue-500"
           }`}
         />
 
@@ -241,7 +254,9 @@ export default function PropertyCombobox({
               className="p-1 hover:text-gray-600 rounded transition-colors cursor-pointer"
               title="Clear selection"
             >
-              <span className="material-symbols-outlined text-xs! block">close</span>
+              <span className="material-symbols-outlined text-xs! block">
+                close
+              </span>
             </button>
           )}
           <button
@@ -258,7 +273,7 @@ export default function PropertyCombobox({
           >
             <span
               className={`material-symbols-outlined text-sm! block transition-transform duration-200 ${
-                isOpen ? 'rotate-180 text-blue-600' : ''
+                isOpen ? "rotate-180 text-blue-600" : ""
               }`}
             >
               expand_more
@@ -287,12 +302,12 @@ export default function PropertyCombobox({
             filteredProperties.map((prop, idx) => {
               const isSelected =
                 (propertyId && prop.id === propertyId) ||
-                prop.name.toLowerCase() === (value || '').toLowerCase();
+                prop.name.toLowerCase() === (value || "").toLowerCase();
 
               const isExcluded = excludeNames.some(
                 (ex) =>
                   ex.toLowerCase() === prop.name.toLowerCase() &&
-                  ex.toLowerCase() !== (value || '').toLowerCase()
+                  ex.toLowerCase() !== (value || "").toLowerCase(),
               );
 
               const isHighlighted = highlightedIndex === idx;
@@ -309,12 +324,12 @@ export default function PropertyCombobox({
                   onMouseEnter={() => setHighlightedIndex(idx)}
                   className={`w-full text-left px-3 py-2 flex items-center justify-between transition-colors cursor-pointer ${
                     isExcluded
-                      ? 'opacity-40 cursor-not-allowed bg-slate-50 text-gray-400'
+                      ? "opacity-40 cursor-not-allowed bg-slate-50 text-gray-400"
                       : isHighlighted
-                      ? 'bg-blue-50 text-blue-900 font-medium'
-                      : isSelected
-                      ? 'bg-light-blue/40 text-navy font-bold'
-                      : 'text-gray-700 hover:bg-slate-50 hover:text-navy'
+                        ? "bg-blue-50 text-blue-900 font-medium"
+                        : isSelected
+                          ? "bg-light-blue/40 text-navy font-bold"
+                          : "text-gray-700 hover:bg-slate-50 hover:text-navy"
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 pr-2 truncate">
@@ -357,11 +372,13 @@ export default function PropertyCombobox({
               data-combobox-item
               disabled={isCreating}
               onClick={handleCreateNew}
-              onMouseEnter={() => setHighlightedIndex(filteredProperties.length)}
+              onMouseEnter={() =>
+                setHighlightedIndex(filteredProperties.length)
+              }
               className={`w-full text-left px-3 py-2.5 border-t border-blue-100 flex items-center justify-between transition-colors cursor-pointer ${
                 highlightedIndex === filteredProperties.length
-                  ? 'bg-blue-100/70 text-blue-900'
-                  : 'bg-blue-50/70 text-blue-700 hover:bg-blue-100/60'
+                  ? "bg-blue-100/70 text-blue-900"
+                  : "bg-blue-50/70 text-blue-700 hover:bg-blue-100/60"
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 truncate">
@@ -373,7 +390,9 @@ export default function PropertyCombobox({
                   </span>
                 )}
                 <span className="truncate font-bold text-xs">
-                  {isCreating ? 'Creating property...' : `Create "${query.trim()}"`}
+                  {isCreating
+                    ? "Creating property..."
+                    : `Create "${query.trim()}"`}
                 </span>
               </div>
               <span className="text-[10px] font-semibold text-blue-600/80 bg-blue-100 px-1.5 py-0.5 rounded shrink-0">

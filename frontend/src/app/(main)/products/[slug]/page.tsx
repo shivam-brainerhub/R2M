@@ -1,13 +1,13 @@
 "use client";
 
-import { use, useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { productsApi, ProductItem, getMediaUrl, ApiError } from '@/lib/api';
-import { useQuoteCart } from '@/context/QuoteCartContext';
-import BrochureDownloadButton from '@/components/BrochureDownloadButton';
-import RelatedProducts from '@/components/RelatedProducts';
+import BrochureDownloadButton from "@/components/BrochureDownloadButton";
+import RelatedProducts from "@/components/RelatedProducts";
+import { useQuoteCart } from "@/context/QuoteCartContext";
+import { ApiError, ProductItem, getMediaUrl, productsApi } from "@/lib/api";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
 
 export default function ProductDetailPage({
   params,
@@ -29,7 +29,6 @@ export default function ProductDetailPage({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-
   useEffect(() => {
     let active = true;
     productsApi
@@ -42,7 +41,7 @@ export default function ProductDetailPage({
       })
       .catch((err: unknown) => {
         if (!active) return;
-        const msg = err instanceof ApiError ? err.message : 'Product not found';
+        const msg = err instanceof ApiError ? err.message : "Product not found";
         setError(msg);
         setIsLoading(false);
       });
@@ -59,7 +58,9 @@ export default function ProductDetailPage({
           <span className="material-symbols-outlined text-4xl animate-spin text-blue-600">
             progress_activity
           </span>
-          <p className="text-sm font-semibold text-gray-500">Loading product details...</p>
+          <p className="text-sm font-semibold text-gray-500">
+            Loading product details...
+          </p>
         </div>
       </div>
     );
@@ -74,13 +75,16 @@ export default function ProductDetailPage({
           </span>
           <h1 className="text-2xl font-bold text-navy">Product Not Found</h1>
           <p className="text-sm text-gray-500">
-            The medical product you are looking for may have been retired or the link is incorrect.
+            The medical product you are looking for may have been retired or the
+            link is incorrect.
           </p>
           <Link
             href="/products"
             className="inline-flex items-center gap-2 bg-navy text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-navy-light transition-colors"
           >
-            <span className="material-symbols-outlined text-sm!">arrow_back</span>
+            <span className="material-symbols-outlined text-sm!">
+              arrow_back
+            </span>
             Back to Catalogue
           </Link>
         </div>
@@ -92,18 +96,29 @@ export default function ProductDetailPage({
     product.images && product.images.length > 0
       ? product.images
       : product.primary_image_url
-      ? [{ image_url: product.primary_image_url, is_primary: true, display_order: 0 }]
-      : [];
+        ? [
+            {
+              image_url: product.primary_image_url,
+              is_primary: true,
+              display_order: 0,
+            },
+          ]
+        : [];
 
-  const currentImage = galleryImages[selectedImageIndex] || galleryImages[0] || null;
+  const currentImage =
+    galleryImages[selectedImageIndex] || galleryImages[0] || null;
 
   return (
     <div className="bg-white min-h-screen pb-20 relative">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-fadeIn">
-          <span className="material-symbols-outlined text-white text-xl!">check_circle</span>
-          <span className="text-xs sm:text-sm font-semibold tracking-wide">{toastMessage}</span>
+          <span className="material-symbols-outlined text-white text-xl!">
+            check_circle
+          </span>
+          <span className="text-xs sm:text-sm font-semibold tracking-wide">
+            {toastMessage}
+          </span>
           <Link
             href="/quote"
             className="ml-2 bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-1 rounded-lg font-bold underline"
@@ -115,25 +130,37 @@ export default function ProductDetailPage({
 
       {/* Breadcrumbs */}
       <div className="bg-light-blue py-3.5 px-6 border-b border-gray-100">
-
         <div className="max-w-7xl mx-auto text-xs sm:text-sm text-gray-500 flex items-center space-x-2">
           <Link href="/" className="hover:text-navy">
             Home
           </Link>
-          <span className="material-symbols-outlined text-xs!">chevron_right</span>
+          <span className="material-symbols-outlined text-xs!">
+            chevron_right
+          </span>
           <Link href="/products" className="hover:text-navy">
             Products
           </Link>
-          <span className="material-symbols-outlined text-xs!">chevron_right</span>
+          <span className="material-symbols-outlined text-xs!">
+            chevron_right
+          </span>
           {product.category_name && (
             <>
-              <Link href={`/products?category=${encodeURIComponent(product.category_name)}`} className="hover:text-navy">
+              <Link
+                href={`/products?category=${encodeURIComponent(
+                  product.category_name,
+                )}`}
+                className="hover:text-navy"
+              >
                 {product.category_name}
               </Link>
-              <span className="material-symbols-outlined text-xs!">chevron_right</span>
+              <span className="material-symbols-outlined text-xs!">
+                chevron_right
+              </span>
             </>
           )}
-          <span className="text-navy font-semibold truncate max-w-xs">{product.name}</span>
+          <span className="text-navy font-semibold truncate max-w-xs">
+            {product.name}
+          </span>
         </div>
       </div>
 
@@ -153,7 +180,9 @@ export default function ProductDetailPage({
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-gray-300 space-y-3">
-                  <span className="material-symbols-outlined text-8xl!">inventory_2</span>
+                  <span className="material-symbols-outlined text-8xl!">
+                    inventory_2
+                  </span>
                   <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                     No image available
                   </span>
@@ -176,8 +205,8 @@ export default function ProductDetailPage({
                     onClick={() => setSelectedImageIndex(idx)}
                     className={`w-20 h-20 bg-white rounded-xl border relative overflow-hidden shrink-0 p-1 cursor-pointer transition-all ${
                       selectedImageIndex === idx
-                        ? 'border-navy ring-2 ring-navy/20 shadow-xs'
-                        : 'border-gray-200 opacity-70 hover:opacity-100'
+                        ? "border-navy ring-2 ring-navy/20 shadow-xs"
+                        : "border-gray-200 opacity-70 hover:opacity-100"
                     }`}
                   >
                     <Image
@@ -224,7 +253,9 @@ export default function ProductDetailPage({
                     href={`/products?sector=${encodeURIComponent(sec.name)}`}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-0.5 rounded-full transition-colors"
                   >
-                    <span className="material-symbols-outlined text-[13px]!">health_and_safety</span>
+                    <span className="material-symbols-outlined text-[13px]!">
+                      health_and_safety
+                    </span>
                     <span>{sec.name}</span>
                   </Link>
                 ))}
@@ -256,8 +287,12 @@ export default function ProductDetailPage({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3.5 gap-x-6 text-xs sm:text-sm">
                   {product.properties.map((prop, idx) => (
                     <div key={idx} className="flex flex-col">
-                      <span className="text-gray-500 text-xs font-medium">{prop.name}</span>
-                      <span className="font-bold text-navy mt-0.5">{prop.value}</span>
+                      <span className="text-gray-500 text-xs font-medium">
+                        {prop.name}
+                      </span>
+                      <span className="font-bold text-navy mt-0.5">
+                        {prop.value}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -279,12 +314,14 @@ export default function ProductDetailPage({
                     categoryName: product.category_name,
                     quantity: 1, // Quantity managed only in cart
                   });
-                  router.push('/quote');
+                  router.push("/quote");
                 }}
                 className="flex-1 bg-gold text-navy font-bold py-3.5 px-6 rounded-xl hover:bg-gold-bright transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm shadow-md cursor-pointer"
               >
                 <span>Request a Quote</span>
-                <span className="material-symbols-outlined ml-2 text-lg!">arrow_forward</span>
+                <span className="material-symbols-outlined ml-2 text-lg!">
+                  arrow_forward
+                </span>
               </button>
 
               <button
@@ -304,7 +341,9 @@ export default function ProductDetailPage({
                 }}
                 className="flex-1 bg-navy text-white font-bold py-3.5 px-6 rounded-xl hover:bg-navy-light transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm shadow-md cursor-pointer"
               >
-                <span className="material-symbols-outlined mr-2 text-lg!">add_shopping_cart</span>
+                <span className="material-symbols-outlined mr-2 text-lg!">
+                  add_shopping_cart
+                </span>
                 <span>Add to Quote Cart</span>
               </button>
 
@@ -314,27 +353,51 @@ export default function ProductDetailPage({
                 className="sm:w-auto bg-white border-2 border-navy text-navy font-bold py-3.5 px-4 rounded-xl hover:bg-slate-50 transition-all duration-300 hover:scale-[1.02] active:scale-95 text-center flex justify-center items-center text-sm cursor-pointer"
                 title="Add to Compare"
               >
-                <span className="material-symbols-outlined text-lg!">compare_arrows</span>
+                <span className="material-symbols-outlined text-lg!">
+                  compare_arrows
+                </span>
               </button>
             </div>
 
-
             {/* Official Documentation & Resources (Item 3) */}
-            {((product.documents && product.documents.length > 0) || product.brochure_url) && (
+            {((product.documents && product.documents.length > 0) ||
+              product.brochure_url) && (
               <div className="space-y-3 pt-2">
                 <h3 className="font-bold text-navy text-xs uppercase tracking-wider flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-blue-600">folder_open</span>
+                  <span className="material-symbols-outlined text-sm text-blue-600">
+                    folder_open
+                  </span>
                   Official Documentation &amp; Downloads
                 </h3>
                 <div className="grid grid-cols-1 gap-2.5">
-                  {(product.documents && product.documents.length > 0 ? product.documents : [
-                    { id: 0, title: `${product.name} Brochure`, file_url: product.brochure_url!, type: 'Brochure' }
-                  ]).map((doc, idx) => {
-                    const isManual = doc.type.toLowerCase().includes('manual');
-                    const isCert = doc.type.toLowerCase().includes('cert');
-                    const isSpec = doc.type.toLowerCase().includes('spec');
-                    const iconName = isManual ? 'menu_book' : isCert ? 'verified' : isSpec ? 'analytics' : 'picture_as_pdf';
-                    const iconColor = isManual ? 'text-teal-600' : isCert ? 'text-amber-600' : isSpec ? 'text-blue-600' : 'text-red-500';
+                  {(product.documents && product.documents.length > 0
+                    ? product.documents
+                    : [
+                        {
+                          id: 0,
+                          title: `${product.name} Brochure`,
+                          file_url: product.brochure_url!,
+                          type: "Brochure",
+                        },
+                      ]
+                  ).map((doc, idx) => {
+                    const isManual = doc.type.toLowerCase().includes("manual");
+                    const isCert = doc.type.toLowerCase().includes("cert");
+                    const isSpec = doc.type.toLowerCase().includes("spec");
+                    const iconName = isManual
+                      ? "menu_book"
+                      : isCert
+                        ? "verified"
+                        : isSpec
+                          ? "analytics"
+                          : "picture_as_pdf";
+                    const iconColor = isManual
+                      ? "text-teal-600"
+                      : isCert
+                        ? "text-amber-600"
+                        : isSpec
+                          ? "text-blue-600"
+                          : "text-red-500";
 
                     return (
                       <BrochureDownloadButton
@@ -342,7 +405,9 @@ export default function ProductDetailPage({
                         brochureUrl={doc.file_url}
                         className="w-full flex items-center text-blue-600 hover:text-blue-800 p-3 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-gray-200/80 transition-all group cursor-pointer text-left"
                       >
-                        <span className={`material-symbols-outlined mr-3 text-2xl! ${iconColor}`}>
+                        <span
+                          className={`material-symbols-outlined mr-3 text-2xl! ${iconColor}`}
+                        >
                           {iconName}
                         </span>
                         <div className="flex-1 min-w-0">

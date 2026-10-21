@@ -1,12 +1,7 @@
-import os
 import re
-import shutil
-import uuid
 from typing import List, Optional
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import asc, desc, or_
-from sqlalchemy.orm import Session
-from app.core.dependencies import require_admin, require_permission
+
+from app.core.dependencies import require_permission
 from app.database import get_db
 from app.models import Brand, Product, User
 from app.schemas.brand import (
@@ -17,6 +12,18 @@ from app.schemas.brand import (
 )
 from app.services.filter_cache import filter_cache_service
 from app.services.storage import get_storage_service
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from sqlalchemy import asc, desc, or_
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/brands",
@@ -30,7 +37,9 @@ def generate_slug(text: str) -> str:
     return slug or "brand"
 
 
-def get_unique_slug(db: Session, base_slug: str, current_id: Optional[int] = None) -> str:
+def get_unique_slug(
+    db: Session, base_slug: str, current_id: Optional[int] = None
+) -> str:
     slug = base_slug
     counter = 1
     while True:
@@ -66,8 +75,12 @@ def upload_brand_logo(
 
 @router.get("", response_model=List[BrandResponse])
 def list_brands(
-    search: Optional[str] = Query(None, description="Search brands by name, country, or description"),
-    featured_in_slider: Optional[bool] = Query(None, description="Filter by featured in homepage slider"),
+    search: Optional[str] = Query(
+        None, description="Search brands by name, country, or description"
+    ),
+    featured_in_slider: Optional[bool] = Query(
+        None, description="Filter by featured in homepage slider"
+    ),
     sort_by: Optional[str] = Query("name", pattern="^(id|name|country|created_at)$"),
     sort_order: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
@@ -159,7 +172,9 @@ def create_brand(
     """
     Register a new manufacturer / brand. Requires Admin role.
     """
-    existing_name = db.query(Brand).filter(Brand.name.ilike(payload.name.strip())).first()
+    existing_name = (
+        db.query(Brand).filter(Brand.name.ilike(payload.name.strip())).first()
+    )
     if existing_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -231,9 +246,13 @@ def update_brand(
         brand.name = payload.name.strip()
 
     if payload.slug is not None and payload.slug.strip() != brand.slug:
-        brand.slug = get_unique_slug(db, generate_slug(payload.slug), current_id=brand_id)
+        brand.slug = get_unique_slug(
+            db, generate_slug(payload.slug), current_id=brand_id
+        )
     elif payload.name is not None and payload.slug is None:
-        brand.slug = get_unique_slug(db, generate_slug(payload.name), current_id=brand_id)
+        brand.slug = get_unique_slug(
+            db, generate_slug(payload.name), current_id=brand_id
+        )
 
     if payload.logo_url is not None:
         new_logo = payload.logo_url.strip() if payload.logo_url.strip() else None
@@ -253,10 +272,14 @@ def update_brand(
         brand.country = payload.country.strip() if payload.country.strip() else None
 
     if payload.description is not None:
-        brand.description = payload.description.strip() if payload.description.strip() else None
+        brand.description = (
+            payload.description.strip() if payload.description.strip() else None
+        )
 
     if payload.website_url is not None:
-        brand.website_url = payload.website_url.strip() if payload.website_url.strip() else None
+        brand.website_url = (
+            payload.website_url.strip() if payload.website_url.strip() else None
+        )
 
     if payload.featured_in_slider is not None:
         brand.featured_in_slider = payload.featured_in_slider
@@ -345,4 +368,3 @@ def delete_brand(
     background_tasks.add_task(filter_cache_service.refresh_in_background)
 
     return {"message": f"Brand '{name}' deleted successfully"}
-

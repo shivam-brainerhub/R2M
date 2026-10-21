@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useQuoteCart } from '../context/QuoteCartContext';
+import React, { useState } from "react";
+import { useQuoteCart } from "../context/QuoteCartContext";
 
 interface AddToQuoteButtonProps {
   productId: string | number;
@@ -23,7 +23,7 @@ export default function AddToQuoteButton({
   brandName,
   imageUrl,
   categoryName,
-  className = '',
+  className = "",
   onAdded,
 }: AddToQuoteButtonProps) {
   const { addItem } = useQuoteCart();
@@ -58,14 +58,14 @@ export default function AddToQuoteButton({
       onClick={handleAdd}
       className={`inline-flex items-center justify-center gap-1.5 rounded-xl font-bold transition-all duration-200 cursor-pointer ${
         justAdded
-          ? 'bg-emerald-600 text-white shadow-xs scale-102'
-          : 'bg-gold text-navy hover:bg-gold-bright active:scale-95 shadow-xs'
+          ? "bg-emerald-600 text-white shadow-xs scale-102"
+          : "bg-gold text-navy hover:bg-gold-bright active:scale-95 shadow-xs"
       } ${className}`}
     >
       <span className="material-symbols-outlined text-base!">
-        {justAdded ? 'check_circle' : 'add_shopping_cart'}
+        {justAdded ? "check_circle" : "add_shopping_cart"}
       </span>
-      <span>{justAdded ? 'Added to Quote' : 'Add to Quote'}</span>
+      <span>{justAdded ? "Added to Quote" : "Add to Quote"}</span>
     </button>
   );
 }

@@ -1,7 +1,4 @@
-import pytest
 from starlette.testclient import TestClient
-from sqlalchemy.orm import Session
-from app.models import ContactMessage, SupplierApplication
 
 
 def test_public_submit_contact_message(client: TestClient):
@@ -52,7 +49,9 @@ def test_inquiries_validation_errors(client: TestClient):
     assert resp.status_code == 422
 
 
-def test_regular_user_cannot_view_inquiries(client: TestClient, user_token_headers: dict):
+def test_regular_user_cannot_view_inquiries(
+    client: TestClient, user_token_headers: dict
+):
     resp1 = client.get("/api/inquiries/contact", headers=user_token_headers)
     assert resp1.status_code == 403
 
@@ -60,19 +59,26 @@ def test_regular_user_cannot_view_inquiries(client: TestClient, user_token_heade
     assert resp2.status_code == 403
 
 
-def test_admin_list_and_update_contact_message(client: TestClient, admin_token_headers: dict):
+def test_admin_list_and_update_contact_message(
+    client: TestClient, admin_token_headers: dict
+):
     # Create contact message first
-    create_resp = client.post("/api/inquiries/contact", json={
-        "first_name": "Mark",
-        "last_name": "Twain",
-        "email": "mark.twain@med.org",
-        "organization": "Twain Clinic",
-        "message": "Requesting details on hospital beds.",
-    })
+    create_resp = client.post(
+        "/api/inquiries/contact",
+        json={
+            "first_name": "Mark",
+            "last_name": "Twain",
+            "email": "mark.twain@med.org",
+            "organization": "Twain Clinic",
+            "message": "Requesting details on hospital beds.",
+        },
+    )
     msg_id = create_resp.json()["id"]
 
     # Admin list
-    list_resp = client.get("/api/inquiries/contact?status=New", headers=admin_token_headers)
+    list_resp = client.get(
+        "/api/inquiries/contact?status=New", headers=admin_token_headers
+    )
     assert list_resp.status_code == 200
     items = list_resp.json()
     assert any(i["id"] == msg_id for i in items)
@@ -88,19 +94,26 @@ def test_admin_list_and_update_contact_message(client: TestClient, admin_token_h
     assert patch_resp.json()["notes"] == "Emailed catalog on Oct 14."
 
     # Admin delete
-    del_resp = client.delete(f"/api/inquiries/contact/{msg_id}", headers=admin_token_headers)
+    del_resp = client.delete(
+        f"/api/inquiries/contact/{msg_id}", headers=admin_token_headers
+    )
     assert del_resp.status_code == 204
 
 
-def test_admin_list_and_update_supplier_application(client: TestClient, admin_token_headers: dict):
-    create_resp = client.post("/api/inquiries/supplier", json={
-        "company_name": "BioTech Solutions",
-        "contact_person": "Alice Smith",
-        "email": "alice@biotech.co.za",
-        "phone": "+27 21 555 4321",
-        "category": "Lab",
-        "overview": "We manufacture microcentrifuges and laboratory testing plates.",
-    })
+def test_admin_list_and_update_supplier_application(
+    client: TestClient, admin_token_headers: dict
+):
+    create_resp = client.post(
+        "/api/inquiries/supplier",
+        json={
+            "company_name": "BioTech Solutions",
+            "contact_person": "Alice Smith",
+            "email": "alice@biotech.co.za",
+            "phone": "+27 21 555 4321",
+            "category": "Lab",
+            "overview": "We manufacture microcentrifuges and laboratory testing plates.",
+        },
+    )
     app_id = create_resp.json()["id"]
 
     # Admin list
@@ -132,4 +145,3 @@ def test_admin_get_inquiries_stats(client: TestClient, admin_token_headers: dict
     assert "under_review_supplier" in data
     assert "total_in_progress" in data
     assert isinstance(data["total_in_progress"], int)
-

@@ -7,38 +7,38 @@ const nextConfig: NextConfig = {
     dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-        pathname: '/media/**',
+        protocol: "http",
+        hostname: "localhost",
+        port: "8000",
+        pathname: "/media/**",
       },
       {
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '8000',
-        pathname: '/media/**',
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "8000",
+        pathname: "/media/**",
       },
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "**",
       },
     ],
   },
   async redirects() {
     return [
       {
-        source: '/',
-        destination: '/home',
+        source: "/",
+        destination: "/home",
         permanent: true,
       },
       {
-        source: '/admin',
-        destination: '/portal',
+        source: "/admin",
+        destination: "/portal",
         permanent: false,
       },
       {
-        source: '/admin/:path*',
-        destination: '/portal/:path*',
+        source: "/admin/:path*",
+        destination: "/portal/:path*",
         permanent: false,
       },
     ];
@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/media/:path*',
+        source: "/media/:path*",
         destination: `${API_BASE_URL}/media/:path*`,
       },
     ];

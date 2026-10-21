@@ -1,11 +1,12 @@
 import re
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+
 from app.core.dependencies import require_admin
 from app.database import get_db
-from app.models import Role, User, ALL_PERMISSIONS_SECTIONS
+from app.models import ALL_PERMISSIONS_SECTIONS, Role, User
 from app.schemas.role import RoleCreate, RoleResponse, RoleUpdate
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/admin/roles",
@@ -152,7 +153,11 @@ def update_role(
             )
         # Check uniqueness if name changed
         if new_name.lower() != role.name.lower():
-            if db.query(Role).filter(Role.name.ilike(new_name), Role.id != role.id).first():
+            if (
+                db.query(Role)
+                .filter(Role.name.ilike(new_name), Role.id != role.id)
+                .first()
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"A role with name '{new_name}' already exists",

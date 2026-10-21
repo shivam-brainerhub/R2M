@@ -1,8 +1,8 @@
-import type { Metadata } from 'next';
-import NotFoundView from '@/components/NotFoundView';
+import NotFoundView from "@/components/NotFoundView";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'Page Not Found',
+  title: "Page Not Found",
 };
 
 export default function Page404() {

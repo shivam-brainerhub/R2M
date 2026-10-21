@@ -1,33 +1,52 @@
 "use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function NotFoundView() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
-      router.push('/products');
+      router.push("/products");
     }
   };
 
   const quickLinks = [
-    { title: 'Product Catalogue', desc: 'Explore all medical equipment', href: '/products', icon: 'medical_services' },
-    { title: 'Global Manufacturers', desc: 'Browse Mindray, Philips, Dräger & more', href: '/partners', icon: 'domain' },
-    { title: 'Healthcare Sectors', desc: 'Solutions tailored by clinical sector', href: '/sectors', icon: 'local_hospital' },
-    { title: 'Request a Quote', desc: 'Get assistance from our medical team', href: '/quote', icon: 'request_quote' },
+    {
+      title: "Product Catalogue",
+      desc: "Explore all medical equipment",
+      href: "/products",
+      icon: "medical_services",
+    },
+    {
+      title: "Global Manufacturers",
+      desc: "Browse Mindray, Philips, Dräger & more",
+      href: "/partners",
+      icon: "domain",
+    },
+    {
+      title: "Healthcare Sectors",
+      desc: "Solutions tailored by clinical sector",
+      href: "/sectors",
+      icon: "local_hospital",
+    },
+    {
+      title: "Request a Quote",
+      desc: "Get assistance from our medical team",
+      href: "/quote",
+      icon: "request_quote",
+    },
   ];
 
   return (
     <div className="min-h-[75vh] flex items-center justify-center bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
       <div className="max-w-3xl w-full text-center">
-        
         {/* Status Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold tracking-widest uppercase mb-6 shadow-xs">
           <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
@@ -42,12 +61,17 @@ export default function NotFoundView() {
           We couldn&apos;t find the page you&apos;re looking for
         </h2>
         <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto mb-10 leading-relaxed font-light">
-          The link may be outdated, the equipment catalogue page may have moved, or the address was typed incorrectly.
+          The link may be outdated, the equipment catalogue page may have moved,
+          or the address was typed incorrectly.
         </p>
 
         {/* Search Bar */}
         <div className="max-w-xl mx-auto mb-10">
-          <form onSubmit={handleSearch} noValidate className="bg-white rounded-full p-1.5 flex items-center shadow-md border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+          <form
+            onSubmit={handleSearch}
+            noValidate
+            className="bg-white rounded-full p-1.5 flex items-center shadow-md border border-gray-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
+          >
             <span className="material-symbols-outlined text-navy ml-3 mr-2 text-xl!">
               search
             </span>
@@ -80,14 +104,18 @@ export default function NotFoundView() {
             href="/products"
             className="inline-flex items-center gap-2 bg-white text-navy font-semibold px-6 py-3 rounded-full border border-gray-300 hover:border-navy hover:bg-gray-50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xs text-sm"
           >
-            <span className="material-symbols-outlined text-lg!">view_in_ar</span>
+            <span className="material-symbols-outlined text-lg!">
+              view_in_ar
+            </span>
             Browse Products
           </Link>
           <button
             onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-navy font-medium px-4 py-3 rounded-full hover:bg-gray-100 transition-colors text-sm cursor-pointer"
           >
-            <span className="material-symbols-outlined text-lg!">arrow_back</span>
+            <span className="material-symbols-outlined text-lg!">
+              arrow_back
+            </span>
             Go Back
           </button>
         </div>
@@ -119,7 +147,6 @@ export default function NotFoundView() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );

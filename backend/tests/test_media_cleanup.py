@@ -1,7 +1,7 @@
 import os
-from starlette.testclient import TestClient
-from app.core.config import settings
+
 from app.services.storage import get_storage_service
+from starlette.testclient import TestClient
 
 
 def _get_local_disk_path(url: str) -> str:
@@ -60,12 +60,16 @@ def test_product_update_removes_old_brochure(client: TestClient, admin_token_hea
     assert update_res.json()["brochure_url"] == url2
 
     # 5. Verify old brochure was physically removed from media folder
-    assert not os.path.exists(disk_path1), "Old brochure file should be deleted from disk"
+    assert not os.path.exists(
+        disk_path1
+    ), "Old brochure file should be deleted from disk"
     assert os.path.exists(disk_path2), "New brochure file should remain on disk"
 
     # Clean up product
     client.delete(f"/api/products/{prod_id}", headers=admin_token_headers)
-    assert not os.path.exists(disk_path2), "Brochure 2 should be deleted when product is deleted"
+    assert not os.path.exists(
+        disk_path2
+    ), "Brochure 2 should be deleted when product is deleted"
 
 
 def test_product_update_removes_deleted_image(client: TestClient, admin_token_headers):
@@ -126,7 +130,9 @@ def test_product_update_removes_deleted_image(client: TestClient, admin_token_he
     assert not os.path.exists(path2), "Image 2 should be deleted on product deletion"
 
 
-def test_shared_media_file_not_deleted_if_used_by_another_entity(client: TestClient, admin_token_headers):
+def test_shared_media_file_not_deleted_if_used_by_another_entity(
+    client: TestClient, admin_token_headers
+):
     # 1. Upload shared image
     img_data = b"\x89PNG\r\n\x1a\nSHARED_IMG"
     shared_url = client.post(
@@ -163,17 +169,23 @@ def test_shared_media_file_not_deleted_if_used_by_another_entity(client: TestCli
     assert del1.status_code == 200
 
     # 4. Verify shared file was NOT deleted because Product 2 still uses it!
-    assert os.path.exists(shared_disk_path), "Shared media should be kept while other products use it"
+    assert os.path.exists(
+        shared_disk_path
+    ), "Shared media should be kept while other products use it"
 
     # 5. Delete Product 2
     del2 = client.delete(f"/api/products/{p2_id}", headers=admin_token_headers)
     assert del2.status_code == 200
 
     # 6. Now that no one uses it, the file should be deleted
-    assert not os.path.exists(shared_disk_path), "Media should be deleted when last referencing product is removed"
+    assert not os.path.exists(
+        shared_disk_path
+    ), "Media should be deleted when last referencing product is removed"
 
 
-def test_brand_logo_cleanup_on_update_and_delete(client: TestClient, admin_token_headers):
+def test_brand_logo_cleanup_on_update_and_delete(
+    client: TestClient, admin_token_headers
+):
     # 1. Upload brand logo 1
     logo1_bytes = b"\x89PNG\r\n\x1a\nBRAND_LOGO_1"
     res1 = client.post(
@@ -224,7 +236,9 @@ def test_brand_logo_cleanup_on_update_and_delete(client: TestClient, admin_token
     assert del_brand.status_code == 200
 
     # Logo 2 should now be deleted from media folder
-    assert not os.path.exists(logo2_path), "Brand logo should be deleted on brand deletion"
+    assert not os.path.exists(
+        logo2_path
+    ), "Brand logo should be deleted on brand deletion"
 
 
 def test_explicit_delete_media_endpoint(client: TestClient, admin_token_headers):
@@ -243,7 +257,11 @@ def test_explicit_delete_media_endpoint(client: TestClient, admin_token_headers)
     # 2. Associate with product
     prod_res = client.post(
         "/api/products",
-        json={"name": "Ventilator Model 9", "sku": "VENT-9-STANDALONE", "brochure_url": file_url},
+        json={
+            "name": "Ventilator Model 9",
+            "sku": "VENT-9-STANDALONE",
+            "brochure_url": file_url,
+        },
         headers=admin_token_headers,
     )
     assert prod_res.status_code == 201
