@@ -1,23 +1,47 @@
+import { getSiteUrl } from "@/lib/seo";
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = getSiteUrl();
 
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: [
-        "/portal/",
-        "/admin/",
-        "/profile/",
-        "/api/",
-        "/login",
-        "/register",
-        "/forgot-password",
-        "/reset-password",
-      ],
-    },
+    rules: [
+      {
+        userAgent: "*",
+        allow: ["/", "/media/", "/images/", "/login", "/signup"],
+        disallow: [
+          "/portal/",
+          "/admin/",
+          "/profile/",
+          "/api/",
+          "/quote",
+          "/compare",
+          "/forgot-password",
+          "/reset-password",
+          "/verify-email",
+        ],
+      },
+      {
+        userAgent: "Googlebot",
+        allow: ["/", "/media/", "/images/", "/login", "/signup"],
+        disallow: [
+          "/portal/",
+          "/admin/",
+          "/profile/",
+          "/api/",
+          "/quote",
+          "/compare",
+          "/forgot-password",
+          "/reset-password",
+          "/verify-email",
+        ],
+      },
+      {
+        userAgent: "Googlebot-Image",
+        allow: ["/media/", "/images/"],
+      },
+    ],
     sitemap: `${baseUrl}/sitemap.xml`,
+    host: baseUrl.replace(/^https?:\/\//, ""),
   };
 }

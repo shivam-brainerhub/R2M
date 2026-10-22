@@ -8,6 +8,7 @@ import {
   CompanyContent,
   contentApi,
   CTAContent,
+  getMediaUrl,
   HeroContent,
   WhyUsContent,
 } from "@/lib/api";
@@ -73,6 +74,22 @@ export default function HomeContent() {
               heroData.badgeTagline ||
               heroData.badge_tagline ||
               prev.badgeTagline,
+            bannerImage:
+              heroData.bannerImage !== undefined
+                ? heroData.bannerImage
+                : heroData.banner_image !== undefined
+                  ? heroData.banner_image
+                  : prev.bannerImage,
+            bannerImageAlt:
+              heroData.bannerImageAlt ||
+              heroData.banner_image_alt ||
+              prev.bannerImageAlt,
+            bannerImageOpacity:
+              heroData.bannerImageOpacity !== undefined
+                ? heroData.bannerImageOpacity
+                : heroData.banner_image_opacity !== undefined
+                  ? heroData.banner_image_opacity
+                  : prev.bannerImageOpacity,
           }));
         }
         if (data.company) {
@@ -167,14 +184,21 @@ export default function HomeContent() {
       <section className="relative flex flex-col lg:flex-row min-h-162.5 bg-navy overflow-hidden z-20">
         {/* Background Image (Pinned & Clipped) */}
         <div className="absolute inset-0 z-0 w-full pointer-events-none">
-          <Image
-            src="/hero.jpg"
-            alt="Hospital Background"
-            fill
-            sizes="100vw"
-            className="object-cover object-center lg:object-right opacity-60"
-            priority
-          />
+          {hero.bannerImage ? (
+            <Image
+              src={getMediaUrl(hero.bannerImage)}
+              alt={hero.bannerImageAlt || "Hospital Background"}
+              fill
+              sizes="100vw"
+              className="object-cover object-center lg:object-right transition-opacity duration-300"
+              style={{
+                opacity: (hero.bannerImageOpacity ?? 60) / 100,
+              }}
+              priority
+            />
+          ) : (
+            <div className="absolute inset-0 bg-navy" />
+          )}
           <div className="absolute inset-0 bg-linear-to-r from-navy/80 via-navy/20 to-transparent z-10" />
         </div>
 

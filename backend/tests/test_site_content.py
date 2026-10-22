@@ -286,3 +286,72 @@ def test_admin_reset_products_page(client, admin_token_headers):
     assert "products_page" in data
     assert data["products_page"]["title"] == "Browse the Catalogue"
     assert len(data["products_page"]["popularSearches"]) == 7
+
+
+def test_admin_set_banner_image_hero_section(client, admin_token_headers):
+    payload = {
+        "title": "Homepage Hero & Search",
+        "content": {
+            "headlinePart1": "Healthcare",
+            "headlinePart2": "without",
+            "headlineAccent": "limits.",
+            "subheading": "Clinical equipment.",
+            "bannerImage": "/media/content/hospital_hero_custom.webp",
+            "bannerImageAlt": "Modern ICU Medical Ward",
+            "bannerImageOpacity": 75,
+        },
+    }
+    response = client.put(
+        "/api/content/hero",
+        json=payload,
+        headers=admin_token_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["content"]["bannerImage"] == "/media/content/hospital_hero_custom.webp"
+    assert data["content"]["banner_image"] == "/media/content/hospital_hero_custom.webp"
+    assert data["content"]["bannerImageAlt"] == "Modern ICU Medical Ward"
+    assert data["content"]["bannerImageOpacity"] == 75
+
+    # Verify GET
+    get_res = client.get("/api/content/hero")
+    assert get_res.status_code == 200
+    assert (
+        get_res.json()["content"]["bannerImage"]
+        == "/media/content/hospital_hero_custom.webp"
+    )
+    assert get_res.json()["content"]["bannerImageOpacity"] == 75
+
+
+def test_upload_content_banner_valid_and_restrictions(client, admin_token_headers):
+    # 1. Valid webp image upload
+    fake_webp = io.BytesIO(b"RIFF....WEBPVP8 ...fake content image...")
+    res = client.post(
+        "/api/content/upload-image",
+        files={"file": ("hero_banner.webp", fake_webp, "image/webp")},
+        headers=admin_token_headers,
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "url" in data
+    assert data["filename"].endswith(".webp")
+
+    # 2. Reject unsupported extension (.txt / non-image)
+    fake_txt = io.BytesIO(b"not an image")
+    res_bad_format = client.post(
+        "/api/content/upload-image",
+        files={"file": ("malicious.txt", fake_txt, "text/plain")},
+        headers=admin_token_headers,
+    )
+    assert res_bad_format.status_code == 400
+
+    # 3. Reject oversized file (> 5 MB)
+    large_size = 5 * 1024 * 1024 + 1024  # > 5 MB
+    large_data = io.BytesIO(b"X" * large_size)
+    res_large = client.post(
+        "/api/content/upload-image",
+        files={"file": ("too_large.png", large_data, "image/png")},
+        headers=admin_token_headers,
+    )
+    assert res_large.status_code == 400
+    assert "exceeds" in res_large.json()["detail"].lower()

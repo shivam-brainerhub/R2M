@@ -27,6 +27,9 @@ export const DEFAULT_HERO: HeroContent = {
   ],
   badgeTitle: "TRUST • ACCESS • INNOVATION • IMPACT",
   badgeTagline: "A HEALTHIER TOMORROW TOGETHER.",
+  bannerImage: "/hero.jpg",
+  bannerImageAlt: "Hospital and clinical equipment background",
+  bannerImageOpacity: 60,
 };
 
 export const DEFAULT_PRODUCTS_PAGE: ProductsPageContent = {

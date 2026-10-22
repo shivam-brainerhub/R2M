@@ -1,5 +1,6 @@
 "use client";
 
+import AdminPagination from "@/components/admin/AdminPagination";
 import { useAuth } from "@/context/AuthContext";
 import {
   ApiError,
@@ -13,7 +14,7 @@ import {
   UpdateBrandPayload,
   UpdateCategoryPayload,
 } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const POPULAR_CATEGORY_ICONS = [
   "monitor_heart",
@@ -46,6 +47,12 @@ export default function AdminCategoriesBrandsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [brandPage, setBrandPage] = useState(1);
+  const [brandPageSize, setBrandPageSize] = useState(10);
+  const [totalBrands, setTotalBrands] = useState(0);
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [categoryPageSize, setCategoryPageSize] = useState(9);
+  const [totalCategories, setTotalCategories] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Category Modal State
@@ -263,50 +270,61 @@ export default function AdminCategoriesBrandsPage() {
     }
   };
 
-  const loadData = async () => {
+  const fetchCategories = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [catsData, brandsData] = await Promise.all([
-        categoriesApi.listCategories(),
-        brandsApi.listBrands(),
-      ]);
-      setCategories(catsData);
-      setBrands(brandsData);
+      const res = await categoriesApi.listCategoriesPaginated({
+        search: searchTerm.trim() || undefined,
+        skip: (categoryPage - 1) * categoryPageSize,
+        limit: categoryPageSize,
+      });
+      setCategories(res.items);
+      setTotalCategories(res.total);
     } catch (err: unknown) {
       const msg =
-        err instanceof ApiError
-          ? err.message
-          : "Failed to connect to backend server";
+        err instanceof ApiError ? err.message : "Failed to load categories";
       setError(msg);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchTerm, categoryPage, categoryPageSize]);
+
+  const fetchBrands = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await brandsApi.listBrandsPaginated({
+        search: searchTerm.trim() || undefined,
+        skip: (brandPage - 1) * brandPageSize,
+        limit: brandPageSize,
+      });
+      setBrands(res.items);
+      setTotalBrands(res.total);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError ? err.message : "Failed to load brands";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchTerm, brandPage, brandPageSize]);
+
+  const loadData = useCallback(async () => {
+    if (viewSection === "categories") {
+      await fetchCategories();
+    } else {
+      await fetchBrands();
+    }
+  }, [viewSection, fetchCategories, fetchBrands]);
 
   useEffect(() => {
-    let isMounted = true;
-    Promise.all([categoriesApi.listCategories(), brandsApi.listBrands()])
-      .then(([catsData, brandsData]) => {
-        if (!isMounted) return;
-        setCategories(catsData);
-        setBrands(brandsData);
-        setIsLoading(false);
-      })
-      .catch((err: unknown) => {
-        if (!isMounted) return;
-        const msg =
-          err instanceof ApiError
-            ? err.message
-            : "Failed to connect to backend server";
-        setError(msg);
-        setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (viewSection === "categories") {
+      fetchCategories();
+    } else {
+      fetchBrands();
+    }
+  }, [viewSection, fetchCategories, fetchBrands]);
 
   // Lock background screen scroll when any modal is open
   const isAnyCategoryModalOpen =
@@ -325,26 +343,19 @@ export default function AdminCategoriesBrandsPage() {
     }
   }, [isAnyCategoryModalOpen]);
 
-  // Filtered lists
-  const filteredCategories = categories.filter((c) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(term) ||
-      (c.code && c.code.toLowerCase().includes(term)) ||
-      (c.description && c.description.toLowerCase().includes(term))
-    );
-  });
+  useEffect(() => {
+    setBrandPage(1);
+    setCategoryPage(1);
+  }, [searchTerm, viewSection]);
 
-  const filteredBrands = brands.filter((b) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      b.name.toLowerCase().includes(term) ||
-      (b.country && b.country.toLowerCase().includes(term)) ||
-      (b.description && b.description.toLowerCase().includes(term))
-    );
-  });
+  const totalBrandPages = Math.max(1, Math.ceil(totalBrands / brandPageSize));
+  const paginatedBrands = brands;
+
+  const totalCategoryPages = Math.max(
+    1,
+    Math.ceil(totalCategories / categoryPageSize),
+  );
+  const paginatedCategories = categories;
 
   // Slider Toggle Handler
   const handleToggleBrandSlider = async (brand: BrandItem) => {
@@ -704,9 +715,7 @@ export default function AdminCategoriesBrandsPage() {
           <span className="text-xs text-gray-500 font-medium">
             Showing{" "}
             <strong className="text-navy">
-              {viewSection === "categories"
-                ? filteredCategories.length
-                : filteredBrands.length}
+              {viewSection === "categories" ? totalCategories : totalBrands}
             </strong>{" "}
             records
           </span>
@@ -755,7 +764,7 @@ export default function AdminCategoriesBrandsPage() {
           {/* SECTION 1: PRODUCT CATEGORIES GRID */}
           {viewSection === "categories" && (
             <div>
-              {filteredCategories.length === 0 ? (
+              {categories.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 border border-gray-200/80 text-center shadow-xs">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
                     <span className="material-symbols-outlined text-2xl!">
@@ -778,191 +787,210 @@ export default function AdminCategoriesBrandsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCategories.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow group relative overflow-hidden min-h-47.5"
-                    >
-                      {/* Inline Card Deletion Confirmation UI */}
-                      {confirmingDeleteCategoryId === cat.id && (
-                        <div className="absolute inset-0 z-20 bg-white/98 backdrop-blur-xs p-5 flex flex-col justify-between animate-scale-in border-2 border-rose-300 rounded-2xl shadow-lg">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold shrink-0">
-                                <span className="material-symbols-outlined text-xl!">
-                                  warning
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {paginatedCategories.map((cat) => (
+                      <div
+                        key={cat.id}
+                        className="bg-white rounded-2xl p-5 border border-gray-200/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow group relative overflow-hidden min-h-47.5"
+                      >
+                        {/* Inline Card Deletion Confirmation UI */}
+                        {confirmingDeleteCategoryId === cat.id && (
+                          <div className="absolute inset-0 z-20 bg-white/98 backdrop-blur-xs p-5 flex flex-col justify-between animate-scale-in border-2 border-rose-300 rounded-2xl shadow-lg">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-bold shrink-0">
+                                  <span className="material-symbols-outlined text-xl!">
+                                    warning
+                                  </span>
+                                </div>
+                                <span className="text-xs font-bold uppercase tracking-wider text-rose-700">
+                                  Confirm Deletion
                                 </span>
                               </div>
-                              <span className="text-xs font-bold uppercase tracking-wider text-rose-700">
-                                Confirm Deletion
+                              <h4 className="font-bold text-navy text-sm truncate">
+                                Delete &quot;{cat.name}&quot;?
+                              </h4>
+                              <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                                {cat.product_count > 0 ? (
+                                  <span className="text-rose-600 font-semibold">
+                                    Warning: {cat.product_count} active
+                                    product(s) linked to this category!
+                                  </span>
+                                ) : (
+                                  "Permanently remove this category. This action cannot be undone."
+                                )}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                              <button
+                                type="button"
+                                disabled={isDeletingCategoryId === cat.id}
+                                onClick={() =>
+                                  setConfirmingDeleteCategoryId(null)
+                                }
+                                className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isDeletingCategoryId === cat.id}
+                                onClick={() => handleInlineDeleteCategory(cat)}
+                                className="px-3.5 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                              >
+                                {isDeletingCategoryId === cat.id ? (
+                                  <>
+                                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Deleting...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="material-symbols-outlined text-sm!">
+                                      delete
+                                    </span>
+                                    <span>Confirm Delete</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                              <span className="material-symbols-outlined text-2xl!">
+                                {cat.icon || "category"}
                               </span>
                             </div>
-                            <h4 className="font-bold text-navy text-sm truncate">
-                              Delete &quot;{cat.name}&quot;?
-                            </h4>
-                            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
-                              {cat.product_count > 0 ? (
-                                <span className="text-rose-600 font-semibold">
-                                  Warning: {cat.product_count} active product(s)
-                                  linked to this category!
-                                </span>
-                              ) : (
-                                "Permanently remove this category. This action cannot be undone."
-                              )}
-                            </p>
+                            {cat.code && (
+                              <span className="text-xs font-bold font-mono text-gold bg-navy/5 px-2.5 py-0.5 rounded-md">
+                                Code: {cat.code}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                            <button
-                              type="button"
-                              disabled={isDeletingCategoryId === cat.id}
-                              onClick={() =>
-                                setConfirmingDeleteCategoryId(null)
-                              }
-                              className="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isDeletingCategoryId === cat.id}
-                              onClick={() => handleInlineDeleteCategory(cat)}
-                              className="px-3.5 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                            >
-                              {isDeletingCategoryId === cat.id ? (
-                                <>
-                                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                  <span>Deleting...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="material-symbols-outlined text-sm!">
-                                    delete
-                                  </span>
-                                  <span>Confirm Delete</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          <h3 className="font-bold text-navy text-base mb-1">
+                            {cat.name}
+                          </h3>
+                          <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
+                            {cat.description ||
+                              "No descriptive summary provided."}
+                          </p>
                         </div>
-                      )}
 
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                            <span className="material-symbols-outlined text-2xl!">
-                              {cat.icon || "category"}
+                        {/* Subcategories list & manage trigger */}
+                        <div className="my-3 pt-2.5 border-t border-gray-100">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm!">
+                                account_tree
+                              </span>
+                              Subcategories ({cat.subcategories?.length || 0})
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setManagingSubcatCategory(cat);
+                                setNewSubcatName("");
+                                setNewSubcatSlug("");
+                                setSubcatError(null);
+                                setEditingSubcatId(null);
+                                setConfirmDeleteSubcatId(null);
+                              }}
+                              className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-0.5 cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-xs!">
+                                {canWriteCategories
+                                  ? "edit_note"
+                                  : "visibility"}
+                              </span>
+                              {canWriteCategories ? "Manage" : "View"}
+                            </button>
                           </div>
-                          {cat.code && (
-                            <span className="text-xs font-bold font-mono text-gold bg-navy/5 px-2.5 py-0.5 rounded-md">
-                              Code: {cat.code}
-                            </span>
+                          {cat.subcategories && cat.subcategories.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                              {cat.subcategories.map((sub) => (
+                                <span
+                                  key={sub.id}
+                                  className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium"
+                                >
+                                  {sub.name}
+                                  <span className="text-[10px] text-gray-400">
+                                    ({sub.product_count})
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-gray-400 italic">
+                              No subcategories created yet
+                            </p>
                           )}
                         </div>
 
-                        <h3 className="font-bold text-navy text-base mb-1">
-                          {cat.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
-                          {cat.description ||
-                            "No descriptive summary provided."}
-                        </p>
-                      </div>
-
-                      {/* Subcategories list & manage trigger */}
-                      <div className="my-3 pt-2.5 border-t border-gray-100">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm!">
-                              account_tree
-                            </span>
-                            Subcategories ({cat.subcategories?.length || 0})
+                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                          <span className="font-medium text-gray-500">
+                            <strong className="text-navy">
+                              {cat.product_count}
+                            </strong>{" "}
+                            Active Product(s)
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setManagingSubcatCategory(cat);
-                              setNewSubcatName("");
-                              setNewSubcatSlug("");
-                              setSubcatError(null);
-                              setEditingSubcatId(null);
-                              setConfirmDeleteSubcatId(null);
-                            }}
-                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-0.5 cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-xs!">
-                              {canWriteCategories ? "edit_note" : "visibility"}
-                            </span>
-                            {canWriteCategories ? "Manage" : "View"}
-                          </button>
-                        </div>
-                        {cat.subcategories && cat.subcategories.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                            {cat.subcategories.map((sub) => (
-                              <span
-                                key={sub.id}
-                                className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium"
-                              >
-                                {sub.name}
-                                <span className="text-[10px] text-gray-400">
-                                  ({sub.product_count})
-                                </span>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-gray-400 italic">
-                            No subcategories created yet
-                          </p>
-                        )}
-                      </div>
 
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                        <span className="font-medium text-gray-500">
-                          <strong className="text-navy">
-                            {cat.product_count}
-                          </strong>{" "}
-                          Active Product(s)
-                        </span>
-
-                        {/* Actions in bottom right */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleOpenCategoryModal(cat)}
-                            title={
-                              canWriteCategories
-                                ? "Edit Category"
-                                : "View Category Details"
-                            }
-                            className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-medium"
-                          >
-                            <span className="material-symbols-outlined text-base!">
-                              {canWriteCategories ? "edit" : "visibility"}
-                            </span>
-                            <span className="text-xs">
-                              {canWriteCategories ? "Edit" : "View Details"}
-                            </span>
-                          </button>
-                          {canWriteCategories && (
+                          {/* Actions in bottom right */}
+                          <div className="flex items-center gap-1">
                             <button
-                              onClick={() =>
-                                setConfirmingDeleteCategoryId(cat.id)
+                              onClick={() => handleOpenCategoryModal(cat)}
+                              title={
+                                canWriteCategories
+                                  ? "Edit Category"
+                                  : "View Category Details"
                               }
-                              title="Delete Category"
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1 font-medium"
                             >
                               <span className="material-symbols-outlined text-base!">
-                                delete
+                                {canWriteCategories ? "edit" : "visibility"}
+                              </span>
+                              <span className="text-xs">
+                                {canWriteCategories ? "Edit" : "View Details"}
                               </span>
                             </button>
-                          )}
+                            {canWriteCategories && (
+                              <button
+                                onClick={() =>
+                                  setConfirmingDeleteCategoryId(cat.id)
+                                }
+                                title="Delete Category"
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-base!">
+                                  delete
+                                </span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
+                    <AdminPagination
+                      currentPage={categoryPage}
+                      totalPages={totalCategoryPages}
+                      totalItems={totalCategories}
+                      pageSize={categoryPageSize}
+                      pageSizeOptions={[6, 9, 18, 36]}
+                      onPageChange={setCategoryPage}
+                      onPageSizeChange={(newSize) => {
+                        setCategoryPageSize(newSize);
+                        setCategoryPage(1);
+                      }}
+                      itemLabel="categories"
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -993,160 +1021,176 @@ export default function AdminCategoriesBrandsPage() {
                 )}
               </div>
 
-              {filteredBrands.length === 0 ? (
+              {brands.length === 0 ? (
                 <div className="p-10 text-center text-xs text-gray-500">
                   No medical brands matched your current criteria.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-slate-50 text-gray-500 uppercase text-[11px] font-bold border-b border-gray-200">
-                      <tr>
-                        <th className="px-5 py-3.5">Brand Name</th>
-                        <th className="px-4 py-3.5">Country / HQ</th>
-                        <th className="px-4 py-3.5">Speciality Description</th>
-                        <th className="px-4 py-3.5">Homepage Slider</th>
-                        <th className="px-5 py-3.5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filteredBrands.map((b) => (
-                        <tr
-                          key={b.id}
-                          className="hover:bg-slate-50/70 transition-colors"
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              {b.logo_url ? (
-                                <div className="w-9 h-9 rounded-lg bg-slate-100 border border-gray-200 flex items-center justify-center p-1 overflow-hidden shrink-0">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={getMediaUrl(b.logo_url)}
-                                    alt={b.name}
-                                    className="max-h-full max-w-full object-contain"
-                                    onError={(e) => {
-                                      // Fallback on missing image
-                                      e.currentTarget.style.display = "none";
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-9 h-9 rounded-lg bg-navy/5 text-navy font-black text-xs flex items-center justify-center shrink-0">
-                                  {b.name.substring(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-bold text-navy text-sm flex items-center gap-2">
-                                  <span>{b.name}</span>
-                                  {b.website_url && (
-                                    <a
-                                      href={b.website_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-gray-400 hover:text-blue-600"
-                                      title={b.website_url}
-                                    >
-                                      <span className="material-symbols-outlined text-xs!">
-                                        open_in_new
-                                      </span>
-                                    </a>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-gray-400 font-medium">
-                                  {b.product_count} catalogue products
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs sm:text-sm">
+                      <thead className="bg-slate-50 text-gray-500 uppercase text-[11px] font-bold border-b border-gray-200">
+                        <tr>
+                          <th className="px-5 py-3.5">Brand Name</th>
+                          <th className="px-4 py-3.5">Country / HQ</th>
+                          <th className="px-4 py-3.5">
+                            Speciality Description
+                          </th>
+                          <th className="px-4 py-3.5">Homepage Slider</th>
+                          <th className="px-5 py-3.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {paginatedBrands.map((b) => (
+                          <tr
+                            key={b.id}
+                            className="hover:bg-slate-50/70 transition-colors"
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                {b.logo_url ? (
+                                  <div className="w-9 h-9 rounded-lg bg-slate-100 border border-gray-200 flex items-center justify-center p-1 overflow-hidden shrink-0">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={getMediaUrl(b.logo_url)}
+                                      alt={b.name}
+                                      className="max-h-full max-w-full object-contain"
+                                      onError={(e) => {
+                                        // Fallback on missing image
+                                        e.currentTarget.style.display = "none";
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-9 h-9 rounded-lg bg-navy/5 text-navy font-black text-xs flex items-center justify-center shrink-0">
+                                    {b.name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-bold text-navy text-sm flex items-center gap-2">
+                                    <span>{b.name}</span>
+                                    {b.website_url && (
+                                      <a
+                                        href={b.website_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-gray-400 hover:text-blue-600"
+                                        title={b.website_url}
+                                      >
+                                        <span className="material-symbols-outlined text-xs!">
+                                          open_in_new
+                                        </span>
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-gray-400 font-medium">
+                                    {b.product_count} catalogue products
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-gray-600 text-xs whitespace-nowrap">
-                            {b.country || "International"}
-                          </td>
-                          <td className="px-4 py-4 text-gray-600 max-w-md text-xs leading-relaxed">
-                            {b.description ||
-                              "Global healthcare device manufacturer."}
-                          </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            {canWriteCategories ? (
-                              <button
-                                onClick={() => handleToggleBrandSlider(b)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                                  b.featured_in_slider
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200"
-                                }`}
-                                title="Click to toggle homepage slider display"
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    b.featured_in_slider
-                                      ? "bg-emerald-600 animate-pulse"
-                                      : "bg-gray-400"
-                                  }`}
-                                />
-                                {b.featured_in_slider
-                                  ? "Featured on Slider"
-                                  : "Hidden from Slider"}
-                              </button>
-                            ) : (
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none ${
-                                  b.featured_in_slider
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                    : "bg-gray-100 text-gray-600 border border-gray-200"
-                                }`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full ${
-                                    b.featured_in_slider
-                                      ? "bg-emerald-600"
-                                      : "bg-gray-400"
-                                  }`}
-                                />
-                                {b.featured_in_slider
-                                  ? "Featured on Slider"
-                                  : "Hidden from Slider"}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => handleOpenBrandModal(b)}
-                                title={
-                                  canWriteCategories
-                                    ? "Edit Brand Details"
-                                    : "View Brand Details"
-                                }
-                                className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <span className="material-symbols-outlined text-lg!">
-                                  {canWriteCategories ? "edit" : "visibility"}
-                                </span>
-                              </button>
-                              {canWriteCategories && (
+                            </td>
+                            <td className="px-4 py-4 text-gray-600 text-xs whitespace-nowrap">
+                              {b.country || "International"}
+                            </td>
+                            <td className="px-4 py-4 text-gray-600 max-w-md text-xs leading-relaxed">
+                              {b.description ||
+                                "Global healthcare device manufacturer."}
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              {canWriteCategories ? (
                                 <button
-                                  onClick={() =>
-                                    setDeleteModal({
-                                      type: "brand",
-                                      id: b.id,
-                                      name: b.name,
-                                    })
+                                  onClick={() => handleToggleBrandSlider(b)}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                    b.featured_in_slider
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200"
+                                      : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200"
+                                  }`}
+                                  title="Click to toggle homepage slider display"
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      b.featured_in_slider
+                                        ? "bg-emerald-600 animate-pulse"
+                                        : "bg-gray-400"
+                                    }`}
+                                  />
+                                  {b.featured_in_slider
+                                    ? "Featured on Slider"
+                                    : "Hidden from Slider"}
+                                </button>
+                              ) : (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold select-none ${
+                                    b.featured_in_slider
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                      : "bg-gray-100 text-gray-600 border border-gray-200"
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      b.featured_in_slider
+                                        ? "bg-emerald-600"
+                                        : "bg-gray-400"
+                                    }`}
+                                  />
+                                  {b.featured_in_slider
+                                    ? "Featured on Slider"
+                                    : "Hidden from Slider"}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-4 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => handleOpenBrandModal(b)}
+                                  title={
+                                    canWriteCategories
+                                      ? "Edit Brand Details"
+                                      : "View Brand Details"
                                   }
-                                  title="Delete Brand"
-                                  className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                  className="p-1.5 text-gray-500 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                                 >
                                   <span className="material-symbols-outlined text-lg!">
-                                    delete
+                                    {canWriteCategories ? "edit" : "visibility"}
                                   </span>
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                                {canWriteCategories && (
+                                  <button
+                                    onClick={() =>
+                                      setDeleteModal({
+                                        type: "brand",
+                                        id: b.id,
+                                        name: b.name,
+                                      })
+                                    }
+                                    title="Delete Brand"
+                                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    <span className="material-symbols-outlined text-lg!">
+                                      delete
+                                    </span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <AdminPagination
+                    currentPage={brandPage}
+                    totalPages={totalBrandPages}
+                    totalItems={totalBrands}
+                    pageSize={brandPageSize}
+                    onPageChange={setBrandPage}
+                    onPageSizeChange={(newSize) => {
+                      setBrandPageSize(newSize);
+                      setBrandPage(1);
+                    }}
+                    itemLabel="brands"
+                  />
+                </>
               )}
             </div>
           )}

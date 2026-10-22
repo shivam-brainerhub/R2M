@@ -19,6 +19,7 @@ from fastapi import (
     File,
     HTTPException,
     Query,
+    Response,
     UploadFile,
     status,
 )
@@ -83,11 +84,14 @@ def list_brands(
     ),
     sort_by: Optional[str] = Query("name", pattern="^(id|name|country|created_at)$"),
     sort_order: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
+    skip: Optional[int] = Query(0, ge=0),
+    limit: Optional[int] = Query(None, ge=1, le=500),
+    response: Response = None,
     db: Session = Depends(get_db),
 ):
     """
     List all medical brands and manufacturers. Public endpoint.
-    Supports filtering by slider status and search.
+    Supports filtering by slider status, search, and server-side pagination.
     """
     query = db.query(Brand)
 
@@ -104,13 +108,43 @@ def list_brands(
     if featured_in_slider is not None:
         query = query.filter(Brand.featured_in_slider == featured_in_slider)
 
+    total = query.order_by(None).count()
+    effective_skip = skip or 0
+    effective_limit = limit if limit is not None else total
+    page = (
+        (effective_skip // effective_limit) + 1
+        if (effective_limit and effective_limit > 0)
+        else 1
+    )
+    total_pages = (
+        max(1, (total + effective_limit - 1) // effective_limit)
+        if (effective_limit and effective_limit > 0)
+        else 1
+    )
+    has_more = (
+        (effective_skip + effective_limit) < total if limit is not None else False
+    )
+
+    if response:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Page-Size"] = str(effective_limit)
+        response.headers["X-Total-Pages"] = str(total_pages)
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["Access-Control-Expose-Headers"] = (
+            "X-Total-Count, X-Page, X-Page-Size, X-Total-Pages, X-Has-More"
+        )
+
     sort_col = getattr(Brand, sort_by, Brand.name)
     if sort_order == "desc":
         query = query.order_by(desc(sort_col).nulls_last())
     else:
         query = query.order_by(asc(sort_col).nulls_last())
 
-    brands = query.all()
+    if limit is not None:
+        brands = query.offset(effective_skip).limit(effective_limit).all()
+    else:
+        brands = query.all()
 
     result = []
     for brand in brands:

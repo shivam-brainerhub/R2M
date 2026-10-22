@@ -56,17 +56,31 @@ export default function LoginForm() {
 
       // Redirect based on user role or redirect query parameter
       setTimeout(() => {
-        if (redirectUrl) {
+        const isCustomerRole =
+          !user.is_admin &&
+          user.role?.toLowerCase() !== "admin" &&
+          user.role_name?.toLowerCase() !== "administrator" &&
+          (user.role?.toLowerCase() === "user" ||
+            user.role?.toLowerCase() === "customer" ||
+            user.role_name?.toLowerCase() === "customer" ||
+            !user.permissions ||
+            !Object.values(user.permissions).some(
+              (l) => l === "read" || l === "read_write",
+            ));
+
+        if (isCustomerRole) {
+          // Customers manage everything on the public site and must never enter the portal
+          const safeRedirect =
+            redirectUrl &&
+            !redirectUrl.startsWith("/portal") &&
+            !redirectUrl.startsWith("/admin")
+              ? redirectUrl
+              : "/profile";
+          router.push(safeRedirect);
+        } else if (redirectUrl) {
           router.push(redirectUrl);
-        } else if (
-          user.is_admin ||
-          user.role?.toLowerCase() === "admin" ||
-          (user.permissions &&
-            Object.values(user.permissions).some((l) => l !== "none"))
-        ) {
-          router.push("/portal");
         } else {
-          router.push("/home");
+          router.push("/portal");
         }
       }, 500);
     } catch (error) {

@@ -1,9 +1,10 @@
+import { COMMON_SEO_KEYWORDS, getSiteUrl } from "@/lib/seo";
 import type { Metadata } from "next";
 import Script from "next/script";
 import ClientProviders from "../components/ClientProviders";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:8000";
+const siteUrl = getSiteUrl();
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
@@ -15,12 +16,100 @@ export const metadata: Metadata = {
     default: "SA Healthcare | Medical Equipment & Healthcare Solutions",
   },
   description:
-    "Explore SA Healthcare's digital product catalogue of medical devices, ICU systems, surgical solutions, and hospital equipment from leading global manufacturers.",
+    "Explore SA Healthcare's digital product catalogue of medical devices, ICU patient monitors, surgical solutions, autoclaves, and hospital equipment from leading global manufacturers.",
+  keywords: COMMON_SEO_KEYWORDS,
+  authors: [{ name: "SA Healthcare" }],
+  creator: "SA Healthcare",
+  publisher: "SA Healthcare",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: siteUrl,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_ZA",
+    url: siteUrl,
+    siteName: "SA Healthcare",
+    title: "SA Healthcare | Medical Equipment & Healthcare Solutions",
+    description:
+      "Explore SA Healthcare's digital catalogue of medical devices, ICU systems, surgical equipment, and hospital furniture.",
+    images: [
+      {
+        url: `${siteUrl}/hero.jpg`,
+        width: 1200,
+        height: 630,
+        alt: "SA Healthcare Medical Equipment",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "SA Healthcare | Medical Equipment COMMON_SEO_KEYWORDS& Healthcare Solutions",
+    description:
+      "Explore SA Healthcare's digital catalogue of medical devices, ICU systems, surgical equipment, and hospital furniture.",
+    images: [`${siteUrl}/hero.jpg`],
+  },
   verification: googleVerification
     ? {
         google: googleVerification,
       }
     : undefined,
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "MedicalBusiness",
+      "@id": `${siteUrl}/#organization`,
+      name: "SA Healthcare",
+      url: siteUrl,
+      logo: `${siteUrl}/logo.png`,
+      image: `${siteUrl}/hero.jpg`,
+      description:
+        "Leading distributor of medical equipment, ICU patient monitors, operating theatre systems, autoclaves, and hospital supplies across Southern Africa.",
+      telephone: "+27 11 555 0100",
+      email: "info@sahealthcare.com",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "15 Medical Boulevard, Sandton",
+        addressLocality: "Johannesburg",
+        addressRegion: "Gauteng",
+        postalCode: "2196",
+        addressCountry: "ZA",
+      },
+      areaServed: {
+        "@type": "AdministrativeArea",
+        name: "Southern Africa",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      url: siteUrl,
+      name: "SA Healthcare",
+      publisher: { "@id": `${siteUrl}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${siteUrl}/products?search={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -35,6 +124,12 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
           rel="stylesheet"
+        />
+
+        {/* Global JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
 
         {/* Google Analytics (gtag.js) */}

@@ -2,7 +2,23 @@ import SupplierForm from "@/components/supplier/SupplierForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Supplier",
+  title: "Become a Manufacturing or Distribution Partner",
+  description:
+    "Partner with SA Healthcare to distribute your medical equipment, surgical technologies, and diagnostic devices across Southern Africa.",
+  keywords: [
+    "become a healthcare supplier",
+    "medical equipment distributor partnership",
+    "healthcare manufacturer representation South Africa",
+  ],
+  alternates: {
+    canonical: "/supplier",
+  },
+  openGraph: {
+    title: "Become a Manufacturing or Distribution Partner | SA Healthcare",
+    description:
+      "Expand your medical device brand reach across healthcare facilities in Southern Africa.",
+    url: "/supplier",
+  },
 };
 
 export default function Supplier() {

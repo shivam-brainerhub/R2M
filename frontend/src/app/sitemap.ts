@@ -1,79 +1,112 @@
+import { getApiUrl, getSiteUrl } from "@/lib/seo";
 import type { MetadataRoute } from "next";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:8000";
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const revalidate = 3600; // Revalidate sitemap every hour
 
+const SECTORS_LIST = [
+  "Hospitals & Healthcare Groups",
+  "Clinics & Primary Care",
+  "Pharmacies & Retail Healthcare",
+  "Public Healthcare",
+  "Laboratories",
+  "Specialist Care",
+  "Veterinary Practices",
+];
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = getSiteUrl();
+  const apiUrl = getApiUrl();
+  const now = new Date();
+
+  // Core Static Landing Pages
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
       url: `${baseUrl}/products`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/sectors`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
       url: `${baseUrl}/solutions`,
-      lastModified: new Date(),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/partners`,
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/resources`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/partners`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/sectors`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.7,
-    },
-    {
       url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "monthly",
-      priority: 0.6,
+      priority: 0.7,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date(),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/supplier`,
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
-      url: `${baseUrl}/supplier`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: `${baseUrl}/login`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
   ];
 
+  // Sector landing filter routes
+  const sectorRoutes: MetadataRoute.Sitemap = SECTORS_LIST.map((sector) => ({
+    url: `${baseUrl}/products?sector=${encodeURIComponent(sector)}`,
+    lastModified: now,
+    changeFrequency: "weekly",
+    priority: 0.75,
+  }));
+
   let productRoutes: MetadataRoute.Sitemap = [];
+  let categoryRoutes: MetadataRoute.Sitemap = [];
+  let brandRoutes: MetadataRoute.Sitemap = [];
+
+  // Fetch Dynamic Products
   try {
     const res = await fetch(`${apiUrl}/api/products?limit=1000`, {
       next: { revalidate: 3600 },
@@ -83,8 +116,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const items = Array.isArray(data) ? data : data.items || [];
       productRoutes = items
         .filter(
-          (product: { slug?: string; is_active?: boolean }) =>
-            product.slug && product.is_active !== false,
+          (product: { slug?: string; status?: string; is_active?: boolean }) =>
+            Boolean(product.slug) &&
+            product.is_active !== false &&
+            (product.status
+              ? product.status.toLowerCase() !== "archived"
+              : true),
         )
         .map(
           (product: {
@@ -96,16 +133,69 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             lastModified:
               product.updated_at || product.created_at
                 ? new Date(product.updated_at || product.created_at!)
-                : new Date(),
+                : now,
             changeFrequency: "weekly" as const,
-            priority: 0.8,
+            priority: 0.85,
           }),
         );
     }
   } catch (err) {
-    // Graceful fallback during build if backend is offline
-    console.warn("Could not fetch products for dynamic sitemap:", err);
+    console.warn("Sitemap: Could not fetch products from backend:", err);
   }
 
-  return [...staticRoutes, ...productRoutes];
+  // Fetch Dynamic Categories
+  try {
+    const catRes = await fetch(`${apiUrl}/api/categories`, {
+      next: { revalidate: 3600 },
+    });
+    if (catRes.ok) {
+      const categories = await catRes.json();
+      if (Array.isArray(categories)) {
+        categoryRoutes = categories
+          .filter((cat: { name?: string }) => Boolean(cat.name))
+          .map((cat: { name: string; updated_at?: string }) => ({
+            url: `${baseUrl}/products?category=${encodeURIComponent(cat.name)}`,
+            lastModified: cat.updated_at ? new Date(cat.updated_at) : now,
+            changeFrequency: "weekly" as const,
+            priority: 0.8,
+          }));
+      }
+    }
+  } catch (err) {
+    console.warn("Sitemap: Could not fetch categories from backend:", err);
+  }
+
+  // Fetch Dynamic Brands
+  try {
+    const brandRes = await fetch(`${apiUrl}/api/brands`, {
+      next: { revalidate: 3600 },
+    });
+    if (brandRes.ok) {
+      const brands = await brandRes.json();
+      if (Array.isArray(brands)) {
+        brandRoutes = brands
+          .filter(
+            (b: { name?: string; product_count?: number }) =>
+              Boolean(b.name) &&
+              (b.product_count === undefined || b.product_count > 0),
+          )
+          .map((brand: { name: string; updated_at?: string }) => ({
+            url: `${baseUrl}/products?brand=${encodeURIComponent(brand.name)}`,
+            lastModified: brand.updated_at ? new Date(brand.updated_at) : now,
+            changeFrequency: "weekly" as const,
+            priority: 0.75,
+          }));
+      }
+    }
+  } catch (err) {
+    console.warn("Sitemap: Could not fetch brands from backend:", err);
+  }
+
+  return [
+    ...staticRoutes,
+    ...sectorRoutes,
+    ...categoryRoutes,
+    ...brandRoutes,
+    ...productRoutes,
+  ];
 }

@@ -3,7 +3,24 @@ import ContactInfoCards from "@/components/contact/ContactInfoCards";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact",
+  title: "Contact Us & Medical Equipment Inquiries",
+  description:
+    "Speak with our clinical equipment specialists for medical device quotes, hospital tender consultations, and technical support across Southern Africa.",
+  keywords: [
+    "contact SA Healthcare",
+    "medical equipment quote",
+    "hospital tender inquiries",
+    "medical supplies contact",
+  ],
+  alternates: {
+    canonical: "/contact",
+  },
+  openGraph: {
+    title: "Contact Us & Medical Equipment Inquiries | SA Healthcare",
+    description:
+      "Get in touch with our team for specialized medical equipment procurement and expert guidance.",
+    url: "/contact",
+  },
 };
 
 export default function Contact() {

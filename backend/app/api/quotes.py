@@ -16,9 +16,9 @@ from app.schemas.quote import (
     QuoteRequestUpdate,
     QuoteStatsResponse,
 )
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import desc, func, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 router = APIRouter(
     prefix="/quotes",
@@ -110,29 +110,94 @@ def submit_quote_request(
 
 @router.get("/my-quotes", response_model=List[QuoteRequestResponse])
 def get_my_quote_requests(
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filter by status: New, In Review, Quoted, Approved, Declined",
+    ),
+    search: Optional[str] = Query(
+        None,
+        description="Search by facility, contact, email, phone, quote number, notes, or item details",
+    ),
+    skip: Optional[int] = Query(None, ge=0),
+    limit: Optional[int] = Query(None, ge=1, le=100),
+    response: Response = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Retrieve all quote requests submitted by the logged-in customer.
+    Retrieve quote requests submitted by the logged-in customer.
     Matched by user_id or account email address.
+    Supports server-side search, status filtering, and pagination.
     """
-    quotes = (
-        db.query(QuoteRequest)
-        .options(
-            joinedload(QuoteRequest.items)
-            .joinedload(QuoteRequestItem.product)
-            .joinedload(Product.images)
+    base_query = db.query(QuoteRequest).filter(
+        or_(
+            QuoteRequest.user_id == current_user.id,
+            QuoteRequest.email.ilike(current_user.email.strip()),
         )
-        .filter(
+    )
+
+    if status_filter and status_filter.strip() and status_filter.lower() != "all":
+        base_query = base_query.filter(QuoteRequest.status.ilike(status_filter.strip()))
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        base_query = base_query.filter(
             or_(
-                QuoteRequest.user_id == current_user.id,
-                QuoteRequest.email.ilike(current_user.email.strip()),
+                QuoteRequest.quote_number.ilike(term),
+                QuoteRequest.facility_name.ilike(term),
+                QuoteRequest.contact_name.ilike(term),
+                QuoteRequest.email.ilike(term),
+                QuoteRequest.phone.ilike(term),
+                QuoteRequest.notes.ilike(term),
+                QuoteRequest.items.any(
+                    or_(
+                        QuoteRequestItem.product_name.ilike(term),
+                        QuoteRequestItem.product_sku.ilike(term),
+                        QuoteRequestItem.brand_name.ilike(term),
+                        QuoteRequestItem.item_notes.ilike(term),
+                    )
+                ),
             )
         )
-        .order_by(desc(QuoteRequest.created_at))
-        .all()
-    )
+
+    # Calculate total matching count before pagination
+    total = base_query.count()
+
+    query = base_query.options(
+        selectinload(QuoteRequest.items)
+        .joinedload(QuoteRequestItem.product)
+        .joinedload(Product.images)
+    ).order_by(desc(QuoteRequest.created_at))
+
+    if skip is not None or limit is not None:
+        effective_skip = skip or 0
+        effective_limit = limit if limit is not None else 50
+        page = (effective_skip // effective_limit) + 1 if effective_limit > 0 else 1
+        total_pages = (
+            max(1, (total + effective_limit - 1) // effective_limit)
+            if effective_limit > 0
+            else 1
+        )
+        has_more = (effective_skip + effective_limit) < total
+
+        quotes = query.offset(effective_skip).limit(effective_limit).all()
+
+        if response:
+            response.headers["X-Total-Count"] = str(total)
+            response.headers["X-Page"] = str(page)
+            response.headers["X-Page-Size"] = str(effective_limit)
+            response.headers["X-Total-Pages"] = str(total_pages)
+            response.headers["X-Has-More"] = "true" if has_more else "false"
+        return quotes
+
+    quotes = query.all()
+    if response:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = "1"
+        response.headers["X-Page-Size"] = str(len(quotes))
+        response.headers["X-Total-Pages"] = "1"
+        response.headers["X-Has-More"] = "false"
     return quotes
 
 
@@ -208,6 +273,7 @@ def list_quote_requests(
     ),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
+    response: Response = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(require_permission("quotes", "read")),
 ):
@@ -239,7 +305,34 @@ def list_quote_requests(
             )
         )
 
-    return query.order_by(desc(QuoteRequest.created_at)).offset(skip).limit(limit).all()
+    # Calculate total matching count before pagination
+    total = query.order_by(None).count()
+    effective_skip = skip or 0
+    effective_limit = limit if limit is not None else 50
+    page = (effective_skip // effective_limit) + 1 if effective_limit > 0 else 1
+    total_pages = (
+        max(1, (total + effective_limit - 1) // effective_limit)
+        if effective_limit > 0
+        else 1
+    )
+    has_more = (effective_skip + effective_limit) < total
+
+    if response:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Page-Size"] = str(effective_limit)
+        response.headers["X-Total-Pages"] = str(total_pages)
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["Access-Control-Expose-Headers"] = (
+            "X-Total-Count, X-Page, X-Page-Size, X-Total-Pages, X-Has-More"
+        )
+
+    return (
+        query.order_by(desc(QuoteRequest.created_at))
+        .offset(effective_skip)
+        .limit(effective_limit)
+        .all()
+    )
 
 
 @router.get("/{identifier}", response_model=QuoteRequestResponse)

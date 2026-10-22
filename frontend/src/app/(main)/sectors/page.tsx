@@ -2,7 +2,28 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Sectors",
+  title: "Healthcare Sectors & Clinical Environments",
+  description:
+    "Tailored medical equipment and technology solutions for hospitals, intensive care units, outpatient clinics, pharmacies, laboratories, and veterinary practices across Southern Africa.",
+  keywords: [
+    "hospital medical equipment",
+    "ICU critical care systems",
+    "outpatient clinic devices",
+    "pharmacy healthcare screening",
+    "laboratory analyzers centrifuges",
+    "veterinary ultrasound equipment",
+    "cardiology ECG fetal monitors",
+    "public healthcare bulk supply South Africa",
+  ],
+  alternates: {
+    canonical: "/sectors",
+  },
+  openGraph: {
+    title: "Healthcare Sectors & Clinical Environments | SA Healthcare",
+    description:
+      "Explore medical equipment tailored for hospitals, clinics, laboratories, specialist practices, and pharmacies.",
+    url: "/sectors",
+  },
 };
 
 export default function SectorsPage() {

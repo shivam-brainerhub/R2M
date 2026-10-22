@@ -6,15 +6,18 @@ import {
   CompanyContent,
   contentApi,
   CTAContent,
+  getMediaUrl,
   HeroContent,
   LegalContent,
   ProductsPageContent,
   WhyUsContent,
 } from "@/lib/api";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import RichTextEditor from "@/components/admin/RichTextEditor";
+import CustomModal from "@/components/common/CustomModal";
 import {
   DEFAULT_COMPANY,
   DEFAULT_CTA,
@@ -63,6 +66,115 @@ export default function AdminContentPage() {
   // New search tag input helpers
   const [newTagInput, setNewTagInput] = useState("");
   const [newProductTagInput, setNewProductTagInput] = useState("");
+
+  // Banner Image CMS States & Upload Helper
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [bannerUploadError, setBannerUploadError] = useState<string | null>(
+    null,
+  );
+  const [bannerUploadWarning, setBannerUploadWarning] = useState<string | null>(
+    null,
+  );
+  const [bannerFileStats, setBannerFileStats] = useState<{
+    width?: number;
+    height?: number;
+    sizeFormatted?: string;
+    format?: string;
+  } | null>(null);
+  const [sectionToReset, setSectionToReset] = useState<ContentTab | null>(null);
+
+  const handleBannerUpload = async (file: File) => {
+    if (!token) {
+      showToast("Authentication required to upload banner image", "error");
+      return;
+    }
+    setBannerUploadError(null);
+    setBannerUploadWarning(null);
+
+    // 1. Format restriction
+    const validExtensions = [".webp", ".jpg", ".jpeg", ".png"];
+    const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+    const validMimes = ["image/webp", "image/jpeg", "image/png"];
+    if (!validExtensions.includes(ext) && !validMimes.includes(file.type)) {
+      setBannerUploadError(
+        `Unsupported format "${
+          ext || file.type
+        }". Only WebP (.webp), JPEG (.jpg, .jpeg), and PNG (.png) files are allowed.`,
+      );
+      return;
+    }
+
+    // 2. File size restriction (5MB limit)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+      setBannerUploadError(
+        `File size (${sizeMb} MB) exceeds the 5.0 MB restriction. Please compress the image before uploading.`,
+      );
+      return;
+    }
+
+    // 3. Inspect image dimensions
+    try {
+      if (typeof window !== "undefined") {
+        const img = new window.Image();
+        const objectUrl = URL.createObjectURL(file);
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Failed to decode image file."));
+          img.src = objectUrl;
+        });
+
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        URL.revokeObjectURL(objectUrl);
+
+        setBannerFileStats({
+          width,
+          height,
+          sizeFormatted: (file.size / (1024 * 1024)).toFixed(2) + " MB",
+          format: ext.replace(".", "").toUpperCase(),
+        });
+
+        // Check minimum resolution
+        if (width < 1200 || height < 500) {
+          setBannerUploadWarning(
+            `Image resolution is ${width} × ${height} px, which is below the recommended 1200 × 500 px minimum. It may appear pixelated on high-resolution displays.`,
+          );
+        } else if (width < height) {
+          setBannerUploadWarning(
+            `Image appears to be portrait oriented (${width} × ${height} px). A wide landscape banner (16:9 or 21:9) is recommended.`,
+          );
+        }
+      }
+    } catch {
+      // Continue if browser cannot decode in this environment
+    }
+
+    // 4. Upload to backend
+    setIsUploadingBanner(true);
+    try {
+      const result = await contentApi.uploadImage(token, file);
+      setHeroContent((prev) => ({
+        ...prev,
+        bannerImage: result.url,
+      }));
+      showToast(
+        "Banner image uploaded successfully! Click 'Save Hero Changes' to publish.",
+      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to upload banner image";
+      setBannerUploadError(msg);
+      showToast(msg, "error");
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMessage({ text, type });
@@ -113,6 +225,22 @@ export default function AdminContentPage() {
               data.hero.badgeTagline ||
               data.hero.badge_tagline ||
               DEFAULT_HERO.badgeTagline,
+            bannerImage:
+              data.hero.bannerImage !== undefined
+                ? data.hero.bannerImage
+                : data.hero.banner_image !== undefined
+                  ? data.hero.banner_image
+                  : DEFAULT_HERO.bannerImage,
+            bannerImageAlt:
+              data.hero.bannerImageAlt ||
+              data.hero.banner_image_alt ||
+              DEFAULT_HERO.bannerImageAlt,
+            bannerImageOpacity:
+              data.hero.bannerImageOpacity !== undefined
+                ? data.hero.bannerImageOpacity
+                : data.hero.banner_image_opacity !== undefined
+                  ? data.hero.banner_image_opacity
+                  : DEFAULT_HERO.bannerImageOpacity,
           });
         }
         if (data.company) {
@@ -340,20 +468,17 @@ export default function AdminContentPage() {
     }
   };
 
-  const handleResetSection = async (sectionKey: ContentTab) => {
-    if (!token) {
-      showToast("Authentication required to reset", "error");
+  const handleResetSection = (sectionKey: ContentTab) => {
+    setSectionToReset(sectionKey);
+  };
+
+  const executeResetSection = async () => {
+    if (!token || !sectionToReset) {
+      setSectionToReset(null);
       return;
     }
 
-    if (
-      !confirm(
-        `Are you sure you want to reset "${sectionKey}" to initial platform defaults?`,
-      )
-    ) {
-      return;
-    }
-
+    const sectionKey = sectionToReset;
     setIsSaving(true);
     try {
       const result = await contentApi.resetSection(token, sectionKey);
@@ -378,7 +503,9 @@ export default function AdminContentPage() {
       } else if (sectionKey === "terms_of_use" && result.terms_of_use) {
         setTermsOfUse({ ...DEFAULT_TERMS_OF_USE, ...result.terms_of_use });
       }
-      showToast(`Reset ${sectionKey} to default configuration!`);
+      showToast(
+        `Reset ${sectionKey.replace("_", " ")} to default configuration!`,
+      );
     } catch (err: unknown) {
       const msg =
         err instanceof ApiError
@@ -389,6 +516,7 @@ export default function AdminContentPage() {
       showToast(msg, "error");
     } finally {
       setIsSaving(false);
+      setSectionToReset(null);
     }
   };
 
@@ -910,6 +1038,343 @@ export default function AdminContentPage() {
                 </div>
               </div>
 
+              {/* HERO BANNER IMAGE MANAGEMENT */}
+              <div className="p-5 sm:p-6 bg-slate-50/70 rounded-2xl border border-gray-200 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-200/80 gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-navy flex items-center gap-2">
+                      <span className="material-symbols-outlined text-gold">
+                        wallpaper
+                      </span>
+                      Homepage Hero Banner Image
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Upload and manage the full-width high-resolution
+                      background graphic for the main hero section on the
+                      homepage.
+                    </p>
+                  </div>
+                  {heroContent.bannerImage &&
+                    heroContent.bannerImage !== "/hero.jpg" &&
+                    canWriteContent && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHeroContent({
+                            ...heroContent,
+                            bannerImage: "/hero.jpg",
+                            bannerImageAlt: "Hospital Background",
+                          })
+                        }
+                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">
+                          undo
+                        </span>
+                        Revert to Default Image
+                      </button>
+                    )}
+                </div>
+
+                {/* IMAGE REQUIREMENTS & RESTRICTIONS ACCORDION / CARD */}
+                <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-4 text-xs space-y-3">
+                  <div className="flex items-center gap-2 text-blue-950 font-bold">
+                    <span className="material-symbols-outlined text-blue-600 text-lg">
+                      rule
+                    </span>
+                    <span>Banner Image Requirements &amp; Restrictions</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-gray-700">
+                    <div className="bg-white/80 p-3 rounded-lg border border-blue-100 space-y-1">
+                      <span className="font-bold text-navy text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-emerald-600">
+                          aspect_ratio
+                        </span>
+                        Recommended Size
+                      </span>
+                      <p className="font-semibold text-navy">1920 × 800 px</p>
+                      <p className="text-[11px] text-gray-500">
+                        Up to 2560 × 1080 px (wide 16:9 or 21:9 landscape
+                        ratio).
+                      </p>
+                    </div>
+
+                    <div className="bg-white/80 p-3 rounded-lg border border-blue-100 space-y-1">
+                      <span className="font-bold text-navy text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-amber-600">
+                          straighten
+                        </span>
+                        Minimum Resolution
+                      </span>
+                      <p className="font-semibold text-navy">1200 × 500 px</p>
+                      <p className="text-[11px] text-gray-500">
+                        Enforced to prevent pixelation on desktop &amp; 4K
+                        screens.
+                      </p>
+                    </div>
+
+                    <div className="bg-white/80 p-3 rounded-lg border border-blue-100 space-y-1">
+                      <span className="font-bold text-navy text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-blue-600">
+                          extension
+                        </span>
+                        Allowed Formats
+                      </span>
+                      <p className="font-semibold text-navy">
+                        .webp, .jpg, .png
+                      </p>
+                      <p className="text-[11px] text-gray-500">
+                        <strong>WebP</strong> strongly recommended for fastest
+                        LCP load speed.
+                      </p>
+                    </div>
+
+                    <div className="bg-white/80 p-3 rounded-lg border border-blue-100 space-y-1">
+                      <span className="font-bold text-navy text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-rose-600">
+                          speed
+                        </span>
+                        Max File Size
+                      </span>
+                      <p className="font-semibold text-navy">Max 5.0 MB</p>
+                      <p className="text-[11px] text-gray-500">
+                        Recommended under 1.5 MB for optimal Core Web Vitals.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-white/90 rounded-lg border border-blue-100 text-[11px] text-gray-600 flex items-start gap-2">
+                    <span className="material-symbols-outlined text-blue-600 text-base shrink-0 mt-0.5">
+                      info
+                    </span>
+                    <div>
+                      <strong className="text-navy">
+                        Composition &amp; Visual Focal Area:
+                      </strong>{" "}
+                      The left 60% of the homepage banner has headline
+                      typography, search bar, and popular search chips over a
+                      dark navy gradient overlay. We recommend positioning
+                      primary visual subjects (clinical staff, patients, medical
+                      equipment) towards the{" "}
+                      <strong>center or right side</strong> of the banner for
+                      optimal visual balance.
+                    </div>
+                  </div>
+                </div>
+
+                {/* UPLOAD & INPUT CONTROLS */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                  {/* Left: Upload Dropzone & Controls */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {canWriteContent && (
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                          Upload Custom Banner File
+                        </label>
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (
+                              e.dataTransfer.files &&
+                              e.dataTransfer.files[0]
+                            ) {
+                              handleBannerUpload(e.dataTransfer.files[0]);
+                            }
+                          }}
+                          className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all bg-white flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-500 hover:bg-blue-50/20 ${
+                            isUploadingBanner
+                              ? "border-blue-400 bg-blue-50/30 pointer-events-none"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {isUploadingBanner ? (
+                            <div className="py-4 space-y-2">
+                              <span className="material-symbols-outlined text-3xl text-blue-600 animate-spin">
+                                progress_activity
+                              </span>
+                              <p className="text-xs font-bold text-navy">
+                                Optimizing &amp; uploading banner image to
+                                storage...
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+                                <span className="material-symbols-outlined text-2xl">
+                                  cloud_upload
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs font-bold text-navy">
+                                  Drag &amp; drop your banner image here, or{" "}
+                                  <label
+                                    htmlFor="banner-file-input"
+                                    className="text-blue-600 hover:underline cursor-pointer"
+                                  >
+                                    browse files
+                                  </label>
+                                </p>
+                                <p className="text-[11px] text-gray-400">
+                                  WebP, JPG, or PNG up to 5 MB (1920 × 800
+                                  recommended)
+                                </p>
+                              </div>
+                              <input
+                                id="banner-file-input"
+                                type="file"
+                                accept=".webp,.jpg,.jpeg,.png,image/webp,image/jpeg,image/png"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    handleBannerUpload(e.target.files[0]);
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload Error / Warning Notifications */}
+                    {bannerUploadError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base shrink-0">
+                          error
+                        </span>
+                        <span>{bannerUploadError}</span>
+                      </div>
+                    )}
+                    {bannerUploadWarning && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base shrink-0">
+                          warning
+                        </span>
+                        <span>{bannerUploadWarning}</span>
+                      </div>
+                    )}
+
+                    {/* Alt Text & Opacity Controls */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                          Image Alt Text (SEO &amp; A11y)
+                        </label>
+                        <input
+                          type="text"
+                          value={heroContent.bannerImageAlt || ""}
+                          onChange={(e) =>
+                            setHeroContent({
+                              ...heroContent,
+                              bannerImageAlt: e.target.value,
+                            })
+                          }
+                          placeholder="Hospital Background"
+                          className="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-gray-200 rounded-xl outline-none focus:border-blue-500 text-navy"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Overlay Opacity
+                          </label>
+                          <span className="text-xs font-bold text-blue-600">
+                            {heroContent.bannerImageOpacity ?? 60}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="95"
+                          step="5"
+                          value={heroContent.bannerImageOpacity ?? 60}
+                          onChange={(e) =>
+                            setHeroContent({
+                              ...heroContent,
+                              bannerImageOpacity: Number(e.target.value),
+                            })
+                          }
+                          className="w-full accent-blue-600 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+                          <span>Subtle (20%)</span>
+                          <span>Balanced (60%)</span>
+                          <span>Dark (95%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Current Active Banner Card */}
+                  <div className="lg:col-span-5 bg-white p-4 rounded-xl border border-gray-200 space-y-3">
+                    <span className="text-xs font-bold text-navy uppercase tracking-wider block">
+                      Current Banner Preview
+                    </span>
+
+                    <div className="relative aspect-21/9 rounded-lg overflow-hidden bg-navy shadow-inner border border-gray-100 flex items-center justify-center">
+                      {heroContent.bannerImage ? (
+                        <>
+                          <Image
+                            src={getMediaUrl(heroContent.bannerImage)}
+                            alt={heroContent.bannerImageAlt || "Current Banner"}
+                            fill
+                            className="object-cover object-center"
+                            style={{
+                              opacity:
+                                (heroContent.bannerImageOpacity ?? 60) / 100,
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-linear-to-r from-navy/90 via-navy/40 to-transparent pointer-events-none" />
+                          <div className="absolute bottom-2 right-2 text-white text-[10px] drop-shadow-md z-10">
+                            <span className="bg-gold text-navy font-bold px-1.5 py-0.5 rounded text-[9px]">
+                              {heroContent.bannerImageOpacity ?? 60}% Opacity
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-4 text-gray-400 text-xs">
+                          <span className="material-symbols-outlined text-2xl mb-1 block">
+                            hide_image
+                          </span>
+                          <span>No background image set (Solid Navy)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {bannerFileStats && (
+                      <div className="text-[11px] text-gray-500 bg-slate-50 p-2.5 rounded-lg border border-gray-100 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Dimensions:</span>
+                          <strong className="text-navy">
+                            {bannerFileStats.width} × {bannerFileStats.height}{" "}
+                            px
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>File Size:</span>
+                          <strong className="text-navy">
+                            {bannerFileStats.sizeFormatted}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Format:</span>
+                          <strong className="text-navy">
+                            {bannerFileStats.format}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {canWriteContent && (
                 <div className="pt-4 border-t border-gray-100 flex justify-end">
                   <button
@@ -928,67 +1393,85 @@ export default function AdminContentPage() {
           </div>
 
           {/* Live Hero Preview Card */}
-          <div className="bg-navy rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-navy-light/40">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-gold flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-sm!">
-                  visibility
+          <div className="bg-navy rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-navy-light/40 min-h-75">
+            {/* Background Image & Gradient in Live Preview */}
+            {heroContent.bannerImage && (
+              <div className="absolute inset-0 z-0 pointer-events-none">
+                <Image
+                  src={getMediaUrl(heroContent.bannerImage)}
+                  alt={heroContent.bannerImageAlt || "Hero Preview Background"}
+                  fill
+                  className="object-cover object-center lg:object-right transition-opacity duration-300"
+                  style={{
+                    opacity: (heroContent.bannerImageOpacity ?? 60) / 100,
+                  }}
+                />
+                <div className="absolute inset-0 bg-linear-to-r from-navy/90 via-navy/50 to-transparent z-10" />
+              </div>
+            )}
+
+            <div className="relative z-20">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-gold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm!">
+                    visibility
+                  </span>
+                  Live Preview (Hero Section with Banner Image)
                 </span>
-                Live Preview (Hero Section)
-              </span>
-              <span className="text-[10px] text-gray-400">
-                Updates as you type
-              </span>
-            </div>
-
-            <div className="max-w-2xl">
-              <h1 className="text-3xl sm:text-5xl font-black mb-3 leading-tight tracking-tight">
-                {heroContent.headlinePart1} <br />
-                {heroContent.headlinePart2}{" "}
-                <span className="text-light-blue">
-                  {heroContent.headlineAccent}
+                <span className="text-[10px] text-gray-400">
+                  Updates in real time as you adjust content or banner image
                 </span>
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-300 font-light leading-relaxed mb-6">
-                {heroContent.subheading}
-              </p>
+              </div>
 
-              {heroContent.showSearchBar && (
-                <div className="bg-white rounded-full p-1 flex items-center shadow-lg max-w-lg mb-5">
-                  <span className="material-symbols-outlined text-navy ml-3 mr-2 text-lg!">
-                    search
+              <div className="max-w-2xl">
+                <h1 className="text-3xl sm:text-5xl font-black mb-3 leading-tight tracking-tight">
+                  {heroContent.headlinePart1} <br />
+                  {heroContent.headlinePart2}{" "}
+                  <span className="text-light-blue">
+                    {heroContent.headlineAccent}
                   </span>
-                  <input
-                    type="text"
-                    disabled
-                    placeholder={heroContent.searchPlaceholder}
-                    className="flex-1 bg-transparent text-navy text-xs outline-none cursor-not-allowed"
-                  />
-                  <span className="bg-gold text-navy font-bold rounded-full px-4 py-1.5 text-xs shrink-0">
-                    Search
-                  </span>
-                </div>
-              )}
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-300 font-light leading-relaxed mb-6">
+                  {heroContent.subheading}
+                </p>
 
-              {(heroContent.popularSearches || []).filter(
-                (t) => t && t.trim().length > 0,
-              ).length > 0 && (
-                <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[11px] text-gray-300 font-medium mr-1">
-                    Popular searches:
-                  </span>
-                  {(heroContent.popularSearches || [])
-                    .filter((t) => t && t.trim().length > 0)
-                    .map((t) => (
-                      <span
-                        key={t}
-                        className="border border-white/30 text-white rounded-full px-3 py-0.5 text-[10px] backdrop-blur-xs font-medium"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                </div>
-              )}
+                {heroContent.showSearchBar && (
+                  <div className="bg-white rounded-full p-1 flex items-center shadow-lg max-w-lg mb-5">
+                    <span className="material-symbols-outlined text-navy ml-3 mr-2 text-lg!">
+                      search
+                    </span>
+                    <input
+                      type="text"
+                      disabled
+                      placeholder={heroContent.searchPlaceholder}
+                      className="flex-1 bg-transparent text-navy text-xs outline-none cursor-not-allowed"
+                    />
+                    <span className="bg-gold text-navy font-bold rounded-full px-4 py-1.5 text-xs shrink-0">
+                      Search
+                    </span>
+                  </div>
+                )}
+
+                {(heroContent.popularSearches || []).filter(
+                  (t) => t && t.trim().length > 0,
+                ).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[11px] text-gray-300 font-medium mr-1">
+                      Popular searches:
+                    </span>
+                    {(heroContent.popularSearches || [])
+                      .filter((t) => t && t.trim().length > 0)
+                      .map((t) => (
+                        <span
+                          key={t}
+                          className="border border-white/30 text-white rounded-full px-3 py-0.5 text-[10px] backdrop-blur-xs font-medium"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1970,6 +2453,22 @@ export default function AdminContentPage() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal for Section Reset */}
+      <CustomModal
+        isOpen={Boolean(sectionToReset)}
+        onClose={() => setSectionToReset(null)}
+        onConfirm={executeResetSection}
+        isLoading={isSaving}
+        variant="warning"
+        icon="restart_alt"
+        title={`Reset Section "${
+          sectionToReset ? sectionToReset.replace("_", " ") : ""
+        }"?`}
+        description="Are you sure you want to reset this section to initial platform defaults? Any unpublished changes will be replaced."
+        confirmLabel="Reset to Default"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }

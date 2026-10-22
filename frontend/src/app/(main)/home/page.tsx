@@ -1,12 +1,5 @@
-import HomeContent from "@/components/HomeContent";
-import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Home",
-  description:
-    "Explore SA Healthcare's digital healthcare catalogue, products, brochures and specifications.",
-};
-
-export default function Home() {
-  return <HomeContent />;
+export default function HomeLegacyRedirect() {
+  permanentRedirect("/");
 }

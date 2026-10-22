@@ -287,7 +287,7 @@ function ProductsContent() {
       slug: product.slug,
       sku: product.sku,
       brandName: product.brand_name,
-      imageUrl: product.primary_image_url,
+      imageUrl: product.primary_image_url || product.images?.[0]?.image_url,
       categoryName: product.category_name,
       quantity: 1, // Quantity managed only in cart
     });
@@ -1402,10 +1402,7 @@ function ProductsContent() {
               }`}
             >
               {paginatedProducts.map((p) => {
-                const img =
-                  p.primary_image_url ||
-                  p.images[0]?.image_url ||
-                  "/images/benevision_n12.jpg";
+                const img = p.primary_image_url || p.images?.[0]?.image_url;
                 const isSelected = selectedProducts.includes(p.slug);
 
                 return (
@@ -1441,13 +1438,24 @@ function ProductsContent() {
                             : "w-full aspect-square bg-white rounded-xl flex items-center justify-center mb-2 sm:mb-3 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors"
                         }
                       >
-                        <Image
-                          src={getMediaUrl(img)}
-                          alt={p.name}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                          className="object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-500"
-                        />
+                        {img ? (
+                          <Image
+                            src={getMediaUrl(img)}
+                            alt={p.name}
+                            fill
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            className="object-contain p-2 sm:p-3 group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-gray-300 space-y-1 sm:space-y-2 select-none">
+                            <span className="material-symbols-outlined text-4xl! sm:text-5xl!">
+                              inventory_2
+                            </span>
+                            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">
+                              No image available
+                            </span>
+                          </div>
+                        )}
                       </Link>
                     </div>
 
@@ -1638,9 +1646,7 @@ function ProductsContent() {
             {selectedProducts.map((slug) => {
               const product = products.find((p) => p.slug === slug);
               const img =
-                product?.primary_image_url ||
-                product?.images[0]?.image_url ||
-                "/images/benevision_n12.jpg";
+                product?.primary_image_url || product?.images?.[0]?.image_url;
 
               return (
                 <div
@@ -1649,13 +1655,19 @@ function ProductsContent() {
                 >
                   {/* Thumbnail Box */}
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden relative shadow-xs">
-                    <Image
-                      src={getMediaUrl(img)}
-                      alt={product ? product.name : slug}
-                      fill
-                      sizes="48px"
-                      className="object-contain p-0.5"
-                    />
+                    {img ? (
+                      <Image
+                        src={getMediaUrl(img)}
+                        alt={product ? product.name : slug}
+                        fill
+                        sizes="48px"
+                        className="object-contain p-0.5"
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-xl! sm:text-2xl! text-gray-300">
+                        inventory_2
+                      </span>
+                    )}
                   </div>
 
                   {/* Brand & Model */}

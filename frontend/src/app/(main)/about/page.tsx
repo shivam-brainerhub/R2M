@@ -1,7 +1,24 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About",
+  title: "About Us & Healthcare Vision",
+  description:
+    "Learn about SA Healthcare, a trusted partner providing advanced medical equipment, critical care technology, and healthcare solutions across Southern Africa.",
+  keywords: [
+    "about SA Healthcare",
+    "medical equipment distributor Southern Africa",
+    "healthcare technology solutions",
+    "hospital equipment provider",
+  ],
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    title: "About SA Healthcare | Medical Equipment & Technology",
+    description:
+      "A trusted partner in equipping medical facilities and healthcare institutions across Southern Africa.",
+    url: "/about",
+  },
 };
 
 import AboutStats from "@/components/AboutStats";

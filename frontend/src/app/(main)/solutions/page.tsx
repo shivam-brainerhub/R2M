@@ -3,9 +3,28 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Solutions & Clinical Capabilities | SA Healthcare",
+  title: "Clinical Solutions & Medical Capabilities",
   description:
-    "Comprehensive medical equipment solutions for hospitals, intensive care units, emergency suites, and clinics across Southern Africa.",
+    "Comprehensive medical equipment solutions for hospitals, intensive care units, emergency suites, surgical theatres, and clinics across Southern Africa.",
+  keywords: [
+    "clinical solutions",
+    "critical care ICU equipment",
+    "operating theatre surgical lighting",
+    "cardiology ECG diagnostic screening",
+    "autoclave sterilization suites",
+    "hospital rehabilitation physiotherapy",
+    "medical gas systems",
+    "emergency trauma equipment",
+  ],
+  alternates: {
+    canonical: "/solutions",
+  },
+  openGraph: {
+    title: "Clinical Solutions & Medical Capabilities | SA Healthcare",
+    description:
+      "Turnkey medical equipment solutions for critical care, operating theatres, diagnostic cardiology, and sterilization.",
+    url: "/solutions",
+  },
 };
 
 export default function SolutionsPage() {

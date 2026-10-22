@@ -89,6 +89,7 @@ def test_admin_list_and_filter_quotes(
     # Retrieve quotes as admin
     resp = client.get("/api/quotes", headers=admin_token_headers)
     assert resp.status_code == 200
+    assert "x-total-count" in resp.headers
     data = resp.json()
     assert isinstance(data, list)
 
@@ -150,3 +151,55 @@ def test_regular_user_cannot_access_admin_quote_endpoints(
     # Regular user cannot get stats
     res_stats = client.get("/api/quotes/stats", headers=user_token_headers)
     assert res_stats.status_code == 403
+
+
+def test_my_quotes_search_and_pagination(client: TestClient, user_token_headers: dict):
+    # Create 3 quotes with distinct facility names and items
+    for i in range(3):
+        client.post(
+            "/api/quotes",
+            json={
+                "facility_name": f"Unique Search Hospital {i}",
+                "contact_name": f"Contact Person {i}",
+                "email": "user@test.com",
+                "phone": "+27 82 000 0000",
+                "items": [
+                    {
+                        "product_name": f"Product Alpha {i}",
+                        "quantity": 1 + i,
+                    }
+                ],
+            },
+            headers=user_token_headers,
+        )
+
+    # 1. Test pagination: limit 2
+    res_page1 = client.get(
+        "/api/quotes/my-quotes?skip=0&limit=2", headers=user_token_headers
+    )
+    assert res_page1.status_code == 200
+    assert "x-total-count" in res_page1.headers
+    assert int(res_page1.headers["x-total-count"]) >= 3
+    assert res_page1.headers["x-page"] == "1"
+    assert res_page1.headers["x-page-size"] == "2"
+    assert len(res_page1.json()) == 2
+
+    # 2. Test search: search by specific facility name
+    res_search = client.get(
+        "/api/quotes/my-quotes?search=Unique Search Hospital 1",
+        headers=user_token_headers,
+    )
+    assert res_search.status_code == 200
+    results = res_search.json()
+    assert len(results) == 1
+    assert results[0]["facility_name"] == "Unique Search Hospital 1"
+
+    # 3. Test search: search by item name
+    res_item_search = client.get(
+        "/api/quotes/my-quotes?search=Product Alpha 2",
+        headers=user_token_headers,
+    )
+    assert res_item_search.status_code == 200
+    item_results = res_item_search.json()
+    assert len(item_results) == 1
+    assert item_results[0]["facility_name"] == "Unique Search Hospital 2"

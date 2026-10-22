@@ -70,6 +70,8 @@ export default function AdminLayout({
     isAuthenticated,
     isLoading,
     isAdmin,
+    canAccessPortal,
+    isCustomer,
     hasPermission,
     logout,
   } = useAuth();
@@ -87,10 +89,22 @@ export default function AdminLayout({
   };
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+      } else if (isCustomer || !canAccessPortal) {
+        // Customer role is strictly for public site and cannot access the admin/staff portal
+        router.replace("/profile");
+      }
     }
-  }, [isLoading, isAuthenticated, router, pathname]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    isCustomer,
+    canAccessPortal,
+    router,
+    pathname,
+  ]);
 
   interface AdminNavItem {
     name: string;
@@ -286,7 +300,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || isCustomer || !canAccessPortal) {
     return null;
   }
 

@@ -14,6 +14,19 @@ def test_list_products_public(client: TestClient):
     assert "images" in first
     assert "properties" in first
     assert "status" in first
+    assert "x-total-count" in res.headers
+
+
+def test_list_products_pagination(client: TestClient):
+    res = client.get("/api/products?skip=0&limit=2")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) == 2
+    assert "x-total-count" in res.headers
+    assert int(res.headers["x-total-count"]) >= 4
+    assert res.headers["x-page"] == "1"
+    assert res.headers["x-page-size"] == "2"
+    assert res.headers["x-has-more"] == "true"
 
 
 def test_get_product_by_slug_seo(client: TestClient):

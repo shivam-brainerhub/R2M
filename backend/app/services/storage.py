@@ -87,10 +87,10 @@ class LocalStorageService(BaseStorageService):
         target_path = os.path.join(target_folder, saved_filename)
 
         file.file.seek(0)
-        size = 0
         with open(target_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-            size = os.path.getsize(target_path)
+            buffer.flush()
+        size = os.path.getsize(target_path)
 
         if size > max_size_bytes:
             os.remove(target_path)

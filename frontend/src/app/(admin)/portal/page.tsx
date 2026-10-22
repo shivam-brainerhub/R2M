@@ -19,10 +19,26 @@ import {
 } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function AdminDashboardPage() {
-  const { user, token, hasPermission, isAdmin, isLoading } = useAuth();
+  const router = useRouter();
+  const {
+    user,
+    token,
+    hasPermission,
+    isAdmin,
+    canAccessPortal,
+    isCustomer,
+    isLoading,
+  } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && (isCustomer || (!isAdmin && !canAccessPortal))) {
+      router.replace("/profile");
+    }
+  }, [isLoading, isCustomer, isAdmin, canAccessPortal, router]);
 
   const canReadQuotes = isAdmin || hasPermission("quotes", "read");
   const canWriteQuotes = isAdmin || hasPermission("quotes", "write");
@@ -81,7 +97,8 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (isLoading || !token) return;
+    if (isLoading || !token || isCustomer || (!isAdmin && !canAccessPortal))
+      return;
 
     let active = true;
 
@@ -136,10 +153,25 @@ export default function AdminDashboardPage() {
     return () => {
       active = false;
     };
-  }, [isLoading, token, canReadQuotes, canReadProducts, canReadInquiries]);
+  }, [
+    isLoading,
+    token,
+    isCustomer,
+    isAdmin,
+    canAccessPortal,
+    canReadQuotes,
+    canReadProducts,
+    canReadInquiries,
+  ]);
+
+  if (isCustomer || (!isAdmin && !canAccessPortal)) {
+    return null;
+  }
 
   // Dynamically assemble KPI cards based strictly on user's authorized modules
-  const statsCards: Array<{
+  // Displays at most 4 KPI cards at a time, prioritizing primary operational modules
+  interface KpiCardItem {
+    id: string;
     title: string;
     value: string;
     change: string;
@@ -147,10 +179,13 @@ export default function AdminDashboardPage() {
     color: string;
     bg: string;
     link: string;
-  }> = [];
+  }
+
+  const primaryCards: KpiCardItem[] = [];
 
   if (canReadQuotes) {
-    statsCards.push({
+    primaryCards.push({
+      id: "quote_requests",
       title: "Quote Requests",
       value: quoteStats
         ? String(quoteStats.total_quotes)
@@ -168,7 +203,8 @@ export default function AdminDashboardPage() {
   }
 
   if (canReadProducts) {
-    statsCards.push({
+    primaryCards.push({
+      id: "total_products",
       title: "Total Products",
       value: productStats
         ? String(productStats.total_products)
@@ -183,19 +219,11 @@ export default function AdminDashboardPage() {
       bg: "bg-blue-50",
       link: "/portal/products",
     });
-    statsCards.push({
-      title: "Brochures",
-      value: productStats ? String(productStats.with_brochure_count) : "0",
-      change: "Attached spec sheets",
-      icon: "picture_as_pdf",
-      color: "text-red-600",
-      bg: "bg-red-50",
-      link: "/portal/products",
-    });
   }
 
   if (canReadCategories || (canReadProducts && productStats?.total_brands)) {
-    statsCards.push({
+    primaryCards.push({
+      id: "active_brands",
       title: "Active Brands",
       value: productStats ? String(productStats.total_brands) : "—",
       change: "Partner manufacturers",
@@ -211,7 +239,8 @@ export default function AdminDashboardPage() {
       ? inquiriesStats.total_contact + inquiriesStats.total_supplier
       : liveInquiries.length;
     const newInquiries = inquiriesStats?.total_new ?? 0;
-    statsCards.push({
+    primaryCards.push({
+      id: "inquiries_leads",
       title: "Inquiries & Leads",
       value: String(totalInquiries),
       change: inquiriesStats
@@ -224,9 +253,107 @@ export default function AdminDashboardPage() {
     });
   }
 
+  // Secondary candidate cards to backfill up to max 4 if user has permissions for fewer top modules
+  const secondaryCards: KpiCardItem[] = [];
+
+  if (canReadProducts) {
+    secondaryCards.push({
+      id: "brochures",
+      title: "Brochures",
+      value: productStats ? String(productStats.with_brochure_count) : "0",
+      change: "Attached spec sheets",
+      icon: "picture_as_pdf",
+      color: "text-red-600",
+      bg: "bg-red-50",
+      link: "/portal/products",
+    });
+  }
+
+  if (
+    canReadCategories ||
+    (canReadProducts && productStats?.total_categories)
+  ) {
+    secondaryCards.push({
+      id: "categories",
+      title: "Categories",
+      value: productStats ? String(productStats.total_categories) : "—",
+      change: "Equipment categories",
+      icon: "category",
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      link: canReadCategories ? "/portal/categories" : "/portal/products",
+    });
+  }
+
+  if (canReadQuotes && quoteStats) {
+    if (quoteStats.new_quotes > 0) {
+      secondaryCards.push({
+        id: "quotes_new",
+        title: "New RFQs",
+        value: String(quoteStats.new_quotes),
+        change: `${quoteStats.new_quotes} awaiting review`,
+        icon: "notification_important",
+        color: "text-amber-500",
+        bg: "bg-amber-50",
+        link: "/portal/quotes",
+      });
+    }
+    if (quoteStats.in_review_quotes > 0) {
+      secondaryCards.push({
+        id: "quotes_in_review",
+        title: "Quotes In Review",
+        value: String(quoteStats.in_review_quotes),
+        change: "Under sales assessment",
+        icon: "pending_actions",
+        color: "text-orange-600",
+        bg: "bg-orange-50",
+        link: "/portal/quotes",
+      });
+    }
+  }
+
+  if (canReadInquiries && inquiriesStats) {
+    if (inquiriesStats.total_new > 0) {
+      secondaryCards.push({
+        id: "inquiries_new",
+        title: "New Inquiries",
+        value: String(inquiriesStats.total_new),
+        change: `${inquiriesStats.total_new} awaiting action`,
+        icon: "mark_email_unread",
+        color: "text-emerald-600",
+        bg: "bg-emerald-50",
+        link: "/portal/inquiries",
+      });
+    }
+    if ((inquiriesStats.total_in_progress ?? 0) > 0) {
+      secondaryCards.push({
+        id: "inquiries_in_progress",
+        title: "In Progress",
+        value: String(inquiriesStats.total_in_progress ?? 0),
+        change: "Under investigation",
+        icon: "hourglass_top",
+        color: "text-amber-600",
+        bg: "bg-amber-50",
+        link: "/portal/inquiries",
+      });
+    }
+  }
+
+  // Combine primary cards first, backfilling with secondary cards up to at most 4 KPI cards
+  const combinedCards: KpiCardItem[] = [...primaryCards];
+  for (const card of secondaryCards) {
+    if (combinedCards.length >= 4) break;
+    if (!combinedCards.some((c) => c.id === card.id)) {
+      combinedCards.push(card);
+    }
+  }
+
+  // Strict guarantee: show max 4 or less KPI cards at a time based on authorized permissions
+  const statsCards = combinedCards.slice(0, 4);
+
   const statsGridClass =
     statsCards.length === 1
-      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
       : statsCards.length === 2
         ? "grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
         : statsCards.length === 3
@@ -401,7 +528,7 @@ export default function AdminDashboardPage() {
                         msg.last_name || ""
                       }`.trim() || "Anonymous"}
                     </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[180px]">
+                    <div className="text-[11px] text-gray-400 mt-0.5 truncate max-w-45">
                       {msg.organization || msg.email}
                     </div>
                   </td>
@@ -473,10 +600,7 @@ export default function AdminDashboardPage() {
             </p>
           ) : (
             liveProducts.map((p: ProductItem) => {
-              const img =
-                p.primary_image_url ||
-                p.images[0]?.image_url ||
-                "/images/benevision_n12.jpg";
+              const img = p.primary_image_url || p.images?.[0]?.image_url;
 
               return (
                 <div
@@ -485,13 +609,19 @@ export default function AdminDashboardPage() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 relative overflow-hidden shrink-0 flex items-center justify-center p-1">
-                      <Image
-                        src={getMediaUrl(img)}
-                        alt={p.name}
-                        fill
-                        sizes="48px"
-                        className="object-contain"
-                      />
+                      {img ? (
+                        <Image
+                          src={getMediaUrl(img)}
+                          alt={p.name}
+                          fill
+                          sizes="48px"
+                          className="object-contain"
+                        />
+                      ) : (
+                        <span className="material-symbols-outlined text-2xl! text-gray-300">
+                          inventory_2
+                        </span>
+                      )}
                     </div>
                     <div className="truncate">
                       <Link
@@ -565,10 +695,7 @@ export default function AdminDashboardPage() {
             </p>
           ) : (
             liveProducts.map((p: ProductItem) => {
-              const img =
-                p.primary_image_url ||
-                p.images[0]?.image_url ||
-                "/images/benevision_n12.jpg";
+              const img = p.primary_image_url || p.images?.[0]?.image_url;
               return (
                 <div
                   key={p.id}
@@ -576,13 +703,19 @@ export default function AdminDashboardPage() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 relative overflow-hidden shrink-0 flex items-center justify-center p-1">
-                      <Image
-                        src={getMediaUrl(img)}
-                        alt={p.name}
-                        fill
-                        sizes="48px"
-                        className="object-contain"
-                      />
+                      {img ? (
+                        <Image
+                          src={getMediaUrl(img)}
+                          alt={p.name}
+                          fill
+                          sizes="48px"
+                          className="object-contain"
+                        />
+                      ) : (
+                        <span className="material-symbols-outlined text-2xl! text-gray-300">
+                          inventory_2
+                        </span>
+                      )}
                     </div>
                     <div className="truncate">
                       <Link

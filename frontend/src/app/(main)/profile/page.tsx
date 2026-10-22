@@ -1,5 +1,7 @@
 "use client";
 
+import AdminPagination from "@/components/admin/AdminPagination";
+import CustomSelect from "@/components/CustomSelect";
 import { useAuth } from "@/context/AuthContext";
 import { useQuoteCart } from "@/context/QuoteCartContext";
 import { ApiError, QuoteRequestData, getMediaUrl, quotesApi } from "@/lib/api";
@@ -20,6 +22,8 @@ export default function ProfilePage() {
     updateProfile,
     isAdmin,
     canAccessAdmin,
+    canAccessPortal,
+    isCustomer,
     hasPermission,
   } = useAuth();
   const { itemCount, isLoaded } = useQuoteCart();
@@ -29,6 +33,18 @@ export default function ProfilePage() {
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequestData | null>(
     null,
   );
+
+  // Quote search & pagination state (Server-Side)
+  const [totalQuotes, setTotalQuotes] = useState(0);
+  const [totalQuotePages, setTotalQuotePages] = useState(1);
+  const [initialTotalQuotes, setInitialTotalQuotes] = useState<number | null>(
+    null,
+  );
+  const [quoteSearchQuery, setQuoteSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [quoteStatusFilter, setQuoteStatusFilter] = useState("All");
+  const [quoteCurrentPage, setQuoteCurrentPage] = useState(1);
+  const [quotePageSize, setQuotePageSize] = useState(5);
 
   // Profile Edit State
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -82,15 +98,46 @@ export default function ProfilePage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  // Debounce search query by 350ms to prevent excessive backend queries
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(quoteSearchQuery);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [quoteSearchQuery]);
+
+  // Reset to page 1 whenever search query or status filter changes
+  useEffect(() => {
+    setQuoteCurrentPage(1);
+  }, [debouncedSearch, quoteStatusFilter]);
+
+  // Backend Paginated & Filtered Quote Retrieval
   useEffect(() => {
     let active = true;
     if (!token) return;
 
+    setLoadingQuotes(true);
     quotesApi
-      .getMyQuotes(token)
-      .then((data) => {
+      .getMyQuotesPaginated(token, {
+        status: quoteStatusFilter,
+        search: debouncedSearch,
+        skip: (quoteCurrentPage - 1) * quotePageSize,
+        limit: quotePageSize,
+      })
+      .then((res) => {
         if (active) {
-          setMyQuotes(data);
+          setMyQuotes(res.items);
+          setTotalQuotes(res.total);
+          setTotalQuotePages(
+            res.totalPages || Math.max(1, Math.ceil(res.total / quotePageSize)),
+          );
+          if (
+            initialTotalQuotes === null &&
+            !debouncedSearch &&
+            quoteStatusFilter === "All"
+          ) {
+            setInitialTotalQuotes(res.total);
+          }
           setLoadingQuotes(false);
         }
       })
@@ -101,7 +148,14 @@ export default function ProfilePage() {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [
+    token,
+    debouncedSearch,
+    quoteStatusFilter,
+    quoteCurrentPage,
+    quotePageSize,
+    initialTotalQuotes,
+  ]);
 
   const handleLogout = () => {
     logout();
@@ -128,10 +182,12 @@ export default function ProfilePage() {
   const initials = getUserInitials(user.full_name, user.username, "AD");
 
   const hasAdminAccess = Boolean(
-    canAccessAdmin ||
-      isAdmin ||
-      user.is_admin ||
-      user.role?.toLowerCase() === "admin",
+    !isCustomer &&
+      (canAccessPortal ||
+        canAccessAdmin ||
+        isAdmin ||
+        user.is_admin ||
+        user.role?.toLowerCase() === "admin"),
   );
 
   const getStatusBadge = (status: string) => {
@@ -505,22 +561,23 @@ export default function ProfilePage() {
                   </span>
                 </Link>
 
-                {(isAdmin || hasPermission("quotes", "read")) && (
-                  <Link
-                    href="/portal/quotes"
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-navy transition-colors border border-gray-100"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="material-symbols-outlined text-emerald-600 text-lg">
-                        receipt_long
+                {!isCustomer &&
+                  (isAdmin || hasPermission("quotes", "read")) && (
+                    <Link
+                      href="/portal/quotes"
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-navy transition-colors border border-gray-100"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-outlined text-emerald-600 text-lg">
+                          receipt_long
+                        </span>
+                        <span>Manage Quotes</span>
+                      </div>
+                      <span className="material-symbols-outlined text-sm text-gray-400">
+                        chevron_right
                       </span>
-                      <span>Manage Quotes</span>
-                    </div>
-                    <span className="material-symbols-outlined text-sm text-gray-400">
-                      chevron_right
-                    </span>
-                  </Link>
-                )}
+                    </Link>
+                  )}
               </div>
             </div>
 
@@ -542,7 +599,7 @@ export default function ProfilePage() {
 
         {/* MY QUOTATION REQUESTS SECTION */}
         <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs p-6 sm:p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-4 gap-2">
             <div>
               <h2 className="text-lg font-bold text-navy flex items-center gap-2">
                 <span className="material-symbols-outlined text-gold">
@@ -555,10 +612,79 @@ export default function ProfilePage() {
                 formal quotations.
               </p>
             </div>
-            <span className="text-xs font-bold text-gray-500 bg-slate-100 px-3 py-1 rounded-xl">
-              {myQuotes.length} Total
-            </span>
+            <div>
+              <span className="text-xs font-bold text-gray-500 bg-slate-100 px-3 py-1 rounded-xl">
+                {quoteSearchQuery.trim() || quoteStatusFilter !== "All"
+                  ? `${totalQuotes} of ${
+                      initialTotalQuotes ?? totalQuotes
+                    } Total`
+                  : `${totalQuotes} Total`}
+              </span>
+            </div>
           </div>
+
+          {/* Search and Filters Bar */}
+          {!loadingQuotes &&
+            (initialTotalQuotes === null || initialTotalQuotes > 0) && (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="relative flex-1">
+                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg pointer-events-none">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={quoteSearchQuery}
+                    onChange={(e) => setQuoteSearchQuery(e.target.value)}
+                    placeholder="Search quote #, facility, product, sku..."
+                    className="w-full pl-10 pr-9 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy text-navy placeholder:text-gray-400 transition-all bg-slate-50/50 focus:bg-white"
+                  />
+                  {quoteSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setQuoteSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy p-1 rounded-md transition-colors cursor-pointer"
+                      title="Clear search"
+                    >
+                      <span className="material-symbols-outlined text-sm block">
+                        close
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <CustomSelect
+                    value={quoteStatusFilter}
+                    onChange={(val) => setQuoteStatusFilter(val)}
+                    options={[
+                      { value: "All", label: "All Statuses" },
+                      { value: "New", label: "New" },
+                      { value: "In Review", label: "In Review" },
+                      { value: "Quoted", label: "Quoted" },
+                      { value: "Approved", label: "Approved" },
+                      { value: "Declined", label: "Declined" },
+                    ]}
+                    size="sm"
+                    variant="slate"
+                    className="min-w-[130px] sm:min-w-[150px]"
+                  />
+
+                  {(quoteSearchQuery.trim() ||
+                    (quoteStatusFilter && quoteStatusFilter !== "All")) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuoteSearchQuery("");
+                        setQuoteStatusFilter("All");
+                      }}
+                      className="px-3 py-2 text-xs font-semibold text-gray-600 hover:text-navy bg-gray-100 hover:bg-gray-200 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
           {loadingQuotes ? (
             <div className="text-center py-10 space-y-2">
@@ -569,7 +695,9 @@ export default function ProfilePage() {
                 Loading your quote history...
               </p>
             </div>
-          ) : myQuotes.length === 0 ? (
+          ) : totalQuotes === 0 &&
+            !quoteSearchQuery.trim() &&
+            quoteStatusFilter === "All" ? (
             <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl space-y-3">
               <span className="material-symbols-outlined text-4xl text-gray-300">
                 receipt
@@ -591,72 +719,119 @@ export default function ProfilePage() {
                 </span>
               </Link>
             </div>
+          ) : totalQuotes === 0 ? (
+            <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl space-y-3">
+              <span className="material-symbols-outlined text-4xl text-gray-300">
+                search_off
+              </span>
+              <h3 className="text-sm font-bold text-navy">
+                No matching quote requests
+              </h3>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                No quotations matched your search or status filter criteria. Try
+                adjusting your query or resetting filters.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuoteSearchQuery("");
+                  setQuoteStatusFilter("All");
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline pt-1 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xs">
+                  refresh
+                </span>
+                <span>Reset Filters</span>
+              </button>
+            </div>
           ) : (
-            <div className="divide-y divide-gray-100 border border-gray-200/80 rounded-2xl overflow-hidden">
-              {myQuotes.map((q) => (
-                <div
-                  key={q.id}
-                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-bold text-blue-600 text-xs sm:text-sm">
-                        {q.quote_number}
-                      </span>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusBadge(
-                          q.status,
-                        )}`}
+            <div className="space-y-4">
+              <div className="divide-y divide-gray-100 border border-gray-200/80 rounded-2xl overflow-hidden">
+                {myQuotes.map((q) => (
+                  <div
+                    key={q.id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-blue-600 text-xs sm:text-sm">
+                          {q.quote_number}
+                        </span>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusBadge(
+                            q.status,
+                          )}`}
+                        >
+                          {q.status}
+                        </span>
+                        <span className="text-[11px] text-gray-400">
+                          {new Date(q.created_at).toLocaleDateString("en-ZA", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="text-sm font-bold text-navy">
+                        {q.facility_name}
+                      </div>
+
+                      <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
+                        <span>
+                          {q.items.length} Product
+                          {q.items.length > 1 ? "s" : ""}
+                        </span>
+                        <span>&bull;</span>
+                        <span>
+                          Total Units:{" "}
+                          {q.items.reduce((s, it) => s + it.quantity, 0)}
+                        </span>
+                        {q.quoted_amount && (
+                          <>
+                            <span>&bull;</span>
+                            <span className="font-bold text-emerald-700">
+                              Quoted Value: {q.quoted_amount}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="self-end sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedQuote(q)}
+                        className="bg-navy text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer flex items-center gap-1"
                       >
-                        {q.status}
-                      </span>
-                      <span className="text-[11px] text-gray-400">
-                        {new Date(q.created_at).toLocaleDateString("en-ZA", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
-
-                    <div className="text-sm font-bold text-navy">
-                      {q.facility_name}
-                    </div>
-
-                    <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
-                      <span>
-                        {q.items.length} Product{q.items.length > 1 ? "s" : ""}
-                      </span>
-                      <span>&bull;</span>
-                      <span>
-                        Total Units:{" "}
-                        {q.items.reduce((s, it) => s + it.quantity, 0)}
-                      </span>
-                      {q.quoted_amount && (
-                        <>
-                          <span>&bull;</span>
-                          <span className="font-bold text-emerald-700">
-                            Quoted Value: {q.quoted_amount}
-                          </span>
-                        </>
-                      )}
+                        <span>View Details</span>
+                        <span className="material-symbols-outlined text-xs!">
+                          visibility
+                        </span>
+                      </button>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="self-end sm:self-center">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedQuote(q)}
-                      className="bg-navy text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer flex items-center gap-1"
-                    >
-                      <span>View Details</span>
-                      <span className="material-symbols-outlined text-xs!">
-                        visibility
-                      </span>
-                    </button>
-                  </div>
+              {totalQuotes > 0 && (
+                <div className="pt-2">
+                  <AdminPagination
+                    currentPage={quoteCurrentPage}
+                    totalPages={totalQuotePages}
+                    totalItems={totalQuotes}
+                    pageSize={quotePageSize}
+                    pageSizeOptions={[5, 10, 20]}
+                    onPageChange={setQuoteCurrentPage}
+                    onPageSizeChange={(size) => {
+                      setQuotePageSize(size);
+                      setQuoteCurrentPage(1);
+                    }}
+                    itemLabel="quotes"
+                  />
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

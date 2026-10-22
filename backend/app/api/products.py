@@ -41,6 +41,7 @@ from fastapi import (
     File,
     HTTPException,
     Query,
+    Response,
     UploadFile,
     status,
 )
@@ -613,6 +614,7 @@ def list_products(
     sort_order: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
     limit: Optional[int] = Query(100, ge=1, le=500),
     skip: Optional[int] = Query(0, ge=0),
+    response: Response = None,
     db: Session = Depends(get_db),
 ):
     """
@@ -673,13 +675,35 @@ def list_products(
     if status_filter and status_filter.lower() != "all":
         query = query.filter(Product.status.ilike(status_filter.strip()))
 
+    # Calculate total matching count before pagination
+    total = query.order_by(None).count()
+    effective_skip = skip or 0
+    effective_limit = limit if limit is not None else 100
+    page = (effective_skip // effective_limit) + 1 if effective_limit > 0 else 1
+    total_pages = (
+        max(1, (total + effective_limit - 1) // effective_limit)
+        if effective_limit > 0
+        else 1
+    )
+    has_more = (effective_skip + effective_limit) < total
+
+    if response:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Page-Size"] = str(effective_limit)
+        response.headers["X-Total-Pages"] = str(total_pages)
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["Access-Control-Expose-Headers"] = (
+            "X-Total-Count, X-Page, X-Page-Size, X-Total-Pages, X-Has-More"
+        )
+
     sort_col = getattr(Product, sort_by, Product.name)
     if sort_order == "desc":
         query = query.order_by(desc(sort_col))
     else:
         query = query.order_by(asc(sort_col))
 
-    products = query.offset(skip).limit(limit).all()
+    products = query.offset(effective_skip).limit(effective_limit).all()
     return [build_product_response(p) for p in products]
 
 

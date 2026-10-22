@@ -430,8 +430,7 @@ export default function PredictiveSearchBar({
                     </div>
                     <div className="space-y-0.5">
                       {suggestions.products.map((p) => {
-                        const img =
-                          p.primary_image_url || "/images/benevision_n12.jpg";
+                        const img = p.primary_image_url;
                         return (
                           <div
                             key={p.id}
@@ -439,13 +438,19 @@ export default function PredictiveSearchBar({
                             className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group"
                           >
                             <div className="w-10 h-10 bg-slate-50 rounded-lg p-1 shrink-0 relative overflow-hidden border border-gray-100 flex items-center justify-center">
-                              <Image
-                                src={getMediaUrl(img)}
-                                alt={p.name}
-                                fill
-                                sizes="40px"
-                                className="object-contain p-0.5"
-                              />
+                              {img ? (
+                                <Image
+                                  src={getMediaUrl(img)}
+                                  alt={p.name}
+                                  fill
+                                  sizes="40px"
+                                  className="object-contain p-0.5"
+                                />
+                              ) : (
+                                <span className="material-symbols-outlined text-2xl! text-gray-300">
+                                  inventory_2
+                                </span>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">

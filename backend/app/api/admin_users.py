@@ -11,7 +11,7 @@ from app.schemas.user import (
     UserUpdate,
 )
 from app.services.email import send_verification_email
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.orm import Session
 
@@ -51,6 +51,7 @@ def list_users(
         "id", pattern="^(id|username|email|created_at|last_login_at)$"
     ),
     sort_order: Optional[str] = Query("desc", pattern="^(asc|desc)$"),
+    response: Response = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("users", "read")),
 ):
@@ -77,6 +78,28 @@ def list_users(
     if is_email_verified is not None:
         query = query.filter(User.is_email_verified == is_email_verified)
 
+    # Calculate total matching count before pagination
+    total = query.order_by(None).count()
+    effective_skip = skip or 0
+    effective_limit = limit if limit is not None else 100
+    page = (effective_skip // effective_limit) + 1 if effective_limit > 0 else 1
+    total_pages = (
+        max(1, (total + effective_limit - 1) // effective_limit)
+        if effective_limit > 0
+        else 1
+    )
+    has_more = (effective_skip + effective_limit) < total
+
+    if response:
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Page-Size"] = str(effective_limit)
+        response.headers["X-Total-Pages"] = str(total_pages)
+        response.headers["X-Has-More"] = "true" if has_more else "false"
+        response.headers["Access-Control-Expose-Headers"] = (
+            "X-Total-Count, X-Page, X-Page-Size, X-Total-Pages, X-Has-More"
+        )
+
     # Sorting
     sort_column = getattr(User, sort_by, User.id)
     if sort_order == "asc":
@@ -84,7 +107,7 @@ def list_users(
     else:
         query = query.order_by(desc(sort_column))
 
-    return query.offset(skip).limit(limit).all()
+    return query.offset(effective_skip).limit(effective_limit).all()
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

@@ -112,10 +112,7 @@ export default function RelatedProducts({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {related.map((item) => {
-          const imgUrl =
-            item.primary_image_url ||
-            item.images?.[0]?.image_url ||
-            "/images/benevision_n12.jpg";
+          const imgUrl = item.primary_image_url || item.images?.[0]?.image_url;
 
           return (
             <div
@@ -140,13 +137,24 @@ export default function RelatedProducts({
                   href={`/products/${item.slug}`}
                   className="w-full aspect-square bg-slate-50/50 rounded-xl flex items-center justify-center mb-3 border border-gray-100 overflow-hidden relative group-hover:border-blue-200 transition-colors"
                 >
-                  <Image
-                    src={getMediaUrl(imgUrl)}
-                    alt={item.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
-                  />
+                  {imgUrl ? (
+                    <Image
+                      src={getMediaUrl(imgUrl)}
+                      alt={item.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-300 space-y-2 select-none">
+                      <span className="material-symbols-outlined text-4xl sm:text-5xl text-gray-300">
+                        inventory_2
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        No image available
+                      </span>
+                    </div>
+                  )}
                 </Link>
 
                 {/* Title */}
@@ -177,7 +185,8 @@ export default function RelatedProducts({
                       slug: item.slug,
                       sku: item.sku,
                       brandName: item.brand_name,
-                      imageUrl: item.primary_image_url,
+                      imageUrl:
+                        item.primary_image_url || item.images?.[0]?.image_url,
                       categoryName: item.category_name,
                       quantity: 1,
                     });

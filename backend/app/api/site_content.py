@@ -101,6 +101,31 @@ def normalize_section_dict(key: str, data: Dict[str, Any]) -> Dict[str, Any]:
         result["badgeTagline"] = btg
         result["badge_tagline"] = btg
 
+        # banner_image <-> bannerImage
+        bi = result.get("bannerImage") or result.get("banner_image") or "/hero.jpg"
+        result["bannerImage"] = bi
+        result["banner_image"] = bi
+
+        # banner_image_alt <-> bannerImageAlt
+        bia = (
+            result.get("bannerImageAlt")
+            or result.get("banner_image_alt")
+            or "Hospital Background"
+        )
+        result["bannerImageAlt"] = bia
+        result["banner_image_alt"] = bia
+
+        # banner_image_opacity <-> bannerImageOpacity
+        bio = result.get("bannerImageOpacity")
+        if bio is None:
+            bio = result.get("banner_image_opacity", 60)
+        try:
+            bio = int(bio)
+        except (ValueError, TypeError):
+            bio = 60
+        result["bannerImageOpacity"] = bio
+        result["banner_image_opacity"] = bio
+
     elif key == "company":
         cn = result.get("companyName") or result.get("company_name") or "SA Healthcare"
         result["companyName"] = cn
@@ -407,6 +432,10 @@ def reset_site_content(
     return get_all_site_content(db=db)
 
 
+BANNER_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+MAX_BANNER_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
 @router.post("/upload-image")
 def upload_content_image(
     file: UploadFile = File(...),
@@ -414,12 +443,37 @@ def upload_content_image(
 ):
     """
     Upload an image for site CMS (e.g., promotional banner, hero graphics). Requires Admin privileges.
+    Enforces format restrictions (.webp, .jpg, .jpeg, .png) and a 5 MB maximum file size limit.
     """
+    if file.content_type and not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file format. Only web-optimized image files (.webp, .jpg, .jpeg, .png) are supported.",
+        )
+
+    if file.file:
+        try:
+            file.file.seek(0, 2)
+            f_size = file.file.tell()
+            file.file.seek(0)
+            if f_size > MAX_BANNER_IMAGE_SIZE_BYTES:
+                max_mb = MAX_BANNER_IMAGE_SIZE_BYTES / (1024 * 1024)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File exceeds maximum allowed size of {max_mb:.1f}MB",
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            if hasattr(file.file, "seek"):
+                file.file.seek(0)
+
     storage = get_storage_service()
     result = storage.save_file(
         file=file,
         folder="content",
-        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
+        allowed_extensions=BANNER_IMAGE_EXTENSIONS,
+        max_size_bytes=MAX_BANNER_IMAGE_SIZE_BYTES,
     )
     return {
         "url": result.get("url") or result.get("file_url"),

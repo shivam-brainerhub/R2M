@@ -1,7 +1,9 @@
 "use client";
 
 import CustomSelect from "@/components/CustomSelect";
+import AdminPagination from "@/components/admin/AdminPagination";
 import PropertyCombobox from "@/components/admin/PropertyCombobox";
+import CustomModal from "@/components/common/CustomModal";
 import { useAuth } from "@/context/AuthContext";
 import {
   ApiError,
@@ -51,6 +53,9 @@ export default function AdminProductsPage() {
   const [brandFilter, setBrandFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Add / Edit Product Modal State
@@ -123,22 +128,69 @@ export default function AdminProductsPage() {
   const [editingPropGroup, setEditingPropGroup] = useState("");
   const [isSavingProp, setIsSavingProp] = useState(false);
 
+  // Custom Confirmation Modals for Delete
+  const [productToDelete, setProductToDelete] = useState<ProductItem | null>(
+    null,
+  );
+  const [propertyToDelete, setPropertyToDelete] = useState<PropertyItem | null>(
+    null,
+  );
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await productsApi.listProductsPaginated({
+        search: searchTerm.trim() || undefined,
+        brand: brandFilter !== "All" ? brandFilter : undefined,
+        category: categoryFilter !== "All" ? categoryFilter : undefined,
+        status: statusFilter !== "All" ? statusFilter : undefined,
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize,
+      });
+      setProducts(res.items);
+      setTotalProducts(res.total);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to load products catalogue";
+      showToast(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    searchTerm,
+    brandFilter,
+    categoryFilter,
+    statusFilter,
+    currentPage,
+    pageSize,
+  ]);
+
   const reloadData = useCallback(async () => {
     try {
       const [
-        prodsData,
+        prodsRes,
         statsData,
         catsData,
         brandsData,
         propsData,
         sectorsData,
       ] = await Promise.all([
-        productsApi.listProducts({ limit: 100 }),
+        productsApi.listProductsPaginated({
+          search: searchTerm.trim() || undefined,
+          brand: brandFilter !== "All" ? brandFilter : undefined,
+          category: categoryFilter !== "All" ? categoryFilter : undefined,
+          status: statusFilter !== "All" ? statusFilter : undefined,
+          skip: (currentPage - 1) * pageSize,
+          limit: pageSize,
+        }),
         productsApi.getStats().catch(() => null),
         categoriesApi.listCategories().catch(() => []),
         brandsApi.listBrands().catch(() => []),
@@ -146,7 +198,8 @@ export default function AdminProductsPage() {
         sectorsApi.listSectors().catch(() => []),
       ]);
 
-      setProducts(prodsData);
+      setProducts(prodsRes.items);
+      setTotalProducts(prodsRes.total);
       setStats(statsData);
       setAvailableCategories(catsData);
       setAvailableBrands(brandsData);
@@ -159,51 +212,56 @@ export default function AdminProductsPage() {
           : "Failed to reload products catalogue";
       showToast(msg);
     }
-  }, []);
+  }, [
+    searchTerm,
+    brandFilter,
+    categoryFilter,
+    statusFilter,
+    currentPage,
+    pageSize,
+  ]);
 
+  // Load auxiliary data on mount
   useEffect(() => {
     let active = true;
     Promise.all([
-      productsApi.listProducts({ limit: 100 }),
       productsApi.getStats().catch(() => null),
       categoriesApi.listCategories().catch(() => []),
       brandsApi.listBrands().catch(() => []),
       propertiesApi.listProperties().catch(() => []),
       sectorsApi.listSectors().catch(() => []),
     ])
-      .then(
-        ([
-          prodsData,
-          statsData,
-          catsData,
-          brandsData,
-          propsData,
-          sectorsData,
-        ]) => {
-          if (!active) return;
-          setProducts(prodsData);
-          setStats(statsData);
-          setAvailableCategories(catsData);
-          setAvailableBrands(brandsData);
-          setAvailableProperties(propsData);
-          setAvailableSectors(sectorsData);
-          setIsLoading(false);
-        },
-      )
+      .then(([statsData, catsData, brandsData, propsData, sectorsData]) => {
+        if (!active) return;
+        setStats(statsData);
+        setAvailableCategories(catsData);
+        setAvailableBrands(brandsData);
+        setAvailableProperties(propsData);
+        setAvailableSectors(sectorsData);
+      })
       .catch((err: unknown) => {
         if (!active) return;
         const msg =
           err instanceof ApiError
             ? err.message
-            : "Failed to load products catalogue";
+            : "Failed to load catalogue options";
         showToast(msg);
-        setIsLoading(false);
       });
 
     return () => {
       active = false;
     };
   }, []);
+
+  // Fetch paginated products on filter / pagination change
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Reset to page 1 when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, brandFilter, categoryFilter, statusFilter]);
 
   // Lock background screen scroll when product modal is open
   useEffect(() => {
@@ -216,29 +274,8 @@ export default function AdminProductsPage() {
     }
   }, [isProductModalOpen]);
 
-  // Filtered Products
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.brand_name &&
-        p.brand_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesBrand =
-      brandFilter === "All" ||
-      (p.brand_name &&
-        p.brand_name.toLowerCase() === brandFilter.toLowerCase());
-
-    const matchesCategory =
-      categoryFilter === "All" ||
-      (p.category_name &&
-        p.category_name.toLowerCase() === categoryFilter.toLowerCase());
-
-    const matchesStatus = statusFilter === "All" || p.status === statusFilter;
-
-    return matchesSearch && matchesBrand && matchesCategory && matchesStatus;
-  });
+  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
+  const paginatedProducts = products;
 
   // Calculate live related products preview for Add/Edit Modal
   const relatedPreview = useMemo(() => {
@@ -759,21 +796,21 @@ export default function AdminProductsPage() {
   };
 
   // Delete Product
-  const handleDeleteProduct = async (product: ProductItem) => {
-    if (
-      !confirm(`Are you sure you want to permanently delete "${product.name}"?`)
-    ) {
-      return;
-    }
-    if (!token) {
-      showToast("Admin session required");
+  const handleDeleteProduct = (product: ProductItem) => {
+    setProductToDelete(product);
+  };
+
+  const executeDeleteProduct = async () => {
+    if (!productToDelete || !token) {
+      setProductToDelete(null);
       return;
     }
 
     try {
-      await productsApi.deleteProduct(token, product.id);
-      setProducts((prev) => prev.filter((p) => p.id !== product.id));
-      showToast(`Deleted product "${product.name}"`);
+      setIsDeletingItem(true);
+      await productsApi.deleteProduct(token, productToDelete.id);
+      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
+      showToast(`Deleted product "${productToDelete.name}"`);
       productsApi
         .getStats()
         .then(setStats)
@@ -782,6 +819,9 @@ export default function AdminProductsPage() {
       const msg =
         err instanceof ApiError ? err.message : "Failed to delete product";
       showToast(msg);
+    } finally {
+      setIsDeletingItem(false);
+      setProductToDelete(null);
     }
   };
 
@@ -816,22 +856,30 @@ export default function AdminProductsPage() {
   };
 
   // Delete Property in Manager Modal
-  const handleDeleteProperty = async (prop: PropertyItem) => {
-    if (!confirm(`Are you sure you want to delete property "${prop.name}"?`))
-      return;
-    if (!token) {
-      showToast("Admin session required");
+  const handleDeleteProperty = (prop: PropertyItem) => {
+    setPropertyToDelete(prop);
+  };
+
+  const executeDeleteProperty = async () => {
+    if (!propertyToDelete || !token) {
+      setPropertyToDelete(null);
       return;
     }
 
     try {
-      await propertiesApi.deleteProperty(token, prop.id);
-      setAvailableProperties((prev) => prev.filter((p) => p.id !== prop.id));
-      showToast(`Deleted property "${prop.name}"`);
+      setIsDeletingItem(true);
+      await propertiesApi.deleteProperty(token, propertyToDelete.id);
+      setAvailableProperties((prev) =>
+        prev.filter((p) => p.id !== propertyToDelete.id),
+      );
+      showToast(`Deleted property "${propertyToDelete.name}"`);
     } catch (err: unknown) {
       const msg =
         err instanceof ApiError ? err.message : "Failed to delete property";
       showToast(msg);
+    } finally {
+      setIsDeletingItem(false);
+      setPropertyToDelete(null);
     }
   };
 
@@ -1101,7 +1149,7 @@ export default function AdminProductsPage() {
           />
 
           <div className="text-xs text-gray-500 font-semibold px-2">
-            {filteredProducts.length} items
+            {totalProducts} items
           </div>
         </div>
       </div>
@@ -1134,7 +1182,7 @@ export default function AdminProductsPage() {
                     <p className="text-xs">Loading products catalogue...</p>
                   </td>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
+              ) : products.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
@@ -1147,11 +1195,9 @@ export default function AdminProductsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((p) => {
+                paginatedProducts.map((p) => {
                   const displayImage =
-                    p.primary_image_url ||
-                    p.images[0]?.image_url ||
-                    "/images/benevision_n12.jpg";
+                    p.primary_image_url || p.images?.[0]?.image_url;
                   return (
                     <tr
                       key={p.id}
@@ -1161,13 +1207,19 @@ export default function AdminProductsPage() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 relative overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-2xs">
-                            <Image
-                              src={getMediaUrl(displayImage)}
-                              alt={p.name}
-                              fill
-                              sizes="48px"
-                              className="object-contain"
-                            />
+                            {displayImage ? (
+                              <Image
+                                src={getMediaUrl(displayImage)}
+                                alt={p.name}
+                                fill
+                                sizes="48px"
+                                className="object-contain"
+                              />
+                            ) : (
+                              <span className="material-symbols-outlined text-2xl! text-gray-300">
+                                inventory_2
+                              </span>
+                            )}
                           </div>
                           <div className="min-w-0">
                             <Link
@@ -1332,6 +1384,18 @@ export default function AdminProductsPage() {
             </tbody>
           </table>
         </div>
+        <AdminPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalProducts}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          itemLabel="products"
+        />
       </div>
 
       {/* Add / Edit Product Modal */}
@@ -2553,6 +2617,34 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal for Product Delete */}
+      <CustomModal
+        isOpen={Boolean(productToDelete)}
+        onClose={() => setProductToDelete(null)}
+        onConfirm={executeDeleteProduct}
+        isLoading={isDeletingItem}
+        variant="danger"
+        icon="warning"
+        title={`Delete Product "${productToDelete?.name || ""}"?`}
+        description="Are you sure you want to permanently delete this product? This action cannot be undone."
+        confirmLabel="Delete Product"
+        cancelLabel="Cancel"
+      />
+
+      {/* Custom Confirmation Modal for Property Delete */}
+      <CustomModal
+        isOpen={Boolean(propertyToDelete)}
+        onClose={() => setPropertyToDelete(null)}
+        onConfirm={executeDeleteProperty}
+        isLoading={isDeletingItem}
+        variant="danger"
+        icon="warning"
+        title={`Delete Property "${propertyToDelete?.name || ""}"?`}
+        description="Are you sure you want to delete this property? It will be removed from all products referencing it."
+        confirmLabel="Delete Property"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }

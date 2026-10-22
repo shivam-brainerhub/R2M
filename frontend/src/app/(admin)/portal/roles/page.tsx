@@ -523,14 +523,16 @@ export default function AdminRolesPage() {
 
                       <button
                         onClick={() => openEditModal(role)}
-                        disabled={isAdminRole}
+                        disabled={isAdminRole || isCustomerRole}
                         title={
                           isAdminRole
                             ? "Administrator role permissions are permanently set to full access"
-                            : "Edit role permissions"
+                            : isCustomerRole
+                              ? "Customer role is strictly for public site accounts and has no portal access"
+                              : "Edit role permissions"
                         }
                         className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors ${
-                          isAdminRole
+                          isAdminRole || isCustomerRole
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
                             : "bg-white hover:bg-slate-100 text-navy border border-gray-200 cursor-pointer shadow-2xs"
                         }`}

@@ -12,21 +12,28 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { itemCount, isLoaded } = useQuoteCart();
-  const { user, isAuthenticated, isAdmin, canAccessAdmin, canAccessPortal } =
-    useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isAdmin,
+    canAccessAdmin,
+    canAccessPortal,
+    isCustomer,
+  } = useAuth();
   const showPortalLink = Boolean(
-    canAccessPortal ||
-      canAccessAdmin ||
-      isAdmin ||
-      user?.is_admin ||
-      user?.role?.toLowerCase() === "admin",
+    !isCustomer &&
+      (canAccessPortal ||
+        canAccessAdmin ||
+        isAdmin ||
+        user?.is_admin ||
+        user?.role?.toLowerCase() === "admin"),
   );
   const portalLabel = isAdmin ? "Admin Portal" : "Staff Portal";
   const portalShortLabel = isAdmin ? "Admin" : "Portal";
   const portalIcon = isAdmin ? "admin_panel_settings" : "shield_person";
 
   const navLinks = [
-    { name: "Home", href: "/home" },
+    { name: "Home", href: "/" },
     { name: "Products", href: "/products" },
     { name: "Solutions", href: "/solutions" },
     { name: "Resources", href: "/resources" },
@@ -40,7 +47,7 @@ export default function Navbar() {
     <nav className="sticky top-0 left-0 w-full bg-navy text-white px-4 md:px-8 py-3 flex items-center justify-between z-50 shadow-lg border-b border-white/10 print:hidden">
       {/* Left: Logo */}
       <Link
-        href="/home"
+        href="/"
         className="flex items-center transition-transform duration-300 hover:scale-105 active:scale-95 shrink-0"
       >
         <Image
@@ -57,7 +64,10 @@ export default function Navbar() {
       {/* Middle: Desktop Menu */}
       <div className="hidden lg:flex items-center space-x-5 xl:space-x-7 text-sm font-medium">
         {navLinks.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+          const isActive =
+            link.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(link.href);
           return (
             <Link
               key={link.name}
@@ -175,7 +185,10 @@ export default function Navbar() {
         }`}
       >
         {navLinks.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+          const isActive =
+            link.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(link.href);
           return (
             <Link
               key={link.name}

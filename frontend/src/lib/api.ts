@@ -149,6 +149,38 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return data as T;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasMore?: boolean;
+}
+
+async function handlePaginatedResponse<T>(
+  response: Response,
+): Promise<PaginatedResponse<T>> {
+  const items = await handleResponse<T[]>(response);
+  const totalHeader = response.headers.get("X-Total-Count");
+  const parsedTotal = totalHeader ? parseInt(totalHeader, 10) : NaN;
+  const total = Number.isFinite(parsedTotal) ? parsedTotal : items.length;
+
+  const pageHeader = response.headers.get("X-Page");
+  const pageSizeHeader = response.headers.get("X-Page-Size");
+  const totalPagesHeader = response.headers.get("X-Total-Pages");
+  const hasMoreHeader = response.headers.get("X-Has-More");
+
+  return {
+    items,
+    total,
+    page: pageHeader ? parseInt(pageHeader, 10) : undefined,
+    pageSize: pageSizeHeader ? parseInt(pageSizeHeader, 10) : undefined,
+    totalPages: totalPagesHeader ? parseInt(totalPagesHeader, 10) : undefined,
+    hasMore: hasMoreHeader ? hasMoreHeader === "true" : undefined,
+  };
+}
+
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthTokens> {
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -345,6 +377,39 @@ export const adminUsersApi = {
       },
     );
     return handleResponse<UserProfile[]>(response);
+  },
+
+  async listUsersPaginated(
+    token: string,
+    params: AdminUserFilterParams = {},
+  ): Promise<PaginatedResponse<UserProfile>> {
+    const query = new URLSearchParams();
+    if (params.search) query.append("search", params.search);
+    if (params.role) query.append("role", params.role);
+    if (params.is_active !== undefined && params.is_active !== null) {
+      query.append("is_active", String(params.is_active));
+    }
+    if (
+      params.is_email_verified !== undefined &&
+      params.is_email_verified !== null
+    ) {
+      query.append("is_email_verified", String(params.is_email_verified));
+    }
+    if (params.sort_by) query.append("sort_by", params.sort_by);
+    if (params.sort_order) query.append("sort_order", params.sort_order);
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/admin/users?${query.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return handlePaginatedResponse<UserProfile>(response);
   },
 
   async createUser(
@@ -612,6 +677,32 @@ export const categoriesApi = {
     return handleResponse<CategoryItem[]>(response);
   },
 
+  async listCategoriesPaginated(
+    params: {
+      search?: string;
+      sort_by?: string;
+      sort_order?: string;
+      skip?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedResponse<CategoryItem>> {
+    const query = new URLSearchParams();
+    if (params.search) query.append("search", params.search);
+    if (params.sort_by) query.append("sort_by", params.sort_by);
+    if (params.sort_order) query.append("sort_order", params.sort_order);
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/categories${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+    });
+    return handlePaginatedResponse<CategoryItem>(response);
+  },
+
   async getCategory(categoryId: number): Promise<CategoryItem> {
     const response = await fetch(
       `${API_BASE_URL}/api/categories/${categoryId}`,
@@ -755,6 +846,36 @@ export const brandsApi = {
       method: "GET",
     });
     return handleResponse<BrandItem[]>(response);
+  },
+
+  async listBrandsPaginated(
+    params: {
+      search?: string;
+      featured_in_slider?: boolean;
+      sort_by?: string;
+      sort_order?: string;
+      skip?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedResponse<BrandItem>> {
+    const query = new URLSearchParams();
+    if (params.search) query.append("search", params.search);
+    if (params.featured_in_slider !== undefined) {
+      query.append("featured_in_slider", String(params.featured_in_slider));
+    }
+    if (params.sort_by) query.append("sort_by", params.sort_by);
+    if (params.sort_order) query.append("sort_order", params.sort_order);
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/brands${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+    });
+    return handlePaginatedResponse<BrandItem>(response);
   },
 
   async getBrand(brandId: number): Promise<BrandItem> {
@@ -1150,6 +1271,41 @@ export const productsApi = {
     return handleResponse<ProductItem[]>(response);
   },
 
+  async listProductsPaginated(
+    params: {
+      search?: string;
+      category?: string;
+      subcategory?: string;
+      brand?: string;
+      sector?: string;
+      status?: string;
+      sort_by?: string;
+      sort_order?: string;
+      limit?: number;
+      skip?: number;
+    } = {},
+  ): Promise<PaginatedResponse<ProductItem>> {
+    const query = new URLSearchParams();
+    if (params.search) query.append("search", params.search);
+    if (params.category) query.append("category", params.category);
+    if (params.subcategory) query.append("subcategory", params.subcategory);
+    if (params.brand) query.append("brand", params.brand);
+    if (params.sector) query.append("sector", params.sector);
+    if (params.status && params.status !== "All")
+      query.append("status", params.status);
+    if (params.sort_by) query.append("sort_by", params.sort_by);
+    if (params.sort_order) query.append("sort_order", params.sort_order);
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/products${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, { method: "GET" });
+    return handlePaginatedResponse<ProductItem>(response);
+  },
+
   async getProduct(slugOrId: string | number): Promise<ProductItem> {
     const response = await fetch(`${API_BASE_URL}/api/products/${slugOrId}`, {
       method: "GET",
@@ -1412,6 +1568,9 @@ export interface HeroContent {
   popularSearches?: string[];
   badgeTitle?: string;
   badgeTagline?: string;
+  bannerImage?: string | null;
+  bannerImageAlt?: string | null;
+  bannerImageOpacity?: number | null;
   headline_part1?: string;
   headline_part2?: string;
   headline_accent?: string;
@@ -1420,6 +1579,9 @@ export interface HeroContent {
   popular_searches?: string[];
   badge_title?: string;
   badge_tagline?: string;
+  banner_image?: string | null;
+  banner_image_alt?: string | null;
+  banner_image_opacity?: number | null;
 }
 
 export interface CompanyContent {
@@ -1725,6 +1887,35 @@ export const inquiriesApi = {
     return handleResponse<ContactMessageItem[]>(response);
   },
 
+  async listContactMessagesPaginated(
+    token: string,
+    params: {
+      status?: string;
+      search?: string;
+      skip?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedResponse<ContactMessageItem>> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== "All")
+      query.append("status", params.status);
+    if (params.search) query.append("search", params.search);
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/inquiries/contact${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handlePaginatedResponse<ContactMessageItem>(response);
+  },
+
   async updateContactMessage(
     token: string,
     id: number,
@@ -1787,6 +1978,35 @@ export const inquiriesApi = {
       },
     });
     return handleResponse<SupplierApplicationItem[]>(response);
+  },
+
+  async listSupplierApplicationsPaginated(
+    token: string,
+    params: {
+      status?: string;
+      search?: string;
+      skip?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedResponse<SupplierApplicationItem>> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== "All")
+      query.append("status", params.status);
+    if (params.search) query.append("search", params.search);
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/inquiries/supplier${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handlePaginatedResponse<SupplierApplicationItem>(response);
   },
 
   async updateSupplierApplication(
@@ -1947,6 +2167,37 @@ export const quotesApi = {
     return handleResponse<QuoteRequestData[]>(response);
   },
 
+  // Get current user's submitted quote requests with backend search, filter, and pagination
+  async getMyQuotesPaginated(
+    token: string,
+    params: {
+      status?: string;
+      search?: string;
+      skip?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedResponse<QuoteRequestData>> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== "All")
+      query.append("status", params.status);
+    if (params.search && params.search.trim())
+      query.append("search", params.search.trim());
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/quotes/my-quotes${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handlePaginatedResponse<QuoteRequestData>(response);
+  },
+
   // Get details for a specific quote
   async getQuoteDetails(
     identifier: string | number,
@@ -2001,6 +2252,38 @@ export const quotesApi = {
       },
     });
     return handleResponse<QuoteRequestData[]>(response);
+  },
+
+  async listQuotesPaginated(
+    token: string,
+    params: {
+      status?: string;
+      urgency?: string;
+      search?: string;
+      skip?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedResponse<QuoteRequestData>> {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== "All")
+      query.append("status", params.status);
+    if (params.urgency && params.urgency !== "All")
+      query.append("urgency", params.urgency);
+    if (params.search) query.append("search", params.search);
+    if (params.skip !== undefined) query.append("skip", String(params.skip));
+    if (params.limit !== undefined) query.append("limit", String(params.limit));
+
+    const queryString = query.toString();
+    const url = `${API_BASE_URL}/api/quotes${
+      queryString ? `?${queryString}` : ""
+    }`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return handlePaginatedResponse<QuoteRequestData>(response);
   },
 
   // Admin: Update status, internal notes, or quoted amount

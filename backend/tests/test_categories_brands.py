@@ -11,6 +11,25 @@ def test_list_categories_public(client: TestClient):
     assert "name" in first
     assert "slug" in first
     assert "product_count" in first
+    assert "x-total-count" in response.headers
+
+
+def test_list_categories_pagination(client: TestClient):
+    response = client.get("/api/categories?skip=0&limit=1")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert "x-total-count" in response.headers
+    assert int(response.headers["x-total-count"]) >= 1
+
+
+def test_list_brands_pagination(client: TestClient):
+    response = client.get("/api/brands?skip=0&limit=1")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert "x-total-count" in response.headers
+    assert int(response.headers["x-total-count"]) >= 1
 
 
 def test_get_category_by_id(client: TestClient):

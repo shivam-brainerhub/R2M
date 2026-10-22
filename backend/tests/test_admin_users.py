@@ -21,9 +21,24 @@ def test_unauthenticated_cannot_access_admin_users(client: TestClient):
 def test_admin_list_users_success(client: TestClient, admin_token_headers):
     response = client.get("/api/admin/users", headers=admin_token_headers)
     assert response.status_code == 200
+    assert "x-total-count" in response.headers
     data = response.json()
     assert isinstance(data, list)
     assert len(data) >= 2
+
+
+def test_admin_list_users_pagination(client: TestClient, admin_token_headers):
+    response = client.get(
+        "/api/admin/users?skip=0&limit=1", headers=admin_token_headers
+    )
+    assert response.status_code == 200
+    assert "x-total-count" in response.headers
+    data = response.json()
+    assert len(data) == 1
+    assert int(response.headers["x-total-count"]) >= 2
+    assert response.headers["x-page"] == "1"
+    assert response.headers["x-page-size"] == "1"
+    assert response.headers["x-has-more"] == "true"
 
 
 def test_admin_create_new_admin_user(client: TestClient, admin_token_headers):

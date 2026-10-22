@@ -175,6 +175,8 @@ def update_role(
         # If it's the admin role, permissions cannot be demoted
         if role.slug == "admin":
             role.permissions = {sec: "read_write" for sec in ALL_PERMISSIONS_SECTIONS}
+        elif role.slug in ["user", "customer"]:
+            role.permissions = {sec: "none" for sec in ALL_PERMISSIONS_SECTIONS}
         else:
             updated_perms = dict(role.permissions or {})
             updated_perms.update(role_update.permissions)

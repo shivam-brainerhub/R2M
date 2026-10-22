@@ -277,6 +277,9 @@ DEFAULT_SITE_CONTENTS = {
             ],
             "badge_title": "TRUST • ACCESS • INNOVATION • IMPACT",
             "badge_tagline": "A HEALTHIER TOMORROW TOGETHER.",
+            "banner_image": "/hero.jpg",
+            "banner_image_alt": "Hospital Background",
+            "banner_image_opacity": 60,
         },
     },
     "company": {

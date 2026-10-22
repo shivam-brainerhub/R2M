@@ -1,5 +1,6 @@
 "use client";
 
+import AdminPagination from "@/components/admin/AdminPagination";
 import QuoteDetailsModal, {
   getStatusBadge,
   getUrgencyBadge,
@@ -30,6 +31,16 @@ export default function AdminQuotesPage() {
   const [activeTab, setActiveTab] = useState<TabStatus>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalQuotes, setTotalQuotes] = useState(0);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(totalQuotes / pageSize));
+  const paginatedQuotes = quotes;
 
   // Detail Modal State
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequestData | null>(
@@ -50,6 +61,25 @@ export default function AdminQuotesPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const fetchQuotes = useCallback(async () => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const res = await quotesApi.listQuotesPaginated(token, {
+        status: activeTab !== "All" ? activeTab : undefined,
+        search: searchQuery.trim() || undefined,
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize,
+      });
+      setQuotes(res.items);
+      setTotalQuotes(res.total);
+    } catch (e) {
+      console.error("Failed to load quotes", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, activeTab, searchQuery, currentPage, pageSize]);
+
   const refreshData = useCallback(() => {
     if (!token) return;
     quotesApi
@@ -61,46 +91,20 @@ export default function AdminQuotesPage() {
         }
       })
       .catch(() => {});
-    quotesApi
-      .listQuotes(token, {
-        status: activeTab !== "All" ? activeTab : undefined,
-        search: searchQuery.trim() || undefined,
-      })
-      .then(setQuotes)
-      .catch(() => {});
-  }, [token, activeTab, searchQuery]);
+    fetchQuotes();
+  }, [token, fetchQuotes]);
 
   useEffect(() => {
-    let active = true;
     if (!token) return;
-
     quotesApi
       .getQuoteStats(token)
-      .then((data) => {
-        if (active) setStats(data);
-      })
+      .then(setStats)
       .catch((e) => console.error("Failed to load stats", e));
+  }, [token]);
 
-    quotesApi
-      .listQuotes(token, {
-        status: activeTab !== "All" ? activeTab : undefined,
-        search: searchQuery.trim() || undefined,
-      })
-      .then((data) => {
-        if (active) {
-          setQuotes(data);
-          setIsLoading(false);
-        }
-      })
-      .catch((e) => {
-        console.error("Failed to load quotes", e);
-        if (active) setIsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [token, activeTab, searchQuery]);
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
 
   const handleOpenDetails = (q: QuoteRequestData) => {
     setSelectedQuote(q);
@@ -271,162 +275,179 @@ export default function AdminQuotesPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 text-gray-500 uppercase text-[11px] font-bold border-b border-gray-200">
-                <tr>
-                  <th className="px-5 py-3.5">ID &amp; Facility</th>
-                  <th className="px-4 py-3.5">Contact Person</th>
-                  <th className="px-4 py-3.5">Equipment Requested</th>
-                  <th className="px-4 py-3.5">Date &amp; Urgency</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {quotes.length === 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 text-gray-500 uppercase text-[11px] font-bold border-b border-gray-200">
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-12 text-center text-gray-400"
-                    >
-                      <span className="material-symbols-outlined text-4xl block mb-2 text-gray-300">
-                        receipt_long
-                      </span>
-                      No quote requests found in this view.
-                    </td>
+                    <th className="px-5 py-3.5">ID &amp; Facility</th>
+                    <th className="px-4 py-3.5">Contact Person</th>
+                    <th className="px-4 py-3.5">Equipment Requested</th>
+                    <th className="px-4 py-3.5">Date &amp; Urgency</th>
+                    <th className="px-4 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Action</th>
                   </tr>
-                ) : (
-                  quotes.map((q) => (
-                    <tr
-                      key={q.id}
-                      className="hover:bg-slate-50/70 transition-colors"
-                    >
-                      {/* ID & Facility */}
-                      <td className="px-5 py-4">
-                        <div className="font-bold text-navy text-sm">
-                          {q.facility_name}
-                        </div>
-                        <div className="text-[11px] text-gray-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
-                          <span className="text-blue-600 font-semibold">
-                            {q.quote_number}
-                          </span>
-                          {q.sector && (
-                            <>
-                              <span>&bull;</span>
-                              <span>{q.sector}</span>
-                            </>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Contact Person */}
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-gray-800">
-                          {q.contact_name}
-                        </div>
-                        <div className="text-[11px] text-gray-500 truncate">
-                          {q.email}
-                        </div>
-                      </td>
-
-                      {/* Equipment Requested */}
-                      <td className="px-4 py-4">
-                        <div className="space-y-1">
-                          {q.items.slice(0, 3).map((item, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-1.5 text-xs text-gray-700"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                              <span className="font-semibold">
-                                {item.product_name}
-                              </span>
-                              {item.brand_name && (
-                                <span className="text-gray-400">
-                                  ({item.brand_name})
-                                </span>
-                              )}
-                              <span className="font-mono bg-slate-100 text-gray-600 px-1.5 py-0.2 rounded text-[10px] font-bold">
-                                &times;{item.quantity}
-                              </span>
-                            </div>
-                          ))}
-                          {q.items.length > 3 && (
-                            <div className="text-[10px] text-gray-400 font-semibold pl-3">
-                              +{q.items.length - 3} more item(s)
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Date & Urgency */}
-                      <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
-                        <div>
-                          {new Date(q.created_at).toLocaleDateString("en-ZA", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </div>
-                        <span
-                          className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full border ${getUrgencyBadge(
-                            q.urgency,
-                          )}`}
-                        >
-                          {q.urgency}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {quotes.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-gray-400"
+                      >
+                        <span className="material-symbols-outlined text-4xl block mb-2 text-gray-300">
+                          receipt_long
                         </span>
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${getStatusBadge(
-                            q.status,
-                          )}`}
-                        >
-                          {q.status}
-                        </span>
-                        {q.quoted_amount && (
-                          <div className="text-[11px] font-bold text-emerald-700 mt-1">
-                            {q.quoted_amount}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenDetails(q)}
-                            className="bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
-                          >
-                            <span>Review</span>
-                            <span className="material-symbols-outlined text-xs!">
-                              visibility
-                            </span>
-                          </button>
-                          {canWriteQuotes && (
-                            <button
-                              type="button"
-                              onClick={() => setQuoteToDelete(q)}
-                              className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
-                              title="Delete Quote"
-                            >
-                              <span className="material-symbols-outlined text-sm!">
-                                delete
-                              </span>
-                            </button>
-                          )}
-                        </div>
+                        No quote requests found in this view.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    paginatedQuotes.map((q) => (
+                      <tr
+                        key={q.id}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
+                        {/* ID & Facility */}
+                        <td className="px-5 py-4">
+                          <div className="font-bold text-navy text-sm">
+                            {q.facility_name}
+                          </div>
+                          <div className="text-[11px] text-gray-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-blue-600 font-semibold">
+                              {q.quote_number}
+                            </span>
+                            {q.sector && (
+                              <>
+                                <span>&bull;</span>
+                                <span>{q.sector}</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Contact Person */}
+                        <td className="px-4 py-4">
+                          <div className="font-medium text-gray-800">
+                            {q.contact_name}
+                          </div>
+                          <div className="text-[11px] text-gray-500 truncate">
+                            {q.email}
+                          </div>
+                        </td>
+
+                        {/* Equipment Requested */}
+                        <td className="px-4 py-4">
+                          <div className="space-y-1">
+                            {q.items.slice(0, 3).map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1.5 text-xs text-gray-700"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                <span className="font-semibold">
+                                  {item.product_name}
+                                </span>
+                                {item.brand_name && (
+                                  <span className="text-gray-400">
+                                    ({item.brand_name})
+                                  </span>
+                                )}
+                                <span className="font-mono bg-slate-100 text-gray-600 px-1.5 py-0.2 rounded text-[10px] font-bold">
+                                  &times;{item.quantity}
+                                </span>
+                              </div>
+                            ))}
+                            {q.items.length > 3 && (
+                              <div className="text-[10px] text-gray-400 font-semibold pl-3">
+                                +{q.items.length - 3} more item(s)
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Date & Urgency */}
+                        <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
+                          <div>
+                            {new Date(q.created_at).toLocaleDateString(
+                              "en-ZA",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              },
+                            )}
+                          </div>
+                          <span
+                            className={`inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full border ${getUrgencyBadge(
+                              q.urgency,
+                            )}`}
+                          >
+                            {q.urgency}
+                          </span>
+                        </td>
+
+                        {/* Status Badge */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${getStatusBadge(
+                              q.status,
+                            )}`}
+                          >
+                            {q.status}
+                          </span>
+                          {q.quoted_amount && (
+                            <div className="text-[11px] font-bold text-emerald-700 mt-1">
+                              {q.quoted_amount}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDetails(q)}
+                              className="bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:bg-navy-light transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <span>Review</span>
+                              <span className="material-symbols-outlined text-xs!">
+                                visibility
+                              </span>
+                            </button>
+                            {canWriteQuotes && (
+                              <button
+                                type="button"
+                                onClick={() => setQuoteToDelete(q)}
+                                className="text-gray-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
+                                title="Delete Quote"
+                              >
+                                <span className="material-symbols-outlined text-sm!">
+                                  delete
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <AdminPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalQuotes}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              itemLabel="quotes"
+            />
+          </>
         )}
       </div>
 

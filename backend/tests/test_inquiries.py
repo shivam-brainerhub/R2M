@@ -80,6 +80,7 @@ def test_admin_list_and_update_contact_message(
         "/api/inquiries/contact?status=New", headers=admin_token_headers
     )
     assert list_resp.status_code == 200
+    assert "x-total-count" in list_resp.headers
     items = list_resp.json()
     assert any(i["id"] == msg_id for i in items)
 

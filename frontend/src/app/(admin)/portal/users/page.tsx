@@ -1,6 +1,7 @@
 "use client";
 
 import CustomSelect from "@/components/CustomSelect";
+import AdminPagination from "@/components/admin/AdminPagination";
 import { useAuth } from "@/context/AuthContext";
 import {
   AdminCreateUserPayload,
@@ -91,6 +92,9 @@ export default function AdminUsersPage() {
     useState<VerificationFilter>("all");
   const [sortField, setSortField] = useState<SortField>("id");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   // Modals & Action States
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -172,14 +176,35 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [usersData, rolesData] = await Promise.all([
-        adminUsersApi.listUsers(token, {
+      const roleParam = roleFilter !== "all" ? roleFilter : undefined;
+      const isActiveParam =
+        statusFilter === "active"
+          ? true
+          : statusFilter === "suspended"
+            ? false
+            : undefined;
+      const isEmailVerifiedParam =
+        verifiedFilter === "verified"
+          ? true
+          : verifiedFilter === "unverified"
+            ? false
+            : undefined;
+
+      const [usersRes, rolesData] = await Promise.all([
+        adminUsersApi.listUsersPaginated(token, {
+          search: searchQuery.trim() || undefined,
+          role: roleParam,
+          is_active: isActiveParam,
+          is_email_verified: isEmailVerifiedParam,
           sort_by: sortField,
           sort_order: sortDirection,
+          skip: (currentPage - 1) * pageSize,
+          limit: pageSize,
         }),
         adminRolesApi.listRoles(token).catch(() => []),
       ]);
-      setUsers(usersData);
+      setUsers(usersRes.items);
+      setTotalUsers(usersRes.total);
       setRoles(rolesData);
     } catch (err) {
       const msg =
@@ -188,36 +213,21 @@ export default function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, sortField, sortDirection]);
+  }, [
+    token,
+    searchQuery,
+    roleFilter,
+    statusFilter,
+    verifiedFilter,
+    sortField,
+    sortDirection,
+    currentPage,
+    pageSize,
+  ]);
 
   useEffect(() => {
-    let isMounted = true;
-    if (!token) return;
-    setIsLoading(true);
-    Promise.all([
-      adminUsersApi.listUsers(token, {
-        sort_by: sortField,
-        sort_order: sortDirection,
-      }),
-      adminRolesApi.listRoles(token).catch(() => []),
-    ])
-      .then(([usersData, rolesData]) => {
-        if (!isMounted) return;
-        setUsers(usersData);
-        setRoles(rolesData);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        const msg =
-          err instanceof ApiError ? err.message : "Failed to load users";
-        setError(msg);
-        setIsLoading(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [token, sortField, sortDirection]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Lock background screen scroll when any modal is open
   const isAnyModalOpen =
@@ -238,47 +248,12 @@ export default function AdminUsersPage() {
     }
   }, [isAnyModalOpen]);
 
-  // Client-side filtering & search for quick responsive UX
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      // Search
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const matchesUsername = u.username.toLowerCase().includes(query);
-        const matchesEmail = u.email.toLowerCase().includes(query);
-        const matchesName = u.full_name
-          ? u.full_name.toLowerCase().includes(query)
-          : false;
-        const matchesOrg = u.organization
-          ? u.organization.toLowerCase().includes(query)
-          : false;
-        if (!matchesUsername && !matchesEmail && !matchesName && !matchesOrg)
-          return false;
-      }
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter, verifiedFilter]);
 
-      // Role filter
-      if (roleFilter !== "all") {
-        const matchesSlug = u.role === roleFilter;
-        const matchesName =
-          u.role_name && u.role_name.toLowerCase() === roleFilter.toLowerCase();
-        const matchesId =
-          u.role_id !== undefined && String(u.role_id) === roleFilter;
-        if (!matchesSlug && !matchesName && !matchesId) {
-          return false;
-        }
-      }
-
-      // Status filter
-      if (statusFilter === "active" && !u.is_active) return false;
-      if (statusFilter === "suspended" && u.is_active) return false;
-
-      // Verification filter
-      if (verifiedFilter === "verified" && !u.is_email_verified) return false;
-      if (verifiedFilter === "unverified" && u.is_email_verified) return false;
-
-      return true;
-    });
-  }, [users, searchQuery, roleFilter, statusFilter, verifiedFilter]);
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
+  const paginatedUsers = users;
 
   // Sorting Handler
   const handleSort = (field: SortField) => {
@@ -838,9 +813,8 @@ export default function AdminUsersPage() {
           </div>
 
           <div className="ml-auto text-xs text-gray-500 font-medium">
-            Showing{" "}
-            <span className="font-bold text-navy">{filteredUsers.length}</span>{" "}
-            of {users.length} users
+            Showing <span className="font-bold text-navy">{users.length}</span>{" "}
+            of <span className="font-bold text-navy">{totalUsers}</span> users
           </div>
         </div>
       </div>
@@ -867,7 +841,7 @@ export default function AdminUsersPage() {
               Try Again
             </button>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="py-16 text-center px-4">
             <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">
               person_off
@@ -879,314 +853,328 @@ export default function AdminUsersPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-slate-50 text-gray-500 uppercase text-[11px] font-bold border-b border-gray-200">
-                <tr>
-                  <th
-                    className="px-5 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => handleSort("username")}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>User Details</span>
-                      {sortField === "username" && (
-                        <span className="material-symbols-outlined text-xs!">
-                          {sortDirection === "asc"
-                            ? "arrow_upward"
-                            : "arrow_downward"}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => handleSort("email")}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Email &amp; Verification</span>
-                      {sortField === "email" && (
-                        <span className="material-symbols-outlined text-xs!">
-                          {sortDirection === "asc"
-                            ? "arrow_upward"
-                            : "arrow_downward"}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-4 py-3">Role &amp; Permissions</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th
-                    className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
-                    onClick={() => handleSort("created_at")}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Joined</span>
-                      {sortField === "created_at" && (
-                        <span className="material-symbols-outlined text-xs!">
-                          {sortDirection === "asc"
-                            ? "arrow_upward"
-                            : "arrow_downward"}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredUsers.map((u) => {
-                  const isCurrentAdmin = currentAdmin?.id === u.id;
-                  const isActionLoading = actionLoadingId === u.id;
-                  const targetIsAdmin =
-                    u.is_admin || u.role?.toLowerCase() === "admin";
-                  const canManageThisUser =
-                    canWriteUsers && (isAdmin || !targetIsAdmin);
-
-                  return (
-                    <tr
-                      key={u.id}
-                      className="hover:bg-slate-50/70 transition-colors"
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-50 text-gray-500 uppercase text-[11px] font-bold border-b border-gray-200">
+                  <tr>
+                    <th
+                      className="px-5 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => handleSort("username")}
                     >
-                      {/* User Info */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                              u.is_admin || u.role?.toLowerCase() === "admin"
-                                ? "bg-blue-600 text-white"
-                                : "bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {getUserInitials(u.full_name, u.username)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-navy flex items-center gap-1.5 truncate">
-                              <span>{u.username}</span>
-                              {isCurrentAdmin && (
-                                <span className="bg-gold/20 text-navy border border-gold/40 text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full">
-                                  You
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate">
-                              {u.full_name || (
-                                <span className="italic text-gray-400">
-                                  No name specified
-                                </span>
-                              )}
-                            </div>
-                            {u.organization && (
-                              <div className="text-[11px] text-gray-600 font-medium truncate flex items-center gap-1 mt-0.5">
-                                <span className="material-symbols-outlined text-[12px] text-gray-400">
-                                  corporate_fare
-                                </span>
-                                <span>{u.organization}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Email & Verified */}
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-gray-800 text-xs sm:text-sm">
-                          {u.email}
-                        </div>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          {u.is_email_verified ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                              <span className="material-symbols-outlined text-[12px]!">
-                                check_circle
-                              </span>
-                              Confirmed
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                              <span className="material-symbols-outlined text-[12px]!">
-                                pending
-                              </span>
-                              Unconfirmed
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Role & Permissions Badge */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex flex-col items-start gap-1">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide border ${
-                              u.is_admin || u.role?.toLowerCase() === "admin"
-                                ? "bg-blue-100 text-blue-800 border-blue-200"
-                                : "bg-slate-100 text-slate-700 border-slate-200"
-                            }`}
-                          >
-                            {u.role_name || u.role}
-                          </span>
-                          {u.has_custom_permissions && (
-                            <span
-                              className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full"
-                              title="User has customized section permission overrides"
-                            >
-                              <span className="material-symbols-outlined text-[10px]!">
-                                tune
-                              </span>
-                              Custom Overrides
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        {u.is_active ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                            Suspended
+                      <div className="flex items-center gap-1">
+                        <span>User Details</span>
+                        {sortField === "username" && (
+                          <span className="material-symbols-outlined text-xs!">
+                            {sortDirection === "asc"
+                              ? "arrow_upward"
+                              : "arrow_downward"}
                           </span>
                         )}
-                      </td>
+                      </div>
+                    </th>
+                    <th
+                      className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => handleSort("email")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Email &amp; Verification</span>
+                        {sortField === "email" && (
+                          <span className="material-symbols-outlined text-xs!">
+                            {sortDirection === "asc"
+                              ? "arrow_upward"
+                              : "arrow_downward"}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">Role &amp; Permissions</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th
+                      className="px-4 py-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => handleSort("created_at")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Joined</span>
+                        {sortField === "created_at" && (
+                          <span className="material-symbols-outlined text-xs!">
+                            {sortDirection === "asc"
+                              ? "arrow_upward"
+                              : "arrow_downward"}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedUsers.map((u) => {
+                    const isCurrentAdmin = currentAdmin?.id === u.id;
+                    const isActionLoading = actionLoadingId === u.id;
+                    const targetIsAdmin =
+                      u.is_admin || u.role?.toLowerCase() === "admin";
+                    const canManageThisUser =
+                      canWriteUsers && (isAdmin || !targetIsAdmin);
 
-                      {/* Date Joined */}
-                      <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
-                        {u.created_at
-                          ? new Date(u.created_at).toLocaleDateString()
-                          : "N/A"}
-                      </td>
+                    return (
+                      <tr
+                        key={u.id}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
+                        {/* User Info */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                                u.is_admin || u.role?.toLowerCase() === "admin"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {getUserInitials(u.full_name, u.username)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-navy flex items-center gap-1.5 truncate">
+                                <span>{u.username}</span>
+                                {isCurrentAdmin && (
+                                  <span className="bg-gold/20 text-navy border border-gold/40 text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full">
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {u.full_name || (
+                                  <span className="italic text-gray-400">
+                                    No name specified
+                                  </span>
+                                )}
+                              </div>
+                              {u.organization && (
+                                <div className="text-[11px] text-gray-600 font-medium truncate flex items-center gap-1 mt-0.5">
+                                  <span className="material-symbols-outlined text-[12px] text-gray-400">
+                                    corporate_fare
+                                  </span>
+                                  <span>{u.organization}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
 
-                      {/* Action buttons */}
-                      <td className="px-5 py-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
-                          {canManageThisUser ? (
-                            <>
-                              {/* Edit User & Permissions */}
-                              <button
-                                onClick={() => handleOpenEditUser(u)}
-                                title="Edit user profile and section permissions"
-                                className="p-1.5 text-blue-700 hover:bg-blue-100/70 rounded-lg transition-all border border-blue-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
-                              >
-                                <span className="material-symbols-outlined text-base!">
-                                  edit
+                        {/* Email & Verified */}
+                        <td className="px-4 py-4">
+                          <div className="font-medium text-gray-800 text-xs sm:text-sm">
+                            {u.email}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            {u.is_email_verified ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                <span className="material-symbols-outlined text-[12px]!">
+                                  check_circle
                                 </span>
-                              </button>
+                                Confirmed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                <span className="material-symbols-outlined text-[12px]!">
+                                  pending
+                                </span>
+                                Unconfirmed
+                              </span>
+                            )}
+                          </div>
+                        </td>
 
-                              {/* Resend Confirmation Email (Only if not verified) */}
-                              {!u.is_email_verified && (
+                        {/* Role & Permissions Badge */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide border ${
+                                u.is_admin || u.role?.toLowerCase() === "admin"
+                                  ? "bg-blue-100 text-blue-800 border-blue-200"
+                                  : "bg-slate-100 text-slate-700 border-slate-200"
+                              }`}
+                            >
+                              {u.role_name || u.role}
+                            </span>
+                            {u.has_custom_permissions && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full"
+                                title="User has customized section permission overrides"
+                              >
+                                <span className="material-symbols-outlined text-[10px]!">
+                                  tune
+                                </span>
+                                Custom Overrides
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {u.is_active ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                              Suspended
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Date Joined */}
+                        <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
+                          {u.created_at
+                            ? new Date(u.created_at).toLocaleDateString()
+                            : "N/A"}
+                        </td>
+
+                        {/* Action buttons */}
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            {canManageThisUser ? (
+                              <>
+                                {/* Edit User & Permissions */}
                                 <button
-                                  onClick={() => handleResendConfirmation(u)}
-                                  disabled={isActionLoading}
-                                  title="Resend verification email"
-                                  className="p-1.5 text-purple-700 hover:bg-purple-100/70 rounded-lg transition-all border border-purple-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
+                                  onClick={() => handleOpenEditUser(u)}
+                                  title="Edit user profile and section permissions"
+                                  className="p-1.5 text-blue-700 hover:bg-blue-100/70 rounded-lg transition-all border border-blue-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                                 >
                                   <span className="material-symbols-outlined text-base!">
-                                    mark_email_read
+                                    edit
                                   </span>
                                 </button>
-                              )}
 
-                              {/* Set Password */}
-                              <button
-                                onClick={() => {
-                                  setSelectedUser(u);
-                                  setNewPassword("");
-                                  setConfirmPassword("");
-                                  setPasswordError(null);
-                                  setIsPasswordModalOpen(true);
-                                }}
-                                title="Set / Reset Password"
-                                className="p-1.5 text-indigo-700 hover:bg-indigo-100/70 rounded-lg transition-all border border-indigo-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
-                              >
-                                <span className="material-symbols-outlined text-base!">
-                                  lock_reset
-                                </span>
-                              </button>
+                                {/* Resend Confirmation Email (Only if not verified) */}
+                                {!u.is_email_verified && (
+                                  <button
+                                    onClick={() => handleResendConfirmation(u)}
+                                    disabled={isActionLoading}
+                                    title="Resend verification email"
+                                    className="p-1.5 text-purple-700 hover:bg-purple-100/70 rounded-lg transition-all border border-purple-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
+                                  >
+                                    <span className="material-symbols-outlined text-base!">
+                                      mark_email_read
+                                    </span>
+                                  </button>
+                                )}
 
-                              {/* Suspend / Reactivate */}
-                              {!isCurrentAdmin && (
+                                {/* Set Password */}
                                 <button
                                   onClick={() => {
                                     setSelectedUser(u);
-                                    setTargetSuspendState(!u.is_active);
-                                    setSuspendModalOpen(true);
+                                    setNewPassword("");
+                                    setConfirmPassword("");
+                                    setPasswordError(null);
+                                    setIsPasswordModalOpen(true);
                                   }}
-                                  title={
-                                    u.is_active
-                                      ? "Suspend account"
-                                      : "Reactivate account"
-                                  }
-                                  className={`p-1.5 rounded-lg transition-all border cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs ${
-                                    u.is_active
-                                      ? "text-amber-700 hover:bg-amber-100/70 border-amber-200"
-                                      : "text-emerald-700 hover:bg-emerald-100/70 border-emerald-200"
-                                  }`}
+                                  title="Set / Reset Password"
+                                  className="p-1.5 text-indigo-700 hover:bg-indigo-100/70 rounded-lg transition-all border border-indigo-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                                 >
                                   <span className="material-symbols-outlined text-base!">
-                                    {u.is_active
-                                      ? "pause_circle"
-                                      : "play_circle"}
+                                    lock_reset
                                   </span>
                                 </button>
-                              )}
 
-                              {/* Delete Account (Only visible for suspended accounts) */}
-                              {!isCurrentAdmin && !u.is_active && (
+                                {/* Suspend / Reactivate */}
+                                {!isCurrentAdmin && (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setTargetSuspendState(!u.is_active);
+                                      setSuspendModalOpen(true);
+                                    }}
+                                    title={
+                                      u.is_active
+                                        ? "Suspend account"
+                                        : "Reactivate account"
+                                    }
+                                    className={`p-1.5 rounded-lg transition-all border cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs ${
+                                      u.is_active
+                                        ? "text-amber-700 hover:bg-amber-100/70 border-amber-200"
+                                        : "text-emerald-700 hover:bg-emerald-100/70 border-emerald-200"
+                                    }`}
+                                  >
+                                    <span className="material-symbols-outlined text-base!">
+                                      {u.is_active
+                                        ? "pause_circle"
+                                        : "play_circle"}
+                                    </span>
+                                  </button>
+                                )}
+
+                                {/* Delete Account (Only visible for suspended accounts) */}
+                                {!isCurrentAdmin && !u.is_active && (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedUser(u);
+                                      setDeleteModalOpen(true);
+                                    }}
+                                    title="Permanently delete suspended account"
+                                    className="p-1.5 text-rose-700 hover:bg-rose-100/70 rounded-lg transition-all border border-rose-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
+                                  >
+                                    <span className="material-symbols-outlined text-base!">
+                                      delete
+                                    </span>
+                                  </button>
+                                )}
+
+                                {/* View details */}
                                 <button
                                   onClick={() => {
                                     setSelectedUser(u);
-                                    setDeleteModalOpen(true);
+                                    setViewDetailsModalOpen(true);
                                   }}
-                                  title="Permanently delete suspended account"
-                                  className="p-1.5 text-rose-700 hover:bg-rose-100/70 rounded-lg transition-all border border-rose-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
+                                  title="View user details and effective permissions"
+                                  className="p-1.5 text-gray-600 hover:text-navy hover:bg-slate-100 rounded-lg transition-all border border-gray-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
                                 >
                                   <span className="material-symbols-outlined text-base!">
-                                    delete
+                                    visibility
                                   </span>
                                 </button>
-                              )}
-
-                              {/* View details */}
+                              </>
+                            ) : (
+                              /* Read-only or protected admin view button */
                               <button
                                 onClick={() => {
                                   setSelectedUser(u);
                                   setViewDetailsModalOpen(true);
                                 }}
                                 title="View user details and effective permissions"
-                                className="p-1.5 text-gray-600 hover:text-navy hover:bg-slate-100 rounded-lg transition-all border border-gray-200 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xs"
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy border border-gray-200 transition-colors cursor-pointer shadow-2xs"
                               >
-                                <span className="material-symbols-outlined text-base!">
+                                <span className="material-symbols-outlined text-sm!">
                                   visibility
                                 </span>
+                                <span>View Details</span>
                               </button>
-                            </>
-                          ) : (
-                            /* Read-only or protected admin view button */
-                            <button
-                              onClick={() => {
-                                setSelectedUser(u);
-                                setViewDetailsModalOpen(true);
-                              }}
-                              title="View user details and effective permissions"
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-navy border border-gray-200 transition-colors cursor-pointer shadow-2xs"
-                            >
-                              <span className="material-symbols-outlined text-sm!">
-                                visibility
-                              </span>
-                              <span>View Details</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <AdminPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalUsers}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              itemLabel="users"
+            />
+          </>
         )}
       </div>
 

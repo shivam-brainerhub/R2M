@@ -24,6 +24,7 @@ interface AuthContextType {
   isAdmin: boolean;
   canAccessAdmin: boolean;
   canAccessPortal: boolean;
+  isCustomer: boolean;
   hasPermission: (
     section: PermissionSection | string,
     level?: "read" | "write",
@@ -173,13 +174,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user?.role_name?.toLowerCase() === "administrator",
   );
 
-  const canAccessAdmin = Boolean(
-    isAdmin ||
-      (user?.permissions &&
-        Object.values(user.permissions).some(
-          (lvl) => lvl === "read" || lvl === "read_write",
-        )),
+  const isCustomerRole = Boolean(
+    !isAdmin &&
+      (user?.role?.toLowerCase() === "user" ||
+        user?.role?.toLowerCase() === "customer" ||
+        user?.role_name?.toLowerCase() === "customer"),
   );
+
+  const hasAnyStaffPermission = Boolean(
+    user?.permissions &&
+      Object.values(user.permissions).some(
+        (lvl) => lvl === "read" || lvl === "read_write",
+      ),
+  );
+
+  // Customer role is strictly for public site accounts and has no portal access
+  const isCustomer = Boolean(
+    !isAdmin && (isCustomerRole || !hasAnyStaffPermission),
+  );
+  const canAccessAdmin = Boolean(
+    isAdmin || (!isCustomer && hasAnyStaffPermission),
+  );
+  const canAccessPortal = canAccessAdmin;
 
   const hasPermission = useCallback(
     (
@@ -194,6 +210,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) {
         return true;
       }
+      // Customer accounts have no operational permissions in portal
+      if (isCustomer) {
+        return false;
+      }
       const userLevel = user.permissions?.[section] || "none";
       if (level === "read") {
         return userLevel === "read" || userLevel === "read_write";
@@ -203,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
     },
-    [user],
+    [user, isCustomer],
   );
 
   const changePassword = async (payload: {
@@ -223,7 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isAdmin,
         canAccessAdmin,
-        canAccessPortal: canAccessAdmin,
+        canAccessPortal,
+        isCustomer,
         hasPermission,
         login,
         register,

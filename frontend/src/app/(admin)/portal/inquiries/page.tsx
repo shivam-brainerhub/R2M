@@ -1,6 +1,7 @@
 "use client";
 
 import CustomSelect from "@/components/CustomSelect";
+import AdminPagination from "@/components/admin/AdminPagination";
 import { useAuth } from "@/context/AuthContext";
 import {
   ApiError,
@@ -30,6 +31,9 @@ export default function AdminInquiriesPage() {
   const [contactStatusFilter, setContactStatusFilter] = useState<string>("All");
   const [contactSearch, setContactSearch] = useState<string>("");
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [contactPage, setContactPage] = useState(1);
+  const [contactPageSize, setContactPageSize] = useState(10);
+  const [totalContactMessages, setTotalContactMessages] = useState(0);
 
   // Supplier Applications State
   const [supplierApps, setSupplierApps] = useState<SupplierApplicationItem[]>(
@@ -39,6 +43,9 @@ export default function AdminInquiriesPage() {
     useState<string>("All");
   const [supplierSearch, setSupplierSearch] = useState<string>("");
   const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
+  const [supplierPage, setSupplierPage] = useState(1);
+  const [supplierPageSize, setSupplierPageSize] = useState(10);
+  const [totalSupplierApps, setTotalSupplierApps] = useState(0);
 
   // Modals & Active Selections
   const [selectedContact, setSelectedContact] =
@@ -94,11 +101,14 @@ export default function AdminInquiriesPage() {
     if (!token) return;
     setIsLoadingContacts(true);
     try {
-      const data = await inquiriesApi.listContactMessages(token, {
-        status: contactStatusFilter,
-        search: contactSearch,
+      const res = await inquiriesApi.listContactMessagesPaginated(token, {
+        status: contactStatusFilter !== "All" ? contactStatusFilter : undefined,
+        search: contactSearch.trim() || undefined,
+        skip: (contactPage - 1) * contactPageSize,
+        limit: contactPageSize,
       });
-      setContactMessages(data);
+      setContactMessages(res.items);
+      setTotalContactMessages(res.total);
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -108,17 +118,21 @@ export default function AdminInquiriesPage() {
     } finally {
       setIsLoadingContacts(false);
     }
-  }, [token, contactStatusFilter, contactSearch]);
+  }, [token, contactStatusFilter, contactSearch, contactPage, contactPageSize]);
 
   const fetchSupplierApplications = useCallback(async () => {
     if (!token) return;
     setIsLoadingSuppliers(true);
     try {
-      const data = await inquiriesApi.listSupplierApplications(token, {
-        status: supplierStatusFilter,
-        search: supplierSearch,
+      const res = await inquiriesApi.listSupplierApplicationsPaginated(token, {
+        status:
+          supplierStatusFilter !== "All" ? supplierStatusFilter : undefined,
+        search: supplierSearch.trim() || undefined,
+        skip: (supplierPage - 1) * supplierPageSize,
+        limit: supplierPageSize,
       });
-      setSupplierApps(data);
+      setSupplierApps(res.items);
+      setTotalSupplierApps(res.total);
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -128,7 +142,13 @@ export default function AdminInquiriesPage() {
     } finally {
       setIsLoadingSuppliers(false);
     }
-  }, [token, supplierStatusFilter, supplierSearch]);
+  }, [
+    token,
+    supplierStatusFilter,
+    supplierSearch,
+    supplierPage,
+    supplierPageSize,
+  ]);
 
   useEffect(() => {
     let active = true;
@@ -147,66 +167,32 @@ export default function AdminInquiriesPage() {
   }, [token]);
 
   useEffect(() => {
-    let active = true;
-    if (!token) return;
-
     if (activeTab === "contact") {
-      inquiriesApi
-        .listContactMessages(token, {
-          status: contactStatusFilter,
-          search: contactSearch,
-        })
-        .then((data) => {
-          if (active) {
-            setContactMessages(data);
-            setIsLoadingContacts(false);
-          }
-        })
-        .catch((err) => {
-          if (active) {
-            const msg =
-              err instanceof ApiError
-                ? err.message
-                : "Failed to load contact messages";
-            showToast(msg, "error");
-            setIsLoadingContacts(false);
-          }
-        });
+      fetchContactMessages();
     } else {
-      inquiriesApi
-        .listSupplierApplications(token, {
-          status: supplierStatusFilter,
-          search: supplierSearch,
-        })
-        .then((data) => {
-          if (active) {
-            setSupplierApps(data);
-            setIsLoadingSuppliers(false);
-          }
-        })
-        .catch((err) => {
-          if (active) {
-            const msg =
-              err instanceof ApiError
-                ? err.message
-                : "Failed to load supplier applications";
-            showToast(msg, "error");
-            setIsLoadingSuppliers(false);
-          }
-        });
+      fetchSupplierApplications();
     }
+  }, [activeTab, fetchContactMessages, fetchSupplierApplications]);
 
-    return () => {
-      active = false;
-    };
-  }, [
-    token,
-    activeTab,
-    contactStatusFilter,
-    contactSearch,
-    supplierStatusFilter,
-    supplierSearch,
-  ]);
+  useEffect(() => {
+    setContactPage(1);
+  }, [contactStatusFilter, contactSearch]);
+
+  useEffect(() => {
+    setSupplierPage(1);
+  }, [supplierStatusFilter, supplierSearch]);
+
+  const totalContactPages = Math.max(
+    1,
+    Math.ceil(totalContactMessages / contactPageSize),
+  );
+  const paginatedContactMessages = contactMessages;
+
+  const totalSupplierPages = Math.max(
+    1,
+    Math.ceil(totalSupplierApps / supplierPageSize),
+  );
+  const paginatedSupplierApps = supplierApps;
 
   // Lock background screen scroll when any inquiry modal is open
   const isAnyInquiryModalOpen = Boolean(
@@ -650,87 +636,101 @@ export default function AdminInquiriesPage() {
                 No contact inquiries match your filters.
               </div>
             ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
-                  <tr>
-                    <th className="py-3 px-4">Sender</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Message Snippet</th>
-                    <th className="py-3 px-4">Received</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {contactMessages.map((msg) => (
-                    <tr
-                      key={msg.id}
-                      className="hover:bg-slate-50/60 transition-colors"
-                    >
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-navy">
-                          {msg.first_name} {msg.last_name}
-                        </div>
-                        {msg.organization && (
-                          <div className="text-[11px] text-gray-500">
-                            {msg.organization}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <a
-                          href={`mailto:${msg.email}`}
-                          className="text-navy hover:underline flex items-center gap-1 font-medium"
-                        >
-                          {msg.email}
-                        </a>
-                      </td>
-                      <td className="py-3 px-4 max-w-xs truncate text-gray-600">
-                        {msg.message}
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
-                        {formatDate(msg.created_at)}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
-                            msg.status,
-                          )}`}
-                        >
-                          {msg.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleOpenContactModal(msg)}
-                            className="px-2.5 py-1 text-xs font-semibold text-navy bg-navy/5 hover:bg-navy/10 rounded-md transition-colors cursor-pointer"
-                          >
-                            View
-                          </button>
-                          {canWriteInquiries && (
-                            <button
-                              onClick={() =>
-                                setItemToDelete({
-                                  id: msg.id,
-                                  type: "contact",
-                                  name: `${msg.first_name} ${msg.last_name}`,
-                                })
-                              }
-                              className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                              title="Delete"
-                            >
-                              <span className="material-symbols-outlined text-base">
-                                delete
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
+              <>
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="py-3 px-4">Sender</th>
+                      <th className="py-3 px-4">Email</th>
+                      <th className="py-3 px-4">Message Snippet</th>
+                      <th className="py-3 px-4">Received</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginatedContactMessages.map((msg) => (
+                      <tr
+                        key={msg.id}
+                        className="hover:bg-slate-50/60 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-navy">
+                            {msg.first_name} {msg.last_name}
+                          </div>
+                          {msg.organization && (
+                            <div className="text-[11px] text-gray-500">
+                              {msg.organization}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <a
+                            href={`mailto:${msg.email}`}
+                            className="text-navy hover:underline flex items-center gap-1 font-medium"
+                          >
+                            {msg.email}
+                          </a>
+                        </td>
+                        <td className="py-3 px-4 max-w-xs truncate text-gray-600">
+                          {msg.message}
+                        </td>
+                        <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
+                          {formatDate(msg.created_at)}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
+                              msg.status,
+                            )}`}
+                          >
+                            {msg.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenContactModal(msg)}
+                              className="px-2.5 py-1 text-xs font-semibold text-navy bg-navy/5 hover:bg-navy/10 rounded-md transition-colors cursor-pointer"
+                            >
+                              View
+                            </button>
+                            {canWriteInquiries && (
+                              <button
+                                onClick={() =>
+                                  setItemToDelete({
+                                    id: msg.id,
+                                    type: "contact",
+                                    name: `${msg.first_name} ${msg.last_name}`,
+                                  })
+                                }
+                                className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                                title="Delete"
+                              >
+                                <span className="material-symbols-outlined text-base">
+                                  delete
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <AdminPagination
+                  currentPage={contactPage}
+                  totalPages={totalContactPages}
+                  totalItems={totalContactMessages}
+                  pageSize={contactPageSize}
+                  onPageChange={setContactPage}
+                  onPageSizeChange={(newSize) => {
+                    setContactPageSize(newSize);
+                    setContactPage(1);
+                  }}
+                  itemLabel="inquiries"
+                />
+              </>
             )}
           </div>
         )}
@@ -751,114 +751,128 @@ export default function AdminInquiriesPage() {
                 No supplier applications match your filters.
               </div>
             ) : (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
-                  <tr>
-                    <th className="py-3 px-4">Company & Contact</th>
-                    <th className="py-3 px-4">Contact Info</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Overview</th>
-                    <th className="py-3 px-4">Applied</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {supplierApps.map((app) => (
-                    <tr
-                      key={app.id}
-                      className="hover:bg-slate-50/60 transition-colors"
-                    >
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-navy">
-                          {app.company_name}
-                        </div>
-                        <div className="text-[11px] text-gray-500">
-                          {app.contact_person}
-                          {app.job_title ? ` (${app.job_title})` : ""}
-                        </div>
-                        {app.website && (
-                          <a
-                            href={
-                              app.website.startsWith("http")
-                                ? app.website
-                                : `https://${app.website}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 mt-0.5"
-                          >
-                            <span>Website</span>
-                            <span className="material-symbols-outlined text-[10px]!">
-                              open_in_new
-                            </span>
-                          </a>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div>
-                          <a
-                            href={`mailto:${app.email}`}
-                            className="text-navy hover:underline font-medium"
-                          >
-                            {app.email}
-                          </a>
-                        </div>
-                        <div className="text-[11px] text-gray-500">
-                          {app.phone}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-medium text-[11px]">
-                          {app.category}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 max-w-xs truncate text-gray-600">
-                        {app.overview}
-                      </td>
-                      <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
-                        {formatDate(app.created_at)}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
-                            app.status,
-                          )}`}
-                        >
-                          {app.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleOpenSupplierModal(app)}
-                            className="px-2.5 py-1 text-xs font-semibold text-navy bg-navy/5 hover:bg-navy/10 rounded-md transition-colors cursor-pointer"
-                          >
-                            View
-                          </button>
-                          {canWriteInquiries && (
-                            <button
-                              onClick={() =>
-                                setItemToDelete({
-                                  id: app.id,
-                                  type: "supplier",
-                                  name: app.company_name,
-                                })
-                              }
-                              className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
-                              title="Delete"
-                            >
-                              <span className="material-symbols-outlined text-base">
-                                delete
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
+              <>
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
+                    <tr>
+                      <th className="py-3 px-4">Company & Contact</th>
+                      <th className="py-3 px-4">Contact Info</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Overview</th>
+                      <th className="py-3 px-4">Applied</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginatedSupplierApps.map((app) => (
+                      <tr
+                        key={app.id}
+                        className="hover:bg-slate-50/60 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-navy">
+                            {app.company_name}
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {app.contact_person}
+                            {app.job_title ? ` (${app.job_title})` : ""}
+                          </div>
+                          {app.website && (
+                            <a
+                              href={
+                                app.website.startsWith("http")
+                                  ? app.website
+                                  : `https://${app.website}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 mt-0.5"
+                            >
+                              <span>Website</span>
+                              <span className="material-symbols-outlined text-[10px]!">
+                                open_in_new
+                              </span>
+                            </a>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div>
+                            <a
+                              href={`mailto:${app.email}`}
+                              className="text-navy hover:underline font-medium"
+                            >
+                              {app.email}
+                            </a>
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {app.phone}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-medium text-[11px]">
+                            {app.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 max-w-xs truncate text-gray-600">
+                          {app.overview}
+                        </td>
+                        <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
+                          {formatDate(app.created_at)}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
+                              app.status,
+                            )}`}
+                          >
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenSupplierModal(app)}
+                              className="px-2.5 py-1 text-xs font-semibold text-navy bg-navy/5 hover:bg-navy/10 rounded-md transition-colors cursor-pointer"
+                            >
+                              View
+                            </button>
+                            {canWriteInquiries && (
+                              <button
+                                onClick={() =>
+                                  setItemToDelete({
+                                    id: app.id,
+                                    type: "supplier",
+                                    name: app.company_name,
+                                  })
+                                }
+                                className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors cursor-pointer"
+                                title="Delete"
+                              >
+                                <span className="material-symbols-outlined text-base">
+                                  delete
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <AdminPagination
+                  currentPage={supplierPage}
+                  totalPages={totalSupplierPages}
+                  totalItems={totalSupplierApps}
+                  pageSize={supplierPageSize}
+                  onPageChange={setSupplierPage}
+                  onPageSizeChange={(newSize) => {
+                    setSupplierPageSize(newSize);
+                    setSupplierPage(1);
+                  }}
+                  itemLabel="applications"
+                />
+              </>
             )}
           </div>
         )}
